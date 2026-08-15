@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/files",
+	"version": "0.1.0",
+	"title": "Files",
+	"category": "widgets",
+	"icon": "media-default",
+	"description": "Everything this person can download, with a search and a type filter.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"detail": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": false,
+		"multiple": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php"
+}

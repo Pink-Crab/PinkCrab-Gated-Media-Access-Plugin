@@ -1,0 +1,162 @@
+// =============================================================================
+// Base
+//
+// The root scope, the type roles from §2, and the handful of layout primitives
+// §6 explicitly says are *not* components.
+//
+// Everything is nested inside `.gatedmedia`. This is a plugin on someone else's
+// site: it does not get to restyle their page, and a bare element selector
+// would do exactly that.
+// =============================================================================
+
+@use "mixins" as *;
+
+.gatedmedia {
+	box-sizing: border-box;
+	font-family: var(--gatedmedia-font);
+	color: var(--gatedmedia-on-surface);
+	@include body-main;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: inherit;
+	}
+
+	// A class that sets `display` beats the UA rule for [hidden]. Restore it,
+	// or every JS-toggled element stays on screen.
+	[hidden] {
+		display: none !important;
+	}
+
+	// §6.3 — focus, everywhere. ":focus-visible" so a mouse click on a button
+	// leaves no ring, while keyboard and assistive technology still get one.
+	a,
+	button,
+	input,
+	select,
+	textarea,
+	[tabindex] {
+		&:focus-visible {
+			@include focus-ring;
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §5 — muting.
+//
+// Done with opacity rather than a second grey, which is what lets it survive
+// being dropped into a theme whose colours we do not control. Three settled
+// meanings, written as states so a component needs no variant per reason.
+// -----------------------------------------------------------------------------
+
+.gatedmedia {
+	.is-inactive {
+		opacity: var(--gatedmedia-mute-inactive);
+	}
+
+	.is-spent {
+		opacity: var(--gatedmedia-mute-spent);
+	}
+
+	.is-unavailable {
+		opacity: var(--gatedmedia-mute-unavailable);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §2 — the type roles, as classes.
+//
+// None carry margin. Spacing between blocks belongs to whatever is stacking
+// them (§1), and an inherited theme margin on a heading would fight the scale.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-heading {
+	margin: 0;
+
+	// The page title, 32px/700. Used where the theme is not supplying it.
+	&--page {
+		@include h1;
+	}
+
+	// A row title — a file, an order, a group.
+	&--row {
+		@include h4-row;
+	}
+}
+
+.gatedmedia-text {
+	margin: 0;
+	@include body-main;
+
+	// The muted second line: file type, size, date, expiry.
+	&--meta {
+		@include meta-secondary;
+	}
+
+	// Footnotes, and the small uppercase labels.
+	&--small {
+		@include xs;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Layout primitives. §6 names two things that look like components and are not:
+// the page header, and the hairline. Both are plain layout and live here.
+// -----------------------------------------------------------------------------
+
+// §4 — a hairline standing alone as a divider.
+.gatedmedia-rule {
+	border: 0;
+	border-top: var(--gatedmedia-hairline);
+	margin: var(--gatedmedia-lg) 0;
+}
+
+// Vertical rhythm, on the §1 scale. `md` is the resting state.
+.gatedmedia-stack {
+	> * + * {
+		margin-top: var(--gatedmedia-md);
+	}
+
+	&--tight > * + * {
+		margin-top: var(--gatedmedia-sm);
+	}
+
+	&--block > * + * {
+		margin-top: var(--gatedmedia-lg);
+	}
+
+	&--section > * + * {
+		margin-top: var(--gatedmedia-xl);
+	}
+}
+
+// Matches core's .screen-reader-text, so it behaves identically in wp-admin.
+.gatedmedia-visually-hidden {
+	@include visually-hidden;
+}
+
+// -----------------------------------------------------------------------------
+// Icons.
+//
+// ui-spec.md §9 left delivery open between a webfont and inline SVG. Inline
+// SVG, from a sprite: a plugin distributed to other people's sites has no
+// business fetching a font from a third party on their visitors' behalf.
+//
+// 20px in navigation, 16px in meta lines, per §9.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-icon {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	fill: currentColor;
+	vertical-align: middle;
+
+	&--small {
+		width: 16px;
+		height: 16px;
+	}
+}

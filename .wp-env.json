@@ -1,0 +1,25 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/wp-env.json",
+	"core": null,
+	"phpVersion": "8.3",
+	"port": 8931,
+	"testsPort": 8932,
+	"plugins": [
+		".",
+		"https://github.com/a8cteam51/restrict-media-file-access/releases/download/v1.4.2/restrict-media-file-access.zip"
+	],
+	"config": {
+		"WP_DEBUG": true,
+		"WP_DEBUG_LOG": true,
+		"WP_DEBUG_DISPLAY": false,
+		"SCRIPT_DEBUG": true,
+		"WP_ENVIRONMENT_TYPE": "local"
+	},
+	"env": {
+		"tests": {
+			"config": {
+				"WP_DEBUG_DISPLAY": true
+			}
+		}
+	}
+}

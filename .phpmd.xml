@@ -4,8 +4,19 @@
 
 	<!-- Extend the shared Pink-Crab qa-configs ruleset. -->
 	<rule ref="./vendor/pink-crab/qa-configs/quality-assurance/phpmd.dist.xml">
-		<!-- Add per-project exclusions here, e.g.: -->
-		<!-- <exclude name="CyclomaticComplexity"/> -->
+		<!--
+			WordPress route handlers must halt.
+
+			`wp_safe_redirect()` that does not exit carries on and emits a body
+			alongside the Location header; a template takeover that returns
+			lets the theme append its own document to ours. Both are bugs, so
+			the exits are required rather than tolerated.
+
+			Excluded here rather than with @SuppressWarnings on each method,
+			because PHPStan rejects that tag's value and the two tools then
+			cannot both pass.
+		-->
+		<exclude name="ExitExpression"/>
 	</rule>
 
 	<!-- Paths excluded from scanning. -->

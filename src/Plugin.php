@@ -12,6 +12,10 @@ namespace PinkCrab\Gated_Access;
 use Dice\Dice;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
+use PinkCrab\Gated_Access\Assets\Asset_Loader;
+use PinkCrab\Gated_Access\Blocks\Block_Registrar;
+use PinkCrab\Gated_Access\Account\Account_Route;
+use PinkCrab\Gated_Access\Account\Profile_Writer;
 
 /**
  * Builds every service through the container and attaches their hooks in one
@@ -33,6 +37,10 @@ class Plugin {
 	 * @var array<class-string>
 	 */
 	private const SERVICES = array(
+		Asset_Loader::class,
+		Block_Registrar::class,
+		Account_Route::class,
+		Profile_Writer::class,
 		Settings_Page::class,
 	);
 

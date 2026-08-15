@@ -14,8 +14,14 @@
 # Working files — design docs and third-party reference clones.
 /_temp/
 
-# Block build output (src/blocks → build/blocks via wp-scripts). Never committed.
+# Asset build output, via wp-scripts. Never committed.
+# blocks/ → build/blocks, assets/js → build/js, assets/scss → build/css.
 /build/
+
+# Playwright output — reports, traces and failure screenshots.
+/test-results/
+/playwright-report/
+/blob-report/
 
 # OS.
 .DS_Store

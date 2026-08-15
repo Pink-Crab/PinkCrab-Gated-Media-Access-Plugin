@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/my-access",
+	"version": "0.1.0",
+	"title": "My Access",
+	"category": "widgets",
+	"icon": "lock",
+	"description": "Everything this person can see — groups, posts and files — with the expiry on each.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"detail": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": false,
+		"multiple": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php"
+}

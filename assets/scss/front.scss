@@ -1,0 +1,17 @@
+// =============================================================================
+// Front end — build/css/front.css
+//
+// Loaded on the plugin's own account route, and by any block that renders one
+// of the §7 views. Enqueued conditionally: nothing here reaches a page that is
+// not rendering one of our views.
+//
+// Third-party sections added through `gatedmedia_account_sections` render
+// inside our shell, so they get this stylesheet and are expected to build from
+// the §6 components below. That makes the component layer a public contract —
+// the view layer beneath it is ours.
+// =============================================================================
+
+@use "tokens";
+@use "base";
+@use "components";
+@use "views";
