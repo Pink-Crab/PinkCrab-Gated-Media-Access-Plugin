@@ -1,0 +1,96 @@
+{
+	"name": "pinkcrab/gated-media-access",
+	"type": "wordpress-plugin",
+	"description": "Gated access to documents, media and posts. Access is granted by on-site payment, by an administrator, or by webhook.",
+	"homepage": "https://github.com/Pink-Crab/gated-media-access",
+	"license": "GPL-3.0-or-later",
+	"authors": [
+		{
+			"name": "Glynn Quelch",
+			"email": "glynn.quelch@gmail.com",
+			"homepage": "https://github.com/Pink-Crab"
+		}
+	],
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/Pink-Crab/qa-configs"
+		},
+		{
+			"type": "vcs",
+			"url": "git@github.com:Pink-Crab/PHPScoper-Helper.git"
+		},
+		{
+			"type": "composer",
+			"url": "https://wpackagist.org"
+		}
+	],
+	"require": {
+		"php": ">=8.3",
+		"ext-json": "*",
+		"gin0115/dice": "^4.1",
+		"pinkcrab/hook-loader": "^1.3",
+		"stripe/stripe-php": "^21.2"
+	},
+	"require-dev": {
+		"pink-crab/qa-configs": "^1.0",
+		"phpunit/phpunit": "^9.0",
+		"wp-phpunit/wp-phpunit": "6.9.*",
+		"roots/wordpress": "6.9.*",
+		"yoast/phpunit-polyfills": "^2.0",
+		"php-stubs/wordpress-stubs": "6.9.*",
+		"gin0115/wpunit-helpers": "~1",
+		"vlucas/phpdotenv": "^5.4",
+		"roave/security-advisories": "dev-latest",
+		"humbug/php-scoper": "^0.18",
+		"pinkcrab/php-scoper-helper": "dev-main",
+		"symfony/yaml": "^8.1",
+		"pinkcrab/restrict-media-file-access_stubs": "^1.3"
+	},
+	"autoload": {
+		"psr-4": {
+			"PinkCrab\\Gated_Access\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"PinkCrab\\Gated_Access\\Tests\\": "tests/"
+		}
+	},
+	"scripts": {
+		"lint:php": [
+			"@lint:php:phpcs",
+			"@lint:php:phpstan",
+			"@lint:php:phpmd"
+		],
+		"lint:php:phpcs": "phpcs --standard=./.phpcs.xml --basepath=. ./ -v",
+		"lint:php:phpstan": "phpstan analyse -c ./.phpstan.neon -v --memory-limit=2G",
+		"lint:php:phpmd": "phpmd ./ ansi ./.phpmd.xml -v",
+		"format:php": "phpcbf --standard=./.phpcs.xml --basepath=. ./ -v",
+		"test": "vendor/bin/phpunit --colors=always --testdox",
+		"coverage": "vendor/bin/phpunit --colors=always --testdox --coverage-clover clover.xml",
+		"packages-install": "@composer install --ignore-platform-reqs --no-interaction",
+		"packages-update": [
+			"@composer clear-cache",
+			"@composer update --prefer-stable --ignore-platform-reqs --no-interaction"
+		]
+	},
+	"config": {
+		"allow-plugins": {
+			"composer/*": true,
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true,
+			"roots/wordpress-core-installer": true
+		},
+		"vendor-dir": "vendor"
+	},
+	"minimum-stability": "beta",
+	"prefer-stable": true,
+	"extra": {
+		"installer-paths": {
+			"vendor/wpackagist-plugin/{$name}/": [
+				"type:wordpress-plugin"
+			]
+		}
+	}
+}

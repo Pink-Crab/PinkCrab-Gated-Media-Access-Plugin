@@ -1,0 +1,22 @@
+includes:
+    - vendor/pink-crab/qa-configs/quality-assurance/phpstan.dist.neon
+
+parameters:
+    bootstrapFiles:
+        - type-defs.php
+    scanFiles:
+        # restrict-media-file-access is a hard runtime dependency but installs
+        # as its own plugin, so its symbols are outside our autoload.
+        - vendor/pinkcrab/restrict-media-file-access_stubs/restrict-media-file-access_stubs.php
+    # House convention: static analysis covers shipped code only — tests are
+    # exercised by phpunit, not phpstan.
+    paths:
+        - src
+        - gated-media-access.php
+    excludePaths:
+        - vendor
+        - node_modules (?)
+        - wordpress (?)
+        - build (?)
+        - dist (?)
+        - _temp (?)

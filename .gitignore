@@ -1,0 +1,37 @@
+# Composer.
+/vendor/
+
+# Node.
+/node_modules/
+
+# Test artifacts.
+/wordpress/
+/clover.xml
+/coverage-report/
+/.phpunit.result.cache
+/tests/.env
+
+# Working files — design docs and third-party reference clones.
+/_temp/
+
+# Block build output (src/blocks → build/blocks via wp-scripts). Never committed.
+/build/
+
+# OS.
+.DS_Store
+Thumbs.db
+
+# Editor / IDE.
+.idea/
+.vscode/*
+!.vscode/settings.shared.json
+.claude/
+*.swp
+*.swo
+
+# Logs.
+*.log
+
+# Build output (composer build → dist/, with temp `_build.XXXXXX` work dirs).
+/dist/
+/_build.*/
