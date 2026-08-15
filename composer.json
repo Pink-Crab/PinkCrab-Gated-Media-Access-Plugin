@@ -17,10 +17,6 @@
 			"url": "https://github.com/Pink-Crab/qa-configs"
 		},
 		{
-			"type": "vcs",
-			"url": "git@github.com:Pink-Crab/PHPScoper-Helper.git"
-		},
-		{
 			"type": "composer",
 			"url": "https://wpackagist.org"
 		}
@@ -42,9 +38,6 @@
 		"gin0115/wpunit-helpers": "~1",
 		"vlucas/phpdotenv": "^5.4",
 		"roave/security-advisories": "dev-latest",
-		"humbug/php-scoper": "^0.18",
-		"pinkcrab/php-scoper-helper": "dev-main",
-		"symfony/yaml": "^8.1",
 		"pinkcrab/restrict-media-file-access_stubs": "^1.3"
 	},
 	"autoload": {

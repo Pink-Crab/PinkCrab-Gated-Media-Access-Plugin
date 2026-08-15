@@ -2,6 +2,13 @@ includes:
     - vendor/pink-crab/qa-configs/quality-assurance/phpstan.dist.neon
 
 parameters:
+    # johnbillion/wp-compat reads `Requires at least` to date-check hooks. Left
+    # to itself it looks for <cwd>/<basename of cwd>.php, which only resolves
+    # when the checkout directory happens to share the plugin's name — it does
+    # locally, but not in a runner worktree. Name the file instead.
+    WPCompat:
+        pluginFile: %currentWorkingDirectory%/gated-media-access.php
+
     bootstrapFiles:
         - type-defs.php
     scanFiles:

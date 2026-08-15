@@ -17,22 +17,27 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: 'root'
           MYSQL_DATABASE: wordpress_test
-        # No `ports:` mapping — publishing 3306 on the host serialises the
-        # whole run. The service is reached by name on the job network.
+        # This publishes a host port, which takes the runner's global lock and
+        # serialises the run. It is not a preference: act starts the job
+        # container with network="host" while services sit on the job's bridge
+        # network, so `mysql-service` has no DNS from inside the job. A
+        # published port on 127.0.0.1 is the only route to it.
+        ports:
+          - 3306:3306
         options: >-
           --health-cmd="healthcheck.sh --connect || mysqladmin ping -uroot -proot"
           --health-interval=10s
           --health-timeout=10s
           --health-retries=10
 
-    # tests/wp-config.php reads these. The source set `environment_github: true`
-    # instead, which hardcodes DB_HOST to 127.0.0.1 — that cannot reach the
-    # service now the host port binding is gone.
+    # tests/wp-config.php reads these. The host is 127.0.0.1 because the job
+    # container is on the host network and reaches mysql through the published
+    # port above, not by service name.
     env:
       WP_DB_NAME: wordpress_test
       WP_DB_USER: root
       WP_DB_PASS: root
-      WP_DB_HOST: mysql-service
+      WP_DB_HOST: 127.0.0.1
 
     steps:
       - name: Checkout
@@ -46,13 +51,9 @@ jobs:
       - name: Validate composer.json
         run: composer validate --no-check-publish
 
-      # php-scoper-helper resolves over SSH (git@github.com). Dropping both
-      # scoper packages keeps the runner from needing a deploy key — the same
-      # thing the source workflow did.
+      # Every dependency resolves over https, so the runner needs no key.
       - name: Install dependencies
-        run: >
-          composer remove humbug/php-scoper pinkcrab/php-scoper-helper --dev --no-update
-          && composer update --no-cache --no-interaction --no-progress
+        run: composer install --no-interaction --no-progress
 
       - name: phpcs
         run: composer lint:php:phpcs
