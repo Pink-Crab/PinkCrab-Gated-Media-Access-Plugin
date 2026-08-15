@@ -18,9 +18,9 @@ declare( strict_types = 1 );
 // via the roots/wordpress-core-installer composer plugin).
 define( 'ABSPATH', dirname( __DIR__ ) . '/wordpress/' );
 
-// Point at the REAL plugins dir so activate_plugin() in tests/bootstrap.php
-// resolves this plugin's on-disk location — not the wp-phpunit install's
-// empty plugins folder. tests/ -> plugin root -> wp-content/plugins.
+// The directory this plugin sits in. Nothing is resolved by slug — the
+// bootstrap requires the plugin file by path — so this only needs to be a
+// real directory, which it is wherever the checkout lands.
 define( 'WP_PLUGIN_DIR', dirname( __DIR__, 2 ) );
 
 // Database. CI vs local split: the CI workflows export `environment_github=true`

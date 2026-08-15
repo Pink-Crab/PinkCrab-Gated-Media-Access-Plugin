@@ -47,28 +47,19 @@ if ( ! is_dir( $_phpunit_dir ) ) {
 
 require_once $_phpunit_dir . '/includes/functions.php';
 
-// Activate the plugin during WP's load sequence so it boots and registers
-// before any test method runs.
+// Load the plugin during WP's load sequence so it boots and registers before
+// any test method runs.
+//
+// Required directly rather than through activate_plugin(), because that takes
+// a WP_PLUGIN_DIR-relative slug and so depends on the checkout sitting in a
+// directory named after the plugin. It does locally; on a CI runner the
+// checkout is a worktree with an arbitrary name, and the slug resolves to
+// nothing — activate_plugin() then fails silently into a WP_Error and the
+// plugin never loads.
 tests_add_filter(
 	'muplugins_loaded',
 	static function (): void {
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-		// Core's activate_plugin() → validate_plugin_requirements() →
-		// get_plugin_data( translate: true ) translates the plugin headers. At
-		// muplugins_loaded that is before init, which trips WP 6.7's
-		// _load_textdomain_just_in_time notice — core behaviour we cannot avoid
-		// when activating during the test bootstrap. Silence ONLY that notice,
-		// ONLY around this call; removed immediately after so any genuine
-		// early-translation bug in plugin code still fails loudly.
-		$jit_filter = static function ( $trigger, $function_name ) {
-			return '_load_textdomain_just_in_time' === $function_name ? false : $trigger;
-		};
-		add_filter( 'doing_it_wrong_trigger_error', $jit_filter, 10, 2 );
-
-		activate_plugin( 'gated-media-access/gated-media-access.php' );
-
-		remove_filter( 'doing_it_wrong_trigger_error', $jit_filter );
+		require_once dirname( __DIR__ ) . '/gated-media-access.php';
 	}
 );
 
