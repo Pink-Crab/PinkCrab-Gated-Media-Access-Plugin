@@ -18,10 +18,11 @@ declare( strict_types = 1 );
 // via the roots/wordpress-core-installer composer plugin).
 define( 'ABSPATH', dirname( __DIR__ ) . '/wordpress/' );
 
-// The directory this plugin sits in. Nothing is resolved by slug — the
-// bootstrap requires the plugin file by path — so this only needs to be a
-// real directory, which it is wherever the checkout lands.
-define( 'WP_PLUGIN_DIR', dirname( __DIR__, 2 ) );
+// The test install's own plugins directory — where the bootstrap unzips
+// restrict-media-file-access, and where core looks when it includes active
+// plugins. This plugin itself is not in here; the bootstrap requires it by
+// path, so nothing depends on where the checkout lands.
+define( 'WP_PLUGIN_DIR', dirname( __DIR__ ) . '/wordpress/wp-content/plugins' );
 
 // Database. CI vs local split: the CI workflows export `environment_github=true`
 // and the branch below matches the MySQL service they spin up. Locally, a
