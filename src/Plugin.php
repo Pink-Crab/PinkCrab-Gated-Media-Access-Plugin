@@ -25,6 +25,11 @@ class Plugin {
 	/**
 	 * The service classes, in boot order.
 	 *
+	 * Note the file access filter will not live here. It has to be attached
+	 * before `init` finishes — files are served on `parse_request`, before the
+	 * main query — so it is attached at plugin load and resolves its service
+	 * lazily on first call. That is the one exception to this list.
+	 *
 	 * @var array<class-string>
 	 */
 	private const SERVICES = array(
