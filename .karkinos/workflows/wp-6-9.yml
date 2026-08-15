@@ -46,13 +46,9 @@ jobs:
       - name: Validate composer.json
         run: composer validate --no-check-publish
 
-      # php-scoper-helper resolves over SSH (git@github.com). Dropping both
-      # scoper packages keeps the runner from needing a deploy key — the same
-      # thing the source workflow did.
+      # Every dependency resolves over https, so the runner needs no key.
       - name: Install dependencies
-        run: >
-          composer remove humbug/php-scoper pinkcrab/php-scoper-helper --dev --no-update
-          && composer update --no-cache --no-interaction --no-progress
+        run: composer install --no-interaction --no-progress
 
       - name: phpcs
         run: composer lint:php:phpcs
