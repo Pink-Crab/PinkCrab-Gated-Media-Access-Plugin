@@ -23,6 +23,8 @@ declare( strict_types = 1 );
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
+use Gin0115\WPUnit_Helpers\WP\WP_Dependencies;
+
 // Load tests/.env if present (silently — CI overrides via env vars).
 try {
 	\Dotenv\Dotenv::createUnsafeImmutable( __DIR__ )->safeLoad();
@@ -47,6 +49,37 @@ if ( ! is_dir( $_phpunit_dir ) ) {
 
 require_once $_phpunit_dir . '/includes/functions.php';
 
+// restrict-media-file-access is a hard runtime dependency — without it this
+// plugin refuses to boot, so the suite would only ever exercise the guard.
+//
+// It is installed from its public GitHub release rather than through composer,
+// because the git tag ships no vendor/ directory: its main file bails at
+// `if ( ! is_file( … . '/vendor/autoload.php' ) ) { … return; }` before
+// requiring functions.php, so the rmfa_* functions never exist. The release
+// zip is a built artifact and does include vendor/.
+define( 'TEST_WP_ROOT', dirname( __DIR__ ) . '/wordpress' );
+// No directory prefix: the release zip has no top-level folder, so it unpacks
+// straight into wp-content/plugins/ and the main file sits at its root.
+define( 'GATEDMEDIA_TEST_DEPENDENCY', 'restrict-media-file-access.php' );
+
+// roots/wordpress-no-content ships without wp-content/plugins, and
+// ZipArchive::extractTo() will not create it.
+if ( ! is_dir( TEST_WP_ROOT . '/wp-content/plugins' ) ) {
+	mkdir( TEST_WP_ROOT . '/wp-content/plugins', 0777, true );
+}
+
+if ( ! WP_Dependencies::plugin_installed( GATEDMEDIA_TEST_DEPENDENCY, TEST_WP_ROOT ) ) {
+	try {
+		WP_Dependencies::install_remote_plugin_from_zip(
+			'https://github.com/a8cteam51/restrict-media-file-access/releases/download/v1.4.2/restrict-media-file-access.zip',
+			TEST_WP_ROOT
+		);
+	} catch ( \Throwable $th ) {
+		fwrite( STDERR, "ERROR: could not install restrict-media-file-access.\n" . $th->getMessage() . "\n" );
+		exit( 1 );
+	}
+}
+
 // Load the plugin during WP's load sequence so it boots and registers before
 // any test method runs.
 //
@@ -59,6 +92,15 @@ require_once $_phpunit_dir . '/includes/functions.php';
 tests_add_filter(
 	'muplugins_loaded',
 	static function (): void {
+		// Activating here rather than requiring the file: wp-settings.php
+		// includes active plugins immediately after this action, so core loads
+		// the dependency itself, running its activation path as it would in
+		// production.
+		WP_Dependencies::activate_plugin( GATEDMEDIA_TEST_DEPENDENCY );
+
+		// Ours is required by path — it lives outside WP_PLUGIN_DIR, and its
+		// guard runs later on plugins_loaded, by which point core has included
+		// the dependency above.
 		require_once dirname( __DIR__ ) . '/gated-media-access.php';
 	}
 );
