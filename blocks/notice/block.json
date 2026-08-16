@@ -1,0 +1,100 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/notice",
+	"version": "0.1.0",
+	"title": "Notice",
+	"category": "widgets",
+	"icon": "warning",
+	"description": "ui-spec.md §6.4. Information, error or success. Tinted, with an optional dismiss.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"kind": {
+			"type": "string",
+			"default": "info",
+			"enum": [
+				"info",
+				"error",
+				"success"
+			]
+		},
+		"text": {
+			"type": "string",
+			"default": ""
+		},
+		"dismissible": {
+			"type": "boolean",
+			"default": false
+		},
+		"icon": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"variations": [
+		{
+			"name": "info",
+			"title": "Information notice",
+			"description": "Neutral. Tells someone something.",
+			"icon": "info-outline",
+			"attributes": {
+				"kind": "info"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"kind"
+			]
+		},
+		{
+			"name": "error",
+			"title": "Error notice",
+			"description": "Something failed. Red border and red text.",
+			"icon": "warning",
+			"attributes": {
+				"kind": "error"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"kind"
+			]
+		},
+		{
+			"name": "success",
+			"title": "Success notice",
+			"description": "Something worked.",
+			"icon": "yes-alt",
+			"attributes": {
+				"kind": "success"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"kind"
+			]
+		}
+	],
+	"example": {
+		"attributes": {
+			"kind": "info",
+			"text": "Your profile is incomplete."
+		}
+	}
+}

@@ -10,7 +10,7 @@
 import { all } from '../shared/dom';
 
 /**
- * @param {ParentNode} scope Where to look for notices.
+ * @param {Document|Element} scope Where to look for notices.
  */
 export default function initNotices( scope ) {
 	all( '.gatedmedia-notice__dismiss', scope ).forEach( ( button ) => {

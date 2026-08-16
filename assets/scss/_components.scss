@@ -157,6 +157,9 @@
 		@include narrow {
 			display: block;
 
+			// The button sits inside its own block-level host, so both have to
+			// fill the row for the full-width action §7.1 specifies.
+			.gatedmedia-inline-host,
 			.gatedmedia-button {
 				width: 100%;
 			}
@@ -729,6 +732,8 @@ textarea.gatedmedia-field__input {
 		border-top: var(--gatedmedia-hairline);
 		z-index: 50;
 
+		// The bar holds one button, inside its own block-level host.
+		.gatedmedia-inline-host,
 		.gatedmedia-button {
 			width: 100%;
 		}

@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/summary",
+	"version": "0.1.0",
+	"title": "Summary",
+	"category": "widgets",
+	"icon": "editor-ul",
+	"description": "ui-spec.md §6.16. The one-line form of the contents list.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"counts": {
+			"type": "array",
+			"default": [],
+			"items": {
+				"type": "object"
+			}
+		},
+		"text": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"text": "12 files, 1 post"
+		}
+	}
+}

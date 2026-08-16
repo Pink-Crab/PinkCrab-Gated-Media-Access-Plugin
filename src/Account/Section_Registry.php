@@ -9,6 +9,11 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Account;
 
+use PinkCrab\Gated_Access\Account\Sections\Files_Section;
+use PinkCrab\Gated_Access\Account\Sections\Orders_Section;
+use PinkCrab\Gated_Access\Account\Sections\Profile_Section;
+use PinkCrab\Gated_Access\Account\Sections\My_Access_Section;
+
 /**
  * Builds the four sections we ship and hands the collection to
  * `gatedmedia_account_sections`.
@@ -69,48 +74,24 @@ class Section_Registry {
 	}
 
 	/**
-	 * The four from ui-spec.md §7, spaced in tens so a third party can land
-	 * between any two without renumbering ours.
+	 * The four from ui-spec.md §7, each its own implementation of
+	 * Account_Section.
+	 *
+	 * Classes rather than `Section` value objects, and deliberately: the
+	 * interface is the contract we ask third parties to write against, so ours
+	 * being the first things to implement it is what proves it sufficient.
+	 * A page that needs behaviour of its own — Profile knowing whether it is
+	 * incomplete — then has somewhere to put it.
+	 *
+	 * Positions are spaced in tens so a third party can land between any two
+	 * without renumbering ours.
 	 */
 	private function defaults(): Section_Collection {
 		return new Section_Collection(
-			new Section(
-				slug: 'my-access',
-				title: __( 'My Access', 'gated-media-access' ),
-				menu_label: __( 'My Access', 'gated-media-access' ),
-				block: self::BLOCK_NAMESPACE . '/my-access',
-				position: 10,
-				// §7.1 is drawn with no sub-line. Deliberately empty.
-				description: '',
-				icon: 'i-access',
-			),
-			new Section(
-				slug: 'files',
-				title: __( 'Files', 'gated-media-access' ),
-				menu_label: __( 'Files', 'gated-media-access' ),
-				block: self::BLOCK_NAMESPACE . '/files',
-				position: 20,
-				description: __( 'Everything you can download.', 'gated-media-access' ),
-				icon: 'i-files',
-			),
-			new Section(
-				slug: 'orders',
-				title: __( 'Orders', 'gated-media-access' ),
-				menu_label: __( 'Orders', 'gated-media-access' ),
-				block: self::BLOCK_NAMESPACE . '/orders',
-				position: 30,
-				description: __( 'What you have taken, and when.', 'gated-media-access' ),
-				icon: 'i-orders',
-			),
-			new Section(
-				slug: 'profile',
-				title: __( 'Profile', 'gated-media-access' ),
-				menu_label: __( 'Profile', 'gated-media-access' ),
-				block: self::BLOCK_NAMESPACE . '/profile',
-				position: 40,
-				description: __( 'Your details.', 'gated-media-access' ),
-				icon: 'i-profile',
-			),
+			new My_Access_Section(),
+			new Files_Section(),
+			new Orders_Section(),
+			new Profile_Section(),
 		);
 	}
 }

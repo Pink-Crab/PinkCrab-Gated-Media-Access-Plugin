@@ -1,0 +1,60 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/account-nav",
+	"version": "0.1.0",
+	"title": "Account nav",
+	"category": "widgets",
+	"icon": "menu-alt",
+	"description": "ui-spec.md §6.1. The sidebar column, or the scrolling tab strip below 782px.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"items": {
+			"type": "array",
+			"default": [],
+			"items": {
+				"type": "object"
+			}
+		},
+		"variant": {
+			"type": "string",
+			"default": "sidebar",
+			"enum": [
+				"sidebar",
+				"tabs"
+			]
+		},
+		"label": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"variant": "sidebar",
+			"items": [
+				{
+					"label": "My Access",
+					"href": "#",
+					"icon": "i-access",
+					"active": true
+				},
+				{
+					"label": "Files",
+					"href": "#",
+					"icon": "i-files"
+				}
+			]
+		}
+	}
+}

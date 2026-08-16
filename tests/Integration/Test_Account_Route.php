@@ -14,6 +14,7 @@ use PinkCrab\Gated_Access\Account\Account_Route;
 use PinkCrab\Gated_Access\Account\Account_Renderer;
 use PinkCrab\Gated_Access\Account\Section_Registry;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
+use PinkCrab\Gated_Access\Blocks\Sprite;
 
 /**
  * The routing half of the account area: that the catch-all rule resolves every
@@ -131,7 +132,8 @@ class Test_Account_Route extends WP_UnitTestCase {
 		( new Account_Route(
 			new Section_Registry(),
 			new Account_Renderer(),
-			new Asset_Loader()
+			new Asset_Loader(),
+			new Sprite()
 		) )->register_rewrites();
 		$wp_rewrite->flush_rules();
 

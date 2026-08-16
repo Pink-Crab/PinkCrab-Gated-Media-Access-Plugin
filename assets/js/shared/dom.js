@@ -16,7 +16,9 @@
  */
 export function onReady( callback ) {
 	if ( document.readyState === 'loading' ) {
-		document.addEventListener( 'DOMContentLoaded', callback, { once: true } );
+		document.addEventListener( 'DOMContentLoaded', callback, {
+			once: true,
+		} );
 		return;
 	}
 
@@ -26,8 +28,8 @@ export function onReady( callback ) {
 /**
  * querySelectorAll as a real array.
  *
- * @param {string}      selector CSS selector.
- * @param {ParentNode}  scope    Defaults to document.
+ * @param {string}           selector CSS selector.
+ * @param {Document|Element} scope    Defaults to document.
  * @return {Element[]} Matching elements.
  */
 export function all( selector, scope = document ) {

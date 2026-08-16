@@ -14,6 +14,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
 use PinkCrab\Gated_Access\Blocks\Block_Registrar;
+use PinkCrab\Gated_Access\Blocks\Sprite;
 use PinkCrab\Gated_Access\Account\Account_Route;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
 
@@ -39,6 +40,7 @@ class Plugin {
 	private const SERVICES = array(
 		Asset_Loader::class,
 		Block_Registrar::class,
+		Sprite::class,
 		Account_Route::class,
 		Profile_Writer::class,
 		Settings_Page::class,
@@ -49,7 +51,12 @@ class Plugin {
 	 * everything to WordPress in one pass.
 	 */
 	public function boot(): void {
-		$container = new Dice();
+		// Shared by default, which for a list of services is the only sane
+		// reading: without it Dice hands out a fresh instance per resolution,
+		// so a service holding state — the sprite knowing it has been asked
+		// for, the registry memoising the section list — would be answering
+		// about an object nobody else has.
+		$container = ( new Dice() )->addRule( '*', array( 'shared' => true ) );
 		$loader    = new Hook_Loader();
 
 		foreach ( self::SERVICES as $service ) {

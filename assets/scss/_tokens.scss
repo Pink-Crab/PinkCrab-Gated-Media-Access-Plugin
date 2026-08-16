@@ -26,8 +26,20 @@ $breakpoint-mobile: 782px;
 // -----------------------------------------------------------------------------
 // Runtime. Scoped to .gatedmedia so we never leak into the theme.
 // -----------------------------------------------------------------------------
+//
+// Declared on the document, not on `.gatedmedia`.
+//
+// Scoping them to the wrapper looked tidier and was wrong: a component is a
+// block, so one can be placed on any page, and in the editor each is rendered
+// on its own with no wrapper at all. Tokens that only exist inside the account
+// shell leave every such component unstyled — transparent buttons, 16px where
+// 44px was specified.
+//
+// `:where()` keeps the specificity at zero, so a theme or a host page can
+// still override any of these without a fight.
+// -----------------------------------------------------------------------------
 
-.gatedmedia {
+:where( :root ) {
 	// §1 — the spacing scale. Six steps, all multiples of the 4px unit.
 	--gatedmedia-xs: 4px; // icon to label; title to the line under it
 	--gatedmedia-sm: 8px; // related controls; label to input

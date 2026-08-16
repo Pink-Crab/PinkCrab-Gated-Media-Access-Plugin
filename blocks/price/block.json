@@ -1,0 +1,45 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/price",
+	"version": "0.1.0",
+	"title": "Price",
+	"category": "widgets",
+	"icon": "money-alt",
+	"description": "ui-spec.md §6.7. The inline price in a row. Zero renders as Free.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"amount": {
+			"type": "integer",
+			"default": 0
+		},
+		"original": {
+			"type": "integer",
+			"default": 0
+		},
+		"currency": {
+			"type": "string",
+			"default": "GBP"
+		},
+		"notApplicable": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"amount": 3675,
+			"original": 4900
+		}
+	}
+}

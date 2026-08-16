@@ -14,6 +14,7 @@ use WP_Query;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
+use PinkCrab\Gated_Access\Blocks\Sprite;
 
 /**
  * Puts the account area on a URL of its own.
@@ -81,11 +82,13 @@ class Account_Route implements Hookable {
 	 * @param Section_Registry $registry The section list.
 	 * @param Account_Renderer $renderer Draws the shell.
 	 * @param Asset_Loader     $assets   Supplies the front bundle.
+	 * @param Sprite           $sprite   Prints the icon symbols.
 	 */
 	public function __construct(
 		private Section_Registry $registry,
 		private Account_Renderer $renderer,
 		private Asset_Loader $assets,
+		private Sprite $sprite,
 	) {
 	}
 
@@ -228,7 +231,10 @@ class Account_Route implements Hookable {
 		remove_filter( 'the_content', 'wpautop' );
 
 		$this->assets->enqueue_front();
-		add_action( 'wp_footer', array( $this->renderer, 'sprite' ) );
+		// The shell draws its navigation before the loop, so nothing has passed
+		// through render_block by the time the footer runs — the sprite has to
+		// be asked for explicitly here.
+		$this->sprite->require_sprite();
 
 		return array( $this->virtual_post( $this->current ) );
 	}

@@ -1,0 +1,125 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/status-pill",
+	"version": "0.1.0",
+	"title": "Status pill",
+	"category": "widgets",
+	"icon": "marker",
+	"description": "ui-spec.md §6.6. Five values: complete, refunded, active, expired, revoked.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"value": {
+			"type": "string",
+			"default": "active",
+			"enum": [
+				"complete",
+				"refunded",
+				"active",
+				"expired",
+				"revoked"
+			]
+		},
+		"label": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"variations": [
+		{
+			"name": "complete",
+			"title": "Complete",
+			"description": "The order went through.",
+			"icon": "yes",
+			"attributes": {
+				"value": "complete"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		},
+		{
+			"name": "refunded",
+			"title": "Refunded",
+			"description": "Money returned. Revokes its access.",
+			"icon": "undo",
+			"attributes": {
+				"value": "refunded"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		},
+		{
+			"name": "active",
+			"title": "Active",
+			"description": "Currently usable.",
+			"icon": "marker",
+			"attributes": {
+				"value": "active"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		},
+		{
+			"name": "expired",
+			"title": "Expired",
+			"description": "Its duration ran out.",
+			"icon": "clock",
+			"attributes": {
+				"value": "expired"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		},
+		{
+			"name": "revoked",
+			"title": "Revoked",
+			"description": "Withdrawn by an administrator.",
+			"icon": "lock",
+			"attributes": {
+				"value": "revoked"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		}
+	],
+	"example": {
+		"attributes": {
+			"value": "complete"
+		}
+	}
+}

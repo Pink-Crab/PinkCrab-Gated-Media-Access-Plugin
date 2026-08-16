@@ -16,6 +16,11 @@ const baseURL = process.env.WP_BASE_URL || 'http://localhost:8931';
 
 module.exports = defineConfig( {
 	testDir: './tests/e2e',
+
+	// Builds the component fixture page. Without it the component specs pass
+	// only where that page happens to have been made by hand.
+	globalSetup: require.resolve( './tests/e2e/global-setup.js' ),
+
 	timeout: 30_000,
 	expect: { timeout: 5_000 },
 

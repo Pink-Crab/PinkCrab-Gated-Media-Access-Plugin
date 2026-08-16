@@ -1,0 +1,42 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/empty-state",
+	"version": "0.1.0",
+	"title": "Empty state",
+	"category": "widgets",
+	"icon": "info-outline",
+	"description": "ui-spec.md §6.10. One box, page level, only when the view is wholly empty.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"icon": {
+			"type": "string",
+			"default": "i-empty"
+		},
+		"title": {
+			"type": "string",
+			"default": ""
+		},
+		"message": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"title": "No files yet",
+			"message": "Files you are given access to will appear here.",
+			"icon": "i-files"
+		}
+	}
+}

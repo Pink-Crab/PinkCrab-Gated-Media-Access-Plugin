@@ -1,0 +1,56 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/coupon",
+	"version": "0.1.0",
+	"title": "Coupon field",
+	"category": "widgets",
+	"icon": "tickets-alt",
+	"description": "ui-spec.md §6.14. A labelled input paired with Apply, replaced by a confirmation once applied.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"label": {
+			"type": "string",
+			"default": ""
+		},
+		"applyLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"code": {
+			"type": "string",
+			"default": ""
+		},
+		"applied": {
+			"type": "boolean",
+			"default": false
+		},
+		"discount": {
+			"type": "string",
+			"default": ""
+		},
+		"error": {
+			"type": "string",
+			"default": ""
+		},
+		"removeHref": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"label": "Coupon code"
+		}
+	}
+}

@@ -1,26 +1,15 @@
 /**
- * Editor registration for the Profile block.
+ * Profile — ui-spec.md §7.5.
  *
- * Server rendered because the form is populated from the signed-in user, which
- * the editor cannot know about.
+ * Placeable: an administrator can put this section on a page of their own.
  */
 
 import { registerBlockType } from '@wordpress/blocks';
-import { useBlockProps } from '@wordpress/block-editor';
-import ServerSideRender from '@wordpress/server-side-render';
 
 import metadata from './block.json';
+import Edit from './edit';
 
 registerBlockType( metadata.name, {
-	edit() {
-		return (
-			<div { ...useBlockProps() }>
-				<ServerSideRender block={ metadata.name } />
-			</div>
-		);
-	},
-
-	save() {
-		return null;
-	},
+	edit: Edit,
+	save: () => null,
 } );

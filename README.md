@@ -84,14 +84,16 @@ resolve its service lazily. There is a note on `Plugin::SERVICES` saying so.
 | `gated-media-access.php` | Plugin header, constants, dependency guard, boot |
 | `src/Plugin.php` | The boot loop and the missing-dependency notice |
 | `src/Hookable.php` | `register_hooks( Hook_Loader $loader ): void` |
-| `src/Account/` | The account area — route, sections, shell, profile writer |
+| `src/Account/` | The account area — route, shell, collection, profile writer |
+| `src/Account/Sections/` | The four pages, each implementing `Account_Section` |
+| `src/Support/` | `Block` composes a block from PHP; `Money` owns the Free rule |
 | `src/Assets/Asset_Loader.php` | Registers the four bundles; enqueues none by default |
 | `src/Blocks/Block_Registrar.php` | Registers every block in `build/blocks` |
 | `src/Settings/Settings_Page.php` | Top-level menu, currently an empty page |
 | `assets/scss/` | Tokens, base, the sixteen §6 components, the §7 views |
 | `assets/js/` | `front.js`, `admin.js`, and `shared/` pulled into both |
 | `assets/icons.svg` | The icon sprite, 24 symbols, inlined into the page |
-| `blocks/<name>/` | `block.json`, `index.js`, `render.php` — one per section |
+| `blocks/<name>/` | Twenty blocks — four section views, sixteen §6 components |
 | `build/` | wp-scripts output. Gitignored, and required at runtime |
 | `webpack.config.js` | Three source trees to three destinations |
 | `.wp-env.json` | Local WordPress for e2e, on port 8931 |
@@ -157,12 +159,34 @@ WordPress route.
 A filter returning the wrong type falls back to our defaults rather than taking
 the account area down with it.
 
-### Styling
+### Components
 
-`gatedmedia-front` is the front stylesheet handle, and it is public API — a
-third-party section renders inside our shell and will declare it as a
-dependency. The sixteen components in `_temp/ui-spec.md` §6 are the vocabulary
-it provides, and they are what a section is expected to build from.
+**The sixteen components in `_temp/ui-spec.md` §6 are blocks**, one each, all
+PHP-rendered. A section composes them; it does not write markup.
+
+They are hidden from the inserter (`"inserter": false`) — composed
+programmatically rather than dragged into a post — but they are ordinary
+registered blocks in every other respect, which is what matters:
+
+- Each gets `render_block_gated-media-access/<name>` for free, so a site can
+  change how a Row draws without us inventing a filter for it.
+- Each renders through `do_blocks()`, so a component behaves identically
+  however it got onto the page.
+- Each has typed attributes covering the states §6 documents, so a state that
+  exists in the spec has a way to be asked for.
+
+`Support\Block::render( $name, $attributes, $inner )` is how server code
+composes one. Inner blocks where a component genuinely has children — Row's
+aside, Notice's body, the nav's items — attributes where it does not.
+
+```php
+Block::render( 'gated-media-access/row', array( 'title' => 'Report.pdf' ),
+    Block::render( 'gated-media-access/expiry', array( 'state' => 'soon', 'label' => '3 days' ) )
+);
+```
+
+`gatedmedia-front` is the stylesheet handle and is public API — a third-party
+section renders inside our shell and will declare it as a dependency.
 
 Everything is prefixed `gatedmedia`, in CSS as well as PHP. No abbreviations,
 because short prefixes collide.

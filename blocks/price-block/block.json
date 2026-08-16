@@ -1,0 +1,49 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/price-block",
+	"version": "0.1.0",
+	"title": "Price block",
+	"category": "widgets",
+	"icon": "tag",
+	"description": "ui-spec.md §6.13. The standalone price on a product page. Four forms.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"amount": {
+			"type": "integer",
+			"default": 0
+		},
+		"original": {
+			"type": "integer",
+			"default": 0
+		},
+		"currency": {
+			"type": "string",
+			"default": "GBP"
+		},
+		"term": {
+			"type": "string",
+			"default": ""
+		},
+		"notApplicable": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"amount": 4900,
+			"term": "One year"
+		}
+	}
+}

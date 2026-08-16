@@ -3,20 +3,24 @@
  * §7.2 Files — everything the person can download.
  *
  * The filter (§6.11) sits directly under the page header and carries a search
- * field **and** a type filter at every width: wide draws a select beside the
- * search, narrow swaps the select for chips and keeps the search. Dropping
- * search on the device most likely to have a long list is backwards, which is
- * why §8 conflict 8 settled it that way.
+ * field **and** a type filter at every width. Then three sections — available,
+ * downloading, past access — each a section heading (§6.9) over rows (§6.2).
  *
- * Then three sections — available, downloading, past access — each a section
- * heading (§6.9) over rows (§6.2). This view uses a Download **button** and
- * keeps the expiry on the right, where My Access uses a text link and folds the
- * expiry into the meta line: Files is the view where downloading is the point,
- * so it gets the heavier control.
+ * This view uses a Download **button** and keeps the expiry on the right,
+ * where My Access (§7.1) uses a text link and folds the expiry into the meta
+ * line. Files is the view where downloading is the point, so it gets the
+ * heavier control. That difference is deliberate, and is why the two views
+ * compose the same Row differently rather than sharing a wrapper.
  *
- * **The rows are not built yet** — same reason as §7.1. The resolver is step 2
- * of architecture.md §12. The filter renders because it is part of the view's
- * structure; it has nothing to filter until then.
+ * Per-section treatment, per §7.2:
+ *
+ * - **Available** — expiry, then a Download secondary button.
+ * - **Downloading** — the button is replaced by a progress indication.
+ * - **Past access** — dimmed, no action, the right side states it has gone.
+ *
+ * The rows come from the resolver (architecture.md §4), which is step 2 of §12
+ * and does not exist. The filter renders regardless because it is part of the
+ * view's structure; it has nothing to filter until then.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -27,6 +31,8 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Block;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_user_id = get_current_user_id();
@@ -35,9 +41,6 @@ if ( 0 === $gatedmedia_user_id ) {
 	return;
 }
 
-// Placeholders for the resolver's answer — annotated with the shape it will
-// return, so static analysis does not narrow them to the empty array and call
-// every branch below unreachable.
 /** @var array<int, array<string, mixed>> $gatedmedia_available */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
 $gatedmedia_available = array();
 /** @var array<int, array<string, mixed>> $gatedmedia_downloading */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
@@ -45,67 +48,141 @@ $gatedmedia_downloading = array();
 /** @var array<int, array<string, mixed>> $gatedmedia_past */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
 $gatedmedia_past = array();
 
-$gatedmedia_is_empty = array() === $gatedmedia_available
-	&& array() === $gatedmedia_downloading
-	&& array() === $gatedmedia_past;
-
-// §6.11 — the type filter. Chips on narrow, a select on wide; one list either
-// way so the two cannot drift.
+// One list of types feeds both the select and the chips, so they cannot drift.
 $gatedmedia_types = array(
-	'all'   => __( 'All', 'gated-media-access' ),
-	'pdf'   => __( 'PDF', 'gated-media-access' ),
-	'video' => __( 'Video', 'gated-media-access' ),
-	'zip'   => __( 'ZIP', 'gated-media-access' ),
-	'audio' => __( 'Audio', 'gated-media-access' ),
+	array(
+		'value' => 'all',
+		'label' => __( 'All', 'gated-media-access' ),
+	),
+	array(
+		'value' => 'pdf',
+		'label' => __( 'PDF', 'gated-media-access' ),
+	),
+	array(
+		'value' => 'video',
+		'label' => __( 'Video', 'gated-media-access' ),
+	),
+	array(
+		'value' => 'zip',
+		'label' => __( 'ZIP', 'gated-media-access' ),
+	),
+	array(
+		'value' => 'audio',
+		'label' => __( 'Audio', 'gated-media-access' ),
+	),
 );
+
+$gatedmedia_filter = Block::render(
+	'gated-media-access/filter',
+	array(
+		'searchLabel' => __( 'Search files', 'gated-media-access' ),
+		'typeLabel'   => __( 'Filter by type', 'gated-media-access' ),
+		'types'       => $gatedmedia_types,
+		'active'      => 'all',
+	)
+);
+
+/**
+ * One file row. The aside varies by which section it sits in.
+ *
+ * @param array<string, mixed> $item    One file.
+ * @param string               $section available|downloading|past.
+ */
+$gatedmedia_row = static function ( array $item, string $section ): string {
+	// Past access is dimmed and actionless — the Row's own unavailable state.
+	if ( 'past' === $section ) {
+		return Block::render(
+			'gated-media-access/row',
+			array(
+				'title'            => (string) ( $item['title'] ?? '' ),
+				'meta'             => (string) ( $item['meta'] ?? '' ),
+				'state'            => 'unavailable',
+				'unavailableLabel' => __( 'No longer available', 'gated-media-access' ),
+			)
+		);
+	}
+
+	$aside = Block::render(
+		'gated-media-access/expiry',
+		array(
+			'state' => (string) ( $item['expiry_state'] ?? 'lifetime' ),
+			'label' => (string) ( $item['expiry_label'] ?? '' ),
+		)
+	);
+
+	// Downloading replaces the button with a progress statement; the rest of
+	// the row is unchanged.
+	$aside .= 'downloading' === $section
+		? sprintf(
+			'<span class="gatedmedia-text gatedmedia-text--meta" role="status">%s</span>',
+			esc_html__( 'Downloading…', 'gated-media-access' )
+		)
+		: Block::render(
+			'gated-media-access/button',
+			array(
+				'label'   => __( 'Download', 'gated-media-access' ),
+				'href'    => (string) ( $item['href'] ?? '' ),
+				'variant' => 'secondary',
+				'icon'    => 'i-download',
+			)
+		);
+
+	return Block::render(
+		'gated-media-access/row',
+		array(
+			'title'       => (string) ( $item['title'] ?? '' ),
+			'meta'        => (string) ( $item['meta'] ?? '' ),
+			'actionLabel' => 'available' === $section ? __( 'Download', 'gated-media-access' ) : '',
+			'actionHref'  => (string) ( $item['href'] ?? '' ),
+			'actionIcon'  => 'i-download',
+		),
+		$aside
+	);
+};
+
+/**
+ * A heading over its rows, or nothing.
+ *
+ * @param string                           $heading The section label.
+ * @param array<int, array<string, mixed>> $items   Rows to draw.
+ * @param string                           $section Which section it is.
+ * @param callable                         $row     Renders one row.
+ */
+$gatedmedia_section = static function ( string $heading, array $items, string $section, callable $row ): string {
+	if ( array() === $items ) {
+		return '';
+	}
+
+	$rows = '';
+
+	foreach ( $items as $item ) {
+		$rows .= $row( $item, $section );
+	}
+
+	return '<section class="gatedmedia-section">'
+		. Block::render( 'gated-media-access/section-heading', array( 'text' => $heading ) )
+		. $rows
+		. '</section>';
+};
+
+$gatedmedia_body = $gatedmedia_section( __( 'Available', 'gated-media-access' ), $gatedmedia_available, 'available', $gatedmedia_row )
+	. $gatedmedia_section( __( 'Downloading', 'gated-media-access' ), $gatedmedia_downloading, 'downloading', $gatedmedia_row )
+	. $gatedmedia_section( __( 'Past access', 'gated-media-access' ), $gatedmedia_past, 'past', $gatedmedia_row );
+
+if ( '' === $gatedmedia_body ) {
+	$gatedmedia_body = Block::render(
+		'gated-media-access/empty-state',
+		array(
+			'icon'    => 'i-files',
+			'title'   => __( 'No files yet', 'gated-media-access' ),
+			'message' => __( 'Files you are given access to will appear here, ready to download.', 'gated-media-access' ),
+		)
+	);
+}
 ?>
 <div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-view gatedmedia-view--files' ) ) ); ?>>
-
-	<div class="gatedmedia-filter">
-		<div class="gatedmedia-filter__search gatedmedia-field">
-			<label class="gatedmedia-visually-hidden" for="gatedmedia-file-search">
-				<?php esc_html_e( 'Search files', 'gated-media-access' ); ?>
-			</label>
-			<input
-				class="gatedmedia-field__input"
-				type="search"
-				id="gatedmedia-file-search"
-				data-gatedmedia-filter="search"
-				placeholder="<?php esc_attr_e( 'Search files', 'gated-media-access' ); ?>"
-			>
-		</div>
-
-		<label class="gatedmedia-visually-hidden" for="gatedmedia-file-type">
-			<?php esc_html_e( 'Filter by type', 'gated-media-access' ); ?>
-		</label>
-		<select class="gatedmedia-filter__type" id="gatedmedia-file-type" data-gatedmedia-filter="type">
-			<?php foreach ( $gatedmedia_types as $gatedmedia_value => $gatedmedia_label ) : ?>
-			<option value="<?php echo esc_attr( $gatedmedia_value ); ?>"><?php echo esc_html( $gatedmedia_label ); ?></option>
-			<?php endforeach; ?>
-		</select>
-	</div>
-
-	<div class="gatedmedia-type-chips" role="group" aria-label="<?php esc_attr_e( 'Filter by type', 'gated-media-access' ); ?>">
-		<?php foreach ( $gatedmedia_types as $gatedmedia_value => $gatedmedia_label ) : ?>
-		<button
-			type="button"
-			class="gatedmedia-type-chips__chip<?php echo 'all' === $gatedmedia_value ? ' is-active' : ''; ?>"
-			data-gatedmedia-type-chips__chip="<?php echo esc_attr( $gatedmedia_value ); ?>"
-			aria-pressed="<?php echo 'all' === $gatedmedia_value ? 'true' : 'false'; ?>"
-		><?php echo esc_html( $gatedmedia_label ); ?></button>
-		<?php endforeach; ?>
-	</div>
-
-	<?php if ( $gatedmedia_is_empty ) : ?>
-
-		<div class="gatedmedia-empty-state">
-			<svg class="gatedmedia-empty-state__icon" aria-hidden="true" focusable="false"><use href="#i-files"></use></svg>
-			<p class="gatedmedia-empty-state__title"><?php esc_html_e( 'No files yet', 'gated-media-access' ); ?></p>
-			<p class="gatedmedia-text gatedmedia-text--meta">
-				<?php esc_html_e( 'Files you are given access to will appear here, ready to download.', 'gated-media-access' ); ?>
-			</p>
-		</div>
-
-	<?php endif; ?>
-
+	<?php
+	echo $gatedmedia_filter; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the filter block.
+	echo $gatedmedia_body;   // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the blocks that produced it.
+	?>
 </div>

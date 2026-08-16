@@ -1,0 +1,57 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/filter",
+	"version": "0.1.0",
+	"title": "Filter",
+	"category": "widgets",
+	"icon": "filter",
+	"description": "ui-spec.md §6.11. Search at every width; a select on wide, chips on narrow.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"searchLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"typeLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"types": {
+			"type": "array",
+			"default": [],
+			"items": {
+				"type": "object"
+			}
+		},
+		"active": {
+			"type": "string",
+			"default": "all"
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"types": [
+				{
+					"value": "all",
+					"label": "All"
+				},
+				{
+					"value": "pdf",
+					"label": "PDF"
+				}
+			],
+			"active": "all"
+		}
+	}
+}

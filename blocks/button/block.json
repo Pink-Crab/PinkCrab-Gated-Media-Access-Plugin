@@ -1,0 +1,116 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/button",
+	"version": "0.1.0",
+	"title": "Button",
+	"category": "widgets",
+	"icon": "button",
+	"description": "ui-spec.md §6.3. Primary, secondary, or a text link. Always 44px tall.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"label": {
+			"type": "string",
+			"default": ""
+		},
+		"href": {
+			"type": "string",
+			"default": ""
+		},
+		"variant": {
+			"type": "string",
+			"default": "primary",
+			"enum": [
+				"primary",
+				"secondary",
+				"link"
+			]
+		},
+		"icon": {
+			"type": "string",
+			"default": ""
+		},
+		"full": {
+			"type": "boolean",
+			"default": false
+		},
+		"type": {
+			"type": "string",
+			"default": "button"
+		},
+		"name": {
+			"type": "string",
+			"default": ""
+		},
+		"value": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"variations": [
+		{
+			"name": "primary",
+			"title": "Primary button",
+			"description": "Filled. The main action.",
+			"icon": "button",
+			"attributes": {
+				"variant": "primary"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"variant"
+			]
+		},
+		{
+			"name": "secondary",
+			"title": "Secondary button",
+			"description": "Outlined. A lesser action.",
+			"icon": "marker",
+			"attributes": {
+				"variant": "secondary"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"variant"
+			]
+		},
+		{
+			"name": "link",
+			"title": "Text link",
+			"description": "No box. Underlined.",
+			"icon": "admin-links",
+			"attributes": {
+				"variant": "link"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"variant"
+			]
+		}
+	],
+	"example": {
+		"attributes": {
+			"label": "Download",
+			"variant": "primary"
+		}
+	}
+}

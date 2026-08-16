@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Account;
 
+use PinkCrab\Gated_Access\Support\Block;
+
 /**
  * Draws ui-spec.md §7.0 — the frame every account view sits in — and fills its
  * main column with the current section's block.
@@ -61,50 +63,6 @@ class Account_Renderer {
 	}
 
 	/**
-	 * The icon sprite.
-	 *
-	 * Inlined rather than referenced as an external file because `<use>` across
-	 * documents is not reliably supported, and a nav whose icons silently fail
-	 * in one browser is worse than a kilobyte of markup. Printed in the footer
-	 * so it is out of the way of the theme's own markup.
-	 */
-	public function sprite(): void {
-		$path = GATEDMEDIA_DIR_PATH . 'assets/icons.svg';
-
-		if ( ! is_readable( $path ) ) {
-			return;
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local file, not a remote request.
-		$sprite = file_get_contents( $path );
-
-		if ( false === $sprite ) {
-			return;
-		}
-
-		echo wp_kses(
-			$sprite,
-			array(
-				'svg'    => array(
-					'xmlns'       => true,
-					'width'       => true,
-					'height'      => true,
-					'style'       => true,
-					'aria-hidden' => true,
-					'focusable'   => true,
-				),
-				'defs'   => array(),
-				'symbol' => array(
-					'id'      => true,
-					'viewbox' => true,
-				),
-				'path'   => array(
-					'fill' => true,
-					'd'    => true,
-				),
-			)
-		);
-	}
 
 	/**
 	 * §7.0 wide — the sidebar. Hidden below 782px, where the tab strip replaces
@@ -124,21 +82,45 @@ class Account_Renderer {
 			<p class="gatedmedia-text gatedmedia-text--meta"><?php esc_html_e( 'Manage your access', 'gated-media-access' ); ?></p>
 		</div>
 
-		<nav class="gatedmedia-account-nav" aria-label="<?php esc_attr_e( 'Account', 'gated-media-access' ); ?>">
-			<?php foreach ( $sections as $section ) : ?>
-				<?php $is_current = $section->slug() === $current->slug(); ?>
-			<a
-				class="gatedmedia-account-nav__item<?php echo $is_current ? ' is-active' : ''; ?>"
-				href="<?php echo esc_url( $this->url( $section ) ); ?>"
-				<?php echo $is_current ? 'aria-current="page"' : ''; ?>
-			>
-				<?php $this->icon( $section->icon() ); ?>
-				<span><?php echo esc_html( $section->menu_label() ); ?></span>
-			</a>
-			<?php endforeach; ?>
-		</nav>
+		<?php
+		$nav = Block::render(
+			'gated-media-access/account-nav',
+			array(
+				'items'   => $this->nav_items( $current, $sections ),
+				'variant' => 'sidebar',
+				'label'   => __( 'Account', 'gated-media-access' ),
+			)
+		);
+
+		echo $nav; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the nav block.
+		?>
 	</div>
 		<?php
+	}
+
+	/**
+	 * The nav items, as data for the nav block.
+	 *
+	 * Built once and handed to both variants, so the sidebar and the tab strip
+	 * cannot disagree about what exists or which one is current.
+	 *
+	 * @param Account_Section    $current  The section being viewed.
+	 * @param Section_Collection $sections Everything in the nav.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function nav_items( Account_Section $current, Section_Collection $sections ): array {
+		$items = array();
+
+		foreach ( $sections as $section ) {
+			$items[] = array(
+				'label'  => $section->menu_label(),
+				'href'   => $this->url( $section ),
+				'icon'   => $section->icon(),
+				'active' => $section->slug() === $current->slug(),
+			);
+		}
+
+		return $items;
 	}
 
 	/**
@@ -149,21 +131,16 @@ class Account_Renderer {
 	 * @param Section_Collection $sections Everything in the nav.
 	 */
 	private function tabs( Account_Section $current, Section_Collection $sections ): void {
-		?>
-		<nav class="gatedmedia-tab-strip" aria-label="<?php esc_attr_e( 'Account sections', 'gated-media-access' ); ?>">
-			<?php foreach ( $sections as $section ) : ?>
-				<?php $is_current = $section->slug() === $current->slug(); ?>
-			<a
-				class="gatedmedia-tab-strip__item<?php echo $is_current ? ' is-active' : ''; ?>"
-				href="<?php echo esc_url( $this->url( $section ) ); ?>"
-				<?php echo $is_current ? 'aria-current="page"' : ''; ?>
-			>
-				<?php $this->icon( $section->icon(), 'gatedmedia-icon--small' ); ?>
-				<span><?php echo esc_html( $section->menu_label() ); ?></span>
-			</a>
-			<?php endforeach; ?>
-		</nav>
-		<?php
+		$tabs = Block::render(
+			'gated-media-access/account-nav',
+			array(
+				'items'   => $this->nav_items( $current, $sections ),
+				'variant' => 'tabs',
+				'label'   => __( 'Account sections', 'gated-media-access' ),
+			)
+		);
+
+		echo $tabs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the nav block.
 	}
 
 	/**
@@ -238,25 +215,6 @@ class Account_Renderer {
 					$block
 				)
 			)
-		);
-	}
-
-	/**
-	 * A sprite icon. Nothing renders when the section named a symbol we do not
-	 * ship — a missing icon is not worth a broken page.
-	 *
-	 * @param string $symbol   Symbol id, e.g. `i-files`.
-	 * @param string $modifier Extra class — `gatedmedia-icon--small` for the 16px size.
-	 */
-	private function icon( string $symbol, string $modifier = '' ): void {
-		if ( '' === $symbol ) {
-			return;
-		}
-
-		printf(
-			'<svg class="%s" aria-hidden="true" focusable="false"><use href="#%s"></use></svg>',
-			esc_attr( trim( 'gatedmedia-icon ' . $modifier ) ),
-			esc_attr( $symbol )
 		);
 	}
 
