@@ -119,6 +119,12 @@ test.describe( 'account area', () => {
 
 		const company = `Pink Crab ${ Date.now() }`;
 
+		// First and last name are required, so the browser refuses to submit
+		// while they are empty. A fresh WordPress has neither on its admin
+		// user, which made this pass only where someone had filled them in by
+		// hand. Fill them here so the state under test is the one we set.
+		await page.fill( '#gatedmedia-first_name', 'Glynn' );
+		await page.fill( '#gatedmedia-last_name', 'Quelch' );
 		await page.fill( '#gatedmedia-company', company );
 		await page.click( 'button[type="submit"]' );
 
