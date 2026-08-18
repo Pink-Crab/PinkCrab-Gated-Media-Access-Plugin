@@ -11,9 +11,15 @@
  * safe way to create posts on a site we do not own.
  */
 
-const { execFileSync } = require( 'node:child_process' );
+const { spawnSync } = require( 'node:child_process' );
+const path = require( 'node:path' );
 
-const FIXTURE = 'wp-content/plugins/gated-media-access/tests/e2e/fixtures/kitchen-sink.php';
+// wp-env mounts the project as a plugin named after the directory it sits in,
+// which is not always this plugin's slug — CI checks out into a throwaway
+// directory named after the run, so it mounts as plugins/run-60. Hardcoding
+// the slug fails there, and fails as a silent no-op rather than an error.
+const SLUG = path.basename( process.cwd() );
+const FIXTURE = `wp-content/plugins/${ SLUG }/tests/e2e/fixtures/kitchen-sink.php`;
 
 module.exports = async () => {
 	if ( process.env.WP_BASE_URL && ! process.env.WP_BASE_URL.includes( 'localhost' ) ) {
@@ -23,15 +29,21 @@ module.exports = async () => {
 	}
 
 	// `wp eval-file` wraps the file, which breaks `declare( strict_types )`,
-	// so the fixture is included instead.
-	const output = execFileSync(
+	// so the fixture is included instead. spawnSync rather than execFileSync so
+	// stderr is kept: wp can report a failed include there and still exit 0,
+	// which left this throwing an error with nothing in it.
+	const result = spawnSync(
 		'npx',
 		[ 'wp-env', 'run', 'cli', 'wp', 'eval', `include "${ FIXTURE }";` ],
-		{ encoding: 'utf8', stdio: [ 'ignore', 'pipe', 'pipe' ] }
+		{ encoding: 'utf8' }
 	);
 
+	const output = `${ result.stdout || '' }${ result.stderr || '' }`;
+
 	if ( ! output.includes( 'Fixture ready' ) ) {
-		throw new Error( `Fixture did not build:\n${ output }` );
+		throw new Error(
+			`Fixture did not build (${ FIXTURE }, exit ${ result.status }):\n${ output }`
+		);
 	}
 
 	// eslint-disable-next-line no-console
