@@ -233,6 +233,52 @@ foreach ( array(
 	$content .= gatedmedia_fixture_group( $label . ' (section view)', gatedmedia_fixture_block( $block ) );
 }
 
+// §7 data — the account specs sign in as this user, so give them something to
+// hold: a post, a group containing it, and a file. The writer's source and
+// reference pair makes every grant idempotent across fixture re-runs.
+$e2e_login = getenv( 'WP_USER' );
+$e2e_user  = get_user_by( 'login', is_string( $e2e_login ) && '' !== $e2e_login ? $e2e_login : 'admin' );
+
+if ( $e2e_user instanceof WP_User ) {
+	$granted_post    = get_page_by_path( 'e2e-granted-post', OBJECT, 'post' );
+	$granted_post_id = $granted_post instanceof WP_Post ? $granted_post->ID : wp_insert_post(
+		array(
+			'post_title'   => 'Granted post',
+			'post_name'    => 'e2e-granted-post',
+			'post_type'    => 'post',
+			'post_status'  => 'publish',
+			'post_content' => 'Members only.',
+		)
+	);
+
+	$granted_file    = get_page_by_path( 'e2e-granted-file', OBJECT, 'attachment' );
+	$granted_file_id = $granted_file instanceof WP_Post ? $granted_file->ID : wp_insert_attachment(
+		array(
+			'post_title'     => 'Granted file',
+			'post_name'      => 'e2e-granted-file',
+			'post_mime_type' => 'application/pdf',
+		)
+	);
+
+	$e2e_group = get_term_by( 'name', 'E2E Group', 'gatedmedia_access' );
+
+	if ( ! $e2e_group instanceof WP_Term ) {
+		$e2e_inserted = wp_insert_term( 'E2E Group', 'gatedmedia_access' );
+		$e2e_group    = is_array( $e2e_inserted ) ? get_term( $e2e_inserted['term_id'] ) : null;
+	}
+
+	if ( $e2e_group instanceof WP_Term && is_int( $granted_post_id ) && is_int( $granted_file_id ) ) {
+		wp_set_object_terms( $granted_post_id, array( $e2e_group->term_id ), 'gatedmedia_access', true );
+
+		$gatedmedia_taxonomy = new PinkCrab\Gated_Access\Registration\Access_Taxonomy();
+		$gatedmedia_writer   = new PinkCrab\Gated_Access\Access\Access_Writer( $gatedmedia_taxonomy );
+
+		$gatedmedia_writer->grant( $e2e_user->ID, 'post', (string) $granted_post_id, null, 'e2e', 'fixture-post' );
+		$gatedmedia_writer->grant( $e2e_user->ID, 'file', (string) $granted_file_id, null, 'e2e', 'fixture-file' );
+		$gatedmedia_writer->grant( $e2e_user->ID, 'group', $gatedmedia_taxonomy->uuid_for( $e2e_group->term_id ), null, 'e2e', 'fixture-group' );
+	}
+}
+
 $existing = get_page_by_path( 'component-kitchen-sink', OBJECT, 'page' );
 
 $args = array(

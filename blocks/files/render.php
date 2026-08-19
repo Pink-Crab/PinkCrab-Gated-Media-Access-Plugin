@@ -41,12 +41,25 @@ if ( 0 === $gatedmedia_user_id ) {
 	return;
 }
 
-/** @var array<int, array<string, mixed>> $gatedmedia_available */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
-$gatedmedia_available = array();
-/** @var array<int, array<string, mixed>> $gatedmedia_downloading */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
-$gatedmedia_downloading = array();
-/** @var array<int, array<string, mixed>> $gatedmedia_past */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
-$gatedmedia_past = array();
+/**
+ * Supplied by View_Data from the resolver's picture; the empty defaults are
+ * what a user holding nothing renders. Downloading is a client-side state and
+ * stays empty server-side.
+ *
+ * @var array{available: array<int, array<string, mixed>>, downloading: array<int, array<string, mixed>>, past: array<int, array<string, mixed>>} $gatedmedia_data
+ */
+$gatedmedia_data = apply_filters(
+	'gatedmedia_files_data',
+	array(
+		'available'   => array(),
+		'downloading' => array(),
+		'past'        => array(),
+	)
+);
+
+$gatedmedia_available   = $gatedmedia_data['available'];
+$gatedmedia_downloading = $gatedmedia_data['downloading'];
+$gatedmedia_past        = $gatedmedia_data['past'];
 
 // One list of types feeds both the select and the chips, so they cannot drift.
 $gatedmedia_types = array(

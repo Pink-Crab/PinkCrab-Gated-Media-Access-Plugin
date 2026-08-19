@@ -80,4 +80,42 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertTrue( post_type_exists( Access_Taxonomy::TAXONOMY ) );
 		$this->assertTrue( taxonomy_exists( Access_Taxonomy::TAXONOMY ) );
 	}
+
+	/** @testdox A newly created group gets a UUID, with no UI involved. */
+	public function test_a_created_term_gets_a_uuid(): void {
+		$term = wp_insert_term( 'Quarterly Reports', Access_Taxonomy::TAXONOMY );
+
+		$this->assertIsArray( $term );
+
+		$uuid = (string) get_term_meta( $term['term_id'], Access_Taxonomy::UUID_META, true );
+
+		$this->assertTrue( wp_is_uuid( $uuid ), 'no UUID was minted on creation' );
+	}
+
+	/** @testdox find_group() round-trips a term's UUID back to the term. */
+	public function test_find_group_round_trips(): void {
+		$term = wp_insert_term( 'Board Papers', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		$taxonomy = new Access_Taxonomy();
+		$uuid     = $taxonomy->uuid_for( $term['term_id'] );
+		$found    = $taxonomy->find_group( $uuid );
+
+		$this->assertNotNull( $found );
+		$this->assertSame( $term['term_id'], $found->term_id );
+		$this->assertNull( $taxonomy->find_group( wp_generate_uuid4() ) );
+	}
+
+	/** @testdox A term with no UUID is backfilled the first time uuid_for() asks. */
+	public function test_uuid_for_backfills(): void {
+		$term = wp_insert_term( 'Legacy Group', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		delete_term_meta( $term['term_id'], Access_Taxonomy::UUID_META );
+
+		$uuid = ( new Access_Taxonomy() )->uuid_for( $term['term_id'] );
+
+		$this->assertTrue( wp_is_uuid( $uuid ) );
+		$this->assertSame( $uuid, get_term_meta( $term['term_id'], Access_Taxonomy::UUID_META, true ) );
+	}
 }

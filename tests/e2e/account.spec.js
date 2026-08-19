@@ -108,10 +108,27 @@ test.describe( 'account area', () => {
 	} );
 
 	test( 'the empty state appears when there is nothing to show', async ( { page } ) => {
-		await page.goto( '/account/' );
+		// Orders: the fixture grants access but no orders exist until the
+		// payments table lands, so this is the section with nothing to show.
+		await page.goto( '/account/orders/' );
 
 		// One box, at page level — never one per empty section.
 		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount( 1 );
+	} );
+
+	test( 'my access lists what the fixture granted', async ( { page } ) => {
+		await page.goto( '/account/' );
+
+		// Real rows, not the empty state — the resolver feeds the view now.
+		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount( 0 );
+		await expect( page.locator( '.gatedmedia-row' ).first() ).toBeVisible();
+		await expect( page.getByText( 'E2E Group' ) ).toBeVisible();
+	} );
+
+	test( 'files lists the granted file as available', async ( { page } ) => {
+		await page.goto( '/account/files/' );
+
+		await expect( page.getByText( 'Granted file' ).first() ).toBeVisible();
 	} );
 
 	test( 'a profile edit saves and comes back', async ( { page } ) => {
