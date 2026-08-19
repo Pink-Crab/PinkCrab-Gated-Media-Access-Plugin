@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Registration;
 
+use WP_Term;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 
@@ -36,12 +37,23 @@ class Access_Taxonomy implements Hookable {
 	public const TAXONOMY = 'gatedmedia_access';
 
 	/**
-	 * Registers on init, after the post types.
+	 * Term meta: the group's stable identity.
+	 *
+	 * Access records point at this, not the term id or slug, so renaming or
+	 * re-slugging a group never orphans anyone's access.
+	 */
+	public const UUID_META = 'gatedmedia_uuid';
+
+	/**
+	 * Registers on init, after the post types; mints identity on creation.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'init', array( $this, 'register' ) );
+		// created_{$taxonomy} — fires for terms made anywhere, including the
+		// core screens, which is what keeps this UI-free.
+		$loader->action( 'created_' . self::TAXONOMY, array( $this, 'mint_uuid' ) );
 	}
 
 	/**
@@ -86,5 +98,58 @@ class Access_Taxonomy implements Hookable {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Gives a new term its UUID.
+	 *
+	 * @param int $term_id The term just created.
+	 */
+	public function mint_uuid( int $term_id ): void {
+		if ( '' === (string) get_term_meta( $term_id, self::UUID_META, true ) ) {
+			update_term_meta( $term_id, self::UUID_META, wp_generate_uuid4() );
+		}
+	}
+
+	/**
+	 * The term's UUID, minting one if it has none.
+	 *
+	 * The backfill covers terms created before the hook existed, or inserted
+	 * directly — identity is settled the first time anything asks.
+	 *
+	 * @param int $term_id The term.
+	 */
+	public function uuid_for( int $term_id ): string {
+		$uuid = (string) get_term_meta( $term_id, self::UUID_META, true );
+
+		if ( '' === $uuid ) {
+			$uuid = wp_generate_uuid4();
+			update_term_meta( $term_id, self::UUID_META, $uuid );
+		}
+
+		return $uuid;
+	}
+
+	/**
+	 * The group holding this UUID, if any.
+	 *
+	 * @param string $uuid The identity to look up.
+	 */
+	public function find_group( string $uuid ): ?WP_Term {
+		$terms = get_terms(
+			array(
+				'taxonomy'   => self::TAXONOMY,
+				'hide_empty' => false,
+				'number'     => 1,
+				'meta_key'   => self::UUID_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One row by unique value; groups number in the tens.
+				'meta_value' => $uuid, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
+			)
+		);
+
+		if ( is_array( $terms ) && array() !== $terms && $terms[0] instanceof WP_Term ) {
+			return $terms[0];
+		}
+
+		return null;
 	}
 }

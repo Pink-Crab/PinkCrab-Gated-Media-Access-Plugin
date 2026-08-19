@@ -39,12 +39,24 @@ if ( 0 === $gatedmedia_user_id ) {
 	return;
 }
 
-/** @var array<int, array<string, mixed>> $gatedmedia_groups */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
-$gatedmedia_groups = array();
-/** @var array<int, array<string, mixed>> $gatedmedia_posts */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
-$gatedmedia_posts = array();
-/** @var array<int, array<string, mixed>> $gatedmedia_files */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
-$gatedmedia_files = array();
+/**
+ * Supplied by View_Data from the resolver's picture; the empty defaults are
+ * what a user holding nothing renders.
+ *
+ * @var array{groups: array<int, array<string, mixed>>, posts: array<int, array<string, mixed>>, files: array<int, array<string, mixed>>} $gatedmedia_data
+ */
+$gatedmedia_data = apply_filters(
+	'gatedmedia_my_access_data',
+	array(
+		'groups' => array(),
+		'posts'  => array(),
+		'files'  => array(),
+	)
+);
+
+$gatedmedia_groups = $gatedmedia_data['groups'];
+$gatedmedia_posts  = $gatedmedia_data['posts'];
+$gatedmedia_files  = $gatedmedia_data['files'];
 
 /**
  * One section: a heading over its rows, or nothing at all.

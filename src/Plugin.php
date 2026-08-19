@@ -20,6 +20,8 @@ use PinkCrab\Gated_Access\Account\Profile_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
+use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Account\View_Data;
 
 /**
  * Builds every service through the container and attaches their hooks in one
@@ -47,11 +49,13 @@ class Plugin {
 		Post_Types::class,
 		Access_Taxonomy::class,
 		Capabilities::class,
+		Access_Writer::class,
 		Asset_Loader::class,
 		Block_Registrar::class,
 		Sprite::class,
 		Account_Route::class,
 		Profile_Writer::class,
+		View_Data::class,
 		Settings_Page::class,
 	);
 
