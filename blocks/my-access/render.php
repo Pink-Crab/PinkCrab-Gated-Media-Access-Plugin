@@ -1,0 +1,144 @@
+<?php
+/**
+ * §7.1 My Access — the landing view for the account area.
+ *
+ * Three sections, each a section heading (§6.9) over rows (§6.2): groups,
+ * posts, files. **A section with nothing in it is not rendered**, and the
+ * empty state (§6.10) appears only when all three are empty — one box at page
+ * level, never one per section.
+ *
+ * The rows differ by kind, per §7.1:
+ *
+ * - **Groups** carry a count summary as their meta, and an expiry on the right.
+ * - **Posts** carry an expiry on the right and nothing else.
+ * - **Files** fold their expiry into the meta line and carry a **Download text
+ *   link** rather than a button — Files (§7.2) is the view where downloading
+ *   is the point, so it gets the heavier control and this one does not.
+ *
+ * Everything here comes from the resolver (architecture.md §4), which does not
+ * exist yet — it is step 2 of §12. Until it does the three lists are empty and
+ * this renders the wholly-empty case, which is the truthful answer for a site
+ * with no access records in it.
+ *
+ * @package PinkCrab\Gated_Access
+ *
+ * @var array<string, mixed> $attributes Block attributes.
+ * @var string               $content    Inner blocks.
+ * @var WP_Block             $block      The block instance.
+ */
+
+declare( strict_types = 1 );
+
+use PinkCrab\Gated_Access\Support\Block;
+
+defined( 'ABSPATH' ) || exit;
+
+$gatedmedia_user_id = get_current_user_id();
+
+if ( 0 === $gatedmedia_user_id ) {
+	return;
+}
+
+/** @var array<int, array<string, mixed>> $gatedmedia_groups */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
+$gatedmedia_groups = array();
+/** @var array<int, array<string, mixed>> $gatedmedia_posts */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
+$gatedmedia_posts = array();
+/** @var array<int, array<string, mixed>> $gatedmedia_files */ // phpcs:ignore Generic.Commenting.DocComment.MissingShort -- Inline type annotation, not a description.
+$gatedmedia_files = array();
+
+/**
+ * One section: a heading over its rows, or nothing at all.
+ *
+ * @param string                           $heading The section label.
+ * @param array<int, array<string, mixed>> $items   Rows to draw.
+ * @param callable                         $row     Turns one item into a rendered row.
+ */
+$gatedmedia_section = static function ( string $heading, array $items, callable $row ): string {
+	if ( array() === $items ) {
+		return '';
+	}
+
+	$rows = '';
+
+	foreach ( $items as $item ) {
+		$rows .= $row( $item );
+	}
+
+	return '<section class="gatedmedia-section">'
+		. Block::render( 'gated-media-access/section-heading', array( 'text' => $heading ) )
+		. $rows
+		. '</section>';
+};
+
+/**
+ * Groups and posts: an expiry on the right, no action on wide.
+ *
+ * @param array<string, mixed> $item One held item.
+ */
+$gatedmedia_held = static function ( array $item ): string {
+	return Block::render(
+		'gated-media-access/row',
+		array(
+			'title'       => (string) ( $item['title'] ?? '' ),
+			'meta'        => (string) ( $item['meta'] ?? '' ),
+			'href'        => (string) ( $item['href'] ?? '' ),
+			'state'       => (string) ( $item['state'] ?? 'normal' ),
+			'actionLabel' => (string) ( $item['action_label'] ?? '' ),
+			'actionHref'  => (string) ( $item['href'] ?? '' ),
+		),
+		Block::render(
+			'gated-media-access/expiry',
+			array(
+				'state' => (string) ( $item['expiry_state'] ?? 'lifetime' ),
+				'label' => (string) ( $item['expiry_label'] ?? '' ),
+			)
+		)
+	);
+};
+
+/**
+ * Files: the expiry is already in the meta line, and the action is a text link.
+ *
+ * @param array<string, mixed> $item One held file.
+ */
+$gatedmedia_file = static function ( array $item ): string {
+	return Block::render(
+		'gated-media-access/row',
+		array(
+			'title'       => (string) ( $item['title'] ?? '' ),
+			'meta'        => (string) ( $item['meta'] ?? '' ),
+			'state'       => (string) ( $item['state'] ?? 'normal' ),
+			'actionLabel' => __( 'Download', 'gated-media-access' ),
+			'actionHref'  => (string) ( $item['href'] ?? '' ),
+			'actionIcon'  => 'i-download',
+		),
+		Block::render(
+			'gated-media-access/button',
+			array(
+				'label'   => __( 'Download', 'gated-media-access' ),
+				'href'    => (string) ( $item['href'] ?? '' ),
+				'variant' => 'link',
+				'icon'    => 'i-download',
+			)
+		)
+	);
+};
+
+$gatedmedia_body = $gatedmedia_section( __( 'Groups', 'gated-media-access' ), $gatedmedia_groups, $gatedmedia_held )
+	. $gatedmedia_section( __( 'Posts', 'gated-media-access' ), $gatedmedia_posts, $gatedmedia_held )
+	. $gatedmedia_section( __( 'Files', 'gated-media-access' ), $gatedmedia_files, $gatedmedia_file );
+
+if ( '' === $gatedmedia_body ) {
+	$gatedmedia_body = Block::render(
+		'gated-media-access/empty-state',
+		array(
+			'icon'    => 'i-empty',
+			'title'   => __( 'Nothing here yet', 'gated-media-access' ),
+			'message' => __( 'Anything you are given access to will appear here, with the date it runs out.', 'gated-media-access' ),
+		)
+	);
+}
+?>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-view gatedmedia-view--my-access' ) ) ); ?>>
+	<?php echo $gatedmedia_body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the blocks that produced it. ?>
+</div>

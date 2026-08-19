@@ -1,0 +1,74 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/row",
+	"version": "0.1.0",
+	"title": "Row",
+	"category": "widgets",
+	"icon": "menu",
+	"description": "ui-spec.md §6.2. A file, a post, a group or an order. Four states.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"title": {
+			"type": "string",
+			"default": ""
+		},
+		"meta": {
+			"type": "string",
+			"default": ""
+		},
+		"href": {
+			"type": "string",
+			"default": ""
+		},
+		"state": {
+			"type": "string",
+			"default": "normal",
+			"enum": [
+				"normal",
+				"unavailable",
+				"loading"
+			]
+		},
+		"variant": {
+			"type": "string",
+			"default": "default",
+			"enum": [
+				"default",
+				"order"
+			]
+		},
+		"actionLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"actionHref": {
+			"type": "string",
+			"default": ""
+		},
+		"actionIcon": {
+			"type": "string",
+			"default": ""
+		},
+		"unavailableLabel": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"title": "Annual report.pdf",
+			"meta": "PDF · 4.2 MB"
+		}
+	}
+}

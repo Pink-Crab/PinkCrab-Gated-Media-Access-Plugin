@@ -1,0 +1,113 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/expiry",
+	"version": "0.1.0",
+	"title": "Expiry",
+	"category": "widgets",
+	"icon": "clock",
+	"description": "ui-spec.md §6.5. Bare in lists, a chip in detail panels. Four states.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"state": {
+			"type": "string",
+			"default": "lifetime",
+			"enum": [
+				"lifetime",
+				"dated",
+				"soon",
+				"expired"
+			]
+		},
+		"label": {
+			"type": "string",
+			"default": ""
+		},
+		"chip": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"variations": [
+		{
+			"name": "lifetime",
+			"title": "Lifetime",
+			"description": "Never runs out.",
+			"icon": "infinity",
+			"attributes": {
+				"state": "lifetime"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"state"
+			]
+		},
+		{
+			"name": "dated",
+			"title": "Expires on a date",
+			"description": "Ordinary text.",
+			"icon": "calendar-alt",
+			"attributes": {
+				"state": "dated"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"state"
+			]
+		},
+		{
+			"name": "soon",
+			"title": "Expiring soon",
+			"description": "Red, with a warning icon.",
+			"icon": "warning",
+			"attributes": {
+				"state": "soon"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"state"
+			]
+		},
+		{
+			"name": "expired",
+			"title": "Expired",
+			"description": "Dimmed. Still shown.",
+			"icon": "hidden",
+			"attributes": {
+				"state": "expired"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"state"
+			]
+		}
+	],
+	"example": {
+		"attributes": {
+			"state": "dated",
+			"label": "Expires 12 March 2027"
+		}
+	}
+}

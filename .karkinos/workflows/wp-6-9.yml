@@ -55,6 +55,13 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress
 
+      # Blocks are registered from build/blocks, which is gitignored — so a
+      # checkout has no blocks until this runs, and any test that renders one
+      # fails with "block is not registered". No setup-node step: the runner
+      # image already carries Node 22 and npm 10.
+      - name: Build assets
+        run: npm ci --no-audit --no-fund && npm run build
+
       - name: phpcs
         run: composer lint:php:phpcs
 

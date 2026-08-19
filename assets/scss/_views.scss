@@ -1,0 +1,228 @@
+// =============================================================================
+// §7 — the views.
+//
+// §7 never describes a thing; it points at §6. So this file carries layout
+// only: what sits where, in what order, and how it reflows. Anything that
+// looks like a component belongs in _components.scss instead.
+// =============================================================================
+
+@use "mixins" as *;
+
+// -----------------------------------------------------------------------------
+// §7.0 The shell — the frame all four account views share, built once.
+//
+// Wide: two columns, a 256px sidebar with a hairline down its right edge. No
+// fill, no shadow, no card.
+// Narrow: the sidebar is replaced by the tab strip (§6.1).
+//
+// **It sits inside the theme's content area**, the way WooCommerce's My Account
+// does. So it claims no viewport height, paints no page background, and sticks
+// nothing to the top of the screen — those belong to the theme, and a plugin
+// that takes them fights every theme it is installed into.
+//
+// §7.0's 56px top bar carrying the site name is therefore not drawn: the
+// theme's header already is that. The tab strip stays, because section
+// navigation is ours and the theme has no equivalent.
+//
+// There is no fixed bottom bar at any width (§8 conflict 3).
+// -----------------------------------------------------------------------------
+
+.gatedmedia-account {
+	display: flex;
+
+	@include narrow {
+		display: block;
+	}
+
+	// The sidebar sticks to its own top rather than filling the viewport: the
+	// page scrolls as one inside a theme, and a 100vh column would either
+	// overhang the footer or clip under a sticky theme header.
+	&__sidebar {
+		width: var(--gatedmedia-sidebar);
+		flex-shrink: 0;
+		border-right: var(--gatedmedia-hairline);
+		padding-block: var(--gatedmedia-xl);
+		padding-inline-end: var(--gatedmedia-md);
+		position: sticky;
+		top: var(--gatedmedia-lg);
+		align-self: flex-start;
+
+		@include narrow {
+			display: none;
+		}
+	}
+
+	// "Account" at 32px/700 with its strapline beneath, then 24px before the
+	// nav items. The wordmark is not a heading (§2 conflict 4).
+	&__brand {
+		padding: 0 var(--gatedmedia-md);
+		margin-bottom: var(--gatedmedia-lg);
+
+		.gatedmedia-heading--page {
+			display: block;
+			margin-bottom: var(--gatedmedia-xs);
+		}
+	}
+
+	// Everything that is not the sidebar. `min-width: 0` so a long filename in
+	// a row cannot push the column wider than the viewport.
+	&__body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	&__main {
+		flex: 1;
+		width: 100%;
+		max-width: var(--gatedmedia-cap-list);
+		margin: 0 auto;
+		// §3 — inline padding grows with the viewport, 16px to 48px. No block
+		// padding: the theme already spaces its content area, and ours on top
+		// of it reads as a gap nobody asked for.
+		padding-inline: clamp(var(--gatedmedia-md), 5vw, var(--gatedmedia-xl));
+		padding-block: var(--gatedmedia-lg);
+
+		@include narrow {
+			max-width: none;
+			padding-inline: 0;
+		}
+	}
+}
+
+// §3 — the column cap is settled by what the page is for, not one number.
+// Lists and settings take the default above; these two are the exceptions.
+.gatedmedia-account__main {
+	// A single thing being read — the product page.
+	&--reading {
+		max-width: var(--gatedmedia-cap-read);
+	}
+
+	// A single form — sign in, reset.
+	&--form {
+		max-width: var(--gatedmedia-cap-form);
+	}
+}
+
+// The line under the page title saying what the page is for. Plain layout, not
+// a component — and absent entirely on My Access, which is drawn without one.
+.gatedmedia-page-intro {
+	margin-bottom: var(--gatedmedia-xl);
+}
+
+// A view's own sections sit 48px apart (§7.0).
+.gatedmedia-section + .gatedmedia-section {
+	margin-top: var(--gatedmedia-xl);
+}
+
+// -----------------------------------------------------------------------------
+// §7.7, §7.8 — the two views with no shell.
+//
+// A centred column on the page background, inside a bordered card. Narrow: the
+// card loses its border and runs to the screen edges.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-centred {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--gatedmedia-xl) var(--gatedmedia-md);
+
+	@include narrow {
+		display: block;
+		padding: 0;
+	}
+}
+
+.gatedmedia-card {
+	width: 100%;
+	max-width: var(--gatedmedia-cap-form);
+	border: var(--gatedmedia-hairline);
+	border-radius: var(--gatedmedia-radius);
+	padding: var(--gatedmedia-xl) var(--gatedmedia-lg);
+	background: var(--gatedmedia-surface-lowest);
+
+	@include narrow {
+		border: 0;
+		border-radius: 0;
+		max-width: none;
+		padding: 32px var(--gatedmedia-md);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §7.5 Profile
+//
+// Save beside a Cancel text link, left-aligned and not full width on wide. On
+// narrow Save goes full width and Cancel becomes a centred link beneath it —
+// not a second full-width button.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-form-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--gatedmedia-md);
+	margin-top: var(--gatedmedia-lg);
+
+	@include narrow {
+		flex-direction: column;
+		align-items: stretch;
+
+		.gatedmedia-text-link {
+			text-align: center;
+			justify-content: center;
+			margin-top: var(--gatedmedia-sm);
+		}
+	}
+}
+
+// The notice slot sits a block's width above the fields (§1: blocks inside a
+// section are lg apart).
+.gatedmedia-view--profile > form {
+	margin-top: var(--gatedmedia-lg);
+}
+
+// -----------------------------------------------------------------------------
+// §7.4 Order detail
+//
+// The order title replaces the page header. Date, amount and status sit on one
+// line, with a hairline beneath the whole block.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-order-header {
+	border-bottom: var(--gatedmedia-hairline);
+	padding-bottom: var(--gatedmedia-md);
+	margin-bottom: var(--gatedmedia-xl);
+
+	&__line {
+		display: flex;
+		align-items: center;
+		gap: var(--gatedmedia-md);
+		margin-top: var(--gatedmedia-sm);
+
+		@include narrow {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--gatedmedia-sm);
+		}
+	}
+}
+
+// "Access this created" — a name on the left, its expiry chip on the right.
+// Narrow drops the chip to the line below the name.
+.gatedmedia-order-access {
+	&__row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--gatedmedia-md);
+		padding: var(--gatedmedia-md) 0;
+		border-bottom: var(--gatedmedia-hairline);
+
+		@include narrow {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--gatedmedia-sm);
+		}
+	}
+}

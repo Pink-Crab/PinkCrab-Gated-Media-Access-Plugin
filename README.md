@@ -6,10 +6,18 @@ payment, by an administrator, or by webhook.
 A general WordPress plugin, distributed for use on other people's sites. It is
 not a shop — payment is one of three ways in.
 
-**Status: base setup only.** The boot loop, the QA tooling, the test suite and
-CI are in place and green. None of the domain is built yet: no post types, no
-taxonomy, no tables, no resolver, no blocks. The settings screen is an empty
-page.
+**Status: the account area is in.** The boot loop, the QA tooling and CI were
+first; on top of them now sit the asset pipeline, the account route, the
+section extension point and the four account blocks.
+
+Still not built: no post types, no taxonomy, no tables, **no resolver**. That
+last one is why the account views render their structure and their empty
+states rather than rows — what a person can see is the resolver's answer, and
+it is step 2 of `_temp/architecture.md` §12. The settings screen is still an
+empty page.
+
+Profile is the exception and is fully working, because it is WordPress user
+fields rather than anything waiting on the resolver.
 
 ## Requires
 
@@ -18,9 +26,10 @@ page.
 | PHP | **8.3** |
 | WordPress | **6.4** |
 | [`a8cteam51/restrict-media-file-access`](https://github.com/a8cteam51/restrict-media-file-access) | **v1.4.2**, active |
+| Node | **22** (`.nvmrc`), to build assets — not needed at runtime |
 
-Both minimums are inherited from the dependency's plugin header, not chosen
-here.
+Both PHP and WordPress minimums are inherited from the dependency's plugin
+header, not chosen here.
 
 **The dependency is hard.** It owns the files — it moves them, serves them and
 refuses them; this plugin only supplies the access decision. Without it active,
@@ -36,7 +45,13 @@ wordpress.org slug and this dependency self-updates from GitHub releases.
 
 ```bash
 composer install
+nvm use 22 && npm install && npm run build
 ```
+
+**The build is not optional.** Blocks are registered from `build/blocks`, not
+from source, so without it the account area has no blocks to render and the
+route answers 404. Nothing fatals — a checkout without a build degrades rather
+than breaks — but nothing works either.
 
 ## How it boots
 
@@ -69,11 +84,112 @@ resolve its service lazily. There is a note on `Plugin::SERVICES` saying so.
 | `gated-media-access.php` | Plugin header, constants, dependency guard, boot |
 | `src/Plugin.php` | The boot loop and the missing-dependency notice |
 | `src/Hookable.php` | `register_hooks( Hook_Loader $loader ): void` |
+| `src/Account/` | The account area — route, shell, collection, profile writer |
+| `src/Account/Sections/` | The four pages, each implementing `Account_Section` |
+| `src/Support/` | `Block` composes a block from PHP; `Money` owns the Free rule |
+| `src/Assets/Asset_Loader.php` | Registers the four bundles; enqueues none by default |
+| `src/Blocks/Block_Registrar.php` | Registers every block in `build/blocks` |
 | `src/Settings/Settings_Page.php` | Top-level menu, currently an empty page |
+| `assets/scss/` | Tokens, base, the sixteen §6 components, the §7 views |
+| `assets/js/` | `front.js`, `admin.js`, and `shared/` pulled into both |
+| `assets/icons.svg` | The icon sprite, 24 symbols, inlined into the page |
+| `blocks/<name>/` | Twenty blocks — four section views, sixteen §6 components |
+| `build/` | wp-scripts output. Gitignored, and required at runtime |
+| `webpack.config.js` | Three source trees to three destinations |
+| `.wp-env.json` | Local WordPress for e2e, on port 8931 |
+| `playwright.config.js` | e2e, run at both sides of the 782px breakpoint |
 | `type-defs.php` | Plugin constants declared empty, for static analysis only. **Never loaded at runtime.** |
 | `tests/` | Unit and integration suites, and the wp-phpunit bootstrap |
 | `.karkinos/workflows/` | Workflows for the local act runner |
 | `_temp/` | Working files — design docs and reference clones. Gitignored. |
+
+## The account area
+
+Lives at `/account/`, and at `/account/{section}/` for each section. The slug
+comes from `gatedmedia_account_slug` — a filter, not a setting, per the brief.
+
+**It is a virtual page, not a takeover.** The route answers with a page the
+theme renders: its header, its navigation, its footer. This is the WooCommerce
+My Account model, and it is the only one that behaves on a site whose theme we
+have never seen. The content inside is the section's block — the same block an
+administrator can place on a page of their own, so the two routes cannot drift.
+
+**One rewrite rule, not one per section.** A rule per section would mean a
+third party adding one has no URL until rewrites are flushed. The rule captures
+any segment and the section list decides at runtime what is valid, so adding a
+section needs no flush, ever. A second segment is captured too, which is what
+`/account/orders/{id}` will use.
+
+An unknown section, or one the user may not see, is a **real 404** — status
+code and all, not a "not found" page served with 200.
+
+### Adding a section
+
+`gatedmedia_account_sections` is the only place third-party code adds UI. It
+filters a `Section_Collection`, and anything implementing `Account_Section` can
+go in it. `Section` is a ready-made implementation, so a class of your own is
+optional:
+
+```php
+add_filter(
+    'gatedmedia_account_sections',
+    function ( Section_Collection $sections ): Section_Collection {
+        return $sections->add(
+            new Section(
+                slug:       'subscriptions',
+                title:      __( 'Subscriptions', 'my-plugin' ),
+                menu_label: __( 'Subscriptions', 'my-plugin' ),
+                block:      'my-plugin/subscriptions',
+                position:   25,
+            )
+        );
+    }
+);
+```
+
+That is the whole contract. No rewrite rule of your own, no query var, no menu
+call, no flush. Reusing an existing slug replaces that section, so a site can
+swap ours for its own; `remove()` drops one entirely.
+
+A section always renders **inside our shell** — the sidebar, the tab strip and
+the page title are drawn for you and the block fills the main column. Something
+wanting the whole page is not a section, it is a page, and it wants an ordinary
+WordPress route.
+
+A filter returning the wrong type falls back to our defaults rather than taking
+the account area down with it.
+
+### Components
+
+**The sixteen components in `_temp/ui-spec.md` §6 are blocks**, one each, all
+PHP-rendered. A section composes them; it does not write markup.
+
+They are hidden from the inserter (`"inserter": false`) — composed
+programmatically rather than dragged into a post — but they are ordinary
+registered blocks in every other respect, which is what matters:
+
+- Each gets `render_block_gated-media-access/<name>` for free, so a site can
+  change how a Row draws without us inventing a filter for it.
+- Each renders through `do_blocks()`, so a component behaves identically
+  however it got onto the page.
+- Each has typed attributes covering the states §6 documents, so a state that
+  exists in the spec has a way to be asked for.
+
+`Support\Block::render( $name, $attributes, $inner )` is how server code
+composes one. Inner blocks where a component genuinely has children — Row's
+aside, Notice's body, the nav's items — attributes where it does not.
+
+```php
+Block::render( 'gated-media-access/row', array( 'title' => 'Report.pdf' ),
+    Block::render( 'gated-media-access/expiry', array( 'state' => 'soon', 'label' => '3 days' ) )
+);
+```
+
+`gatedmedia-front` is the stylesheet handle and is public API — a third-party
+section renders inside our shell and will declare it as a dependency.
+
+Everything is prefixed `gatedmedia`, in CSS as well as PHP. No abbreviations,
+because short prefixes collide.
 
 ## Tests
 
@@ -87,6 +203,25 @@ vendor/bin/phpunit --testsuite integration
 Copy `tests/.env_sample` to `tests/.env` and set the database credentials. The
 integration suite installs a real WordPress through `wp-phpunit`, so it needs a
 database; the unit suite does not.
+
+### End to end
+
+```bash
+npx wp-env start           # WordPress on :8931, PHP 8.3, the dependency installed
+npm run build              # blocks are registered from build/, so this comes first
+npm run test:e2e
+```
+
+Playwright, against a real WordPress with a real theme. It runs every spec at
+**both sides of the 782px breakpoint** — `wide` and `narrow` projects — because
+the largest single thing to get wrong in this interface is the reflow.
+
+`WP_BASE_URL` points it somewhere other than wp-env; `WP_USER` and
+`WP_PASSWORD` override the wp-env defaults.
+
+These cover what the PHP suites cannot see: that the theme still renders around
+us, that a refused URL answers 404 rather than a soft one, that the sidebar and
+the tab strip never both show, and that nothing overflows the viewport.
 
 **The bootstrap downloads `restrict-media-file-access` on first run**, from its
 public GitHub release, using

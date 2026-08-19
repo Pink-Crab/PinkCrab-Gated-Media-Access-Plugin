@@ -1,0 +1,78 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/field",
+	"version": "0.1.0",
+	"title": "Form field",
+	"category": "widgets",
+	"icon": "forms",
+	"description": "ui-spec.md §6.8. Label, input, and the line beneath that doubles as help or error.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"name": {
+			"type": "string",
+			"default": ""
+		},
+		"label": {
+			"type": "string",
+			"default": ""
+		},
+		"type": {
+			"type": "string",
+			"default": "text"
+		},
+		"value": {
+			"type": "string",
+			"default": ""
+		},
+		"message": {
+			"type": "string",
+			"default": ""
+		},
+		"error": {
+			"type": "string",
+			"default": ""
+		},
+		"placeholder": {
+			"type": "string",
+			"default": ""
+		},
+		"autocomplete": {
+			"type": "string",
+			"default": ""
+		},
+		"disabled": {
+			"type": "boolean",
+			"default": false
+		},
+		"required": {
+			"type": "boolean",
+			"default": false
+		},
+		"multiline": {
+			"type": "boolean",
+			"default": false
+		},
+		"labelHidden": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"name": "example",
+			"label": "First name",
+			"value": "Glynn"
+		}
+	}
+}

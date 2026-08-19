@@ -1,0 +1,102 @@
+// =============================================================================
+// Mixins
+//
+// The type roles (§2) and the one breakpoint (§3), so neither is retyped.
+// =============================================================================
+
+@use "tokens" as *;
+
+// -----------------------------------------------------------------------------
+// §3 — the single breakpoint, 782px.
+//
+// Written max-width because the design is described wide-first and reflows
+// down: the corpus draws the two-column frame on 9 screens and describes
+// narrow as what replaces it.
+// -----------------------------------------------------------------------------
+
+@mixin narrow {
+	@media (max-width: #{$breakpoint-mobile - 1px}) {
+		@content;
+	}
+}
+
+@mixin wide {
+	@media (min-width: $breakpoint-mobile) {
+		@content;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §2 — type roles. Five named plus a small size. Only two weights are in real
+// use across the corpus; anything else is drift.
+// -----------------------------------------------------------------------------
+
+// The page title. Exactly one per page.
+@mixin h1 {
+	font-size: 32px;
+	line-height: 1.2;
+	font-weight: 700;
+}
+
+// The title of a row — a file, an order, a group.
+@mixin h4-row {
+	font-size: 18px;
+	line-height: 1.4;
+	font-weight: 600;
+}
+
+// Body copy, row values, input text. 16px also stops iOS zooming on focus.
+@mixin body-main {
+	font-size: 16px;
+	line-height: 1.5;
+	font-weight: 400;
+}
+
+// Button text, form labels, active nav item.
+@mixin label-bold {
+	font-size: 14px;
+	line-height: 1;
+	font-weight: 700;
+}
+
+// The muted second line — file type, size, date, expiry.
+@mixin meta-secondary {
+	font-size: 14px;
+	line-height: 1.4;
+	font-weight: 400;
+	color: var(--gatedmedia-on-surface-variant);
+}
+
+// Small caps section labels, footnotes.
+@mixin xs {
+	font-size: 12px;
+	line-height: 1.5;
+	font-weight: 400;
+}
+
+// -----------------------------------------------------------------------------
+// §6.3 — focus. "Never removed, never replaced with a colour change alone."
+// One mixin so that is true by construction.
+// -----------------------------------------------------------------------------
+
+@mixin focus-ring {
+	outline: 2px solid var(--gatedmedia-primary);
+	outline-offset: 2px;
+}
+
+// -----------------------------------------------------------------------------
+// Visually hidden — for labels a sighted user gets from context.
+// Matches core's .screen-reader-text so it behaves the same in wp-admin.
+// -----------------------------------------------------------------------------
+
+@mixin visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}

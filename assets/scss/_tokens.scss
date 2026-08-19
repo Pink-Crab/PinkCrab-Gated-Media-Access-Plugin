@@ -1,0 +1,142 @@
+// =============================================================================
+// Tokens
+//
+// Every value here is read out of _temp/ui-spec.md. Section numbers in the
+// comments refer to that document, and the hex values are §5 verbatim — the
+// interface must render identically to the mocks, so nothing here is rounded,
+// approximated or improved.
+//
+// Two layers:
+//
+//   1. Sass variables — needed where CSS custom properties cannot reach, which
+//      in practice means media queries.
+//   2. Custom properties on .gatedmedia — themeable at runtime, and the reason a host
+//      site can restyle us without a build step.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Sass-level. Media queries only — a custom property is not valid in one.
+// -----------------------------------------------------------------------------
+
+// §3. The one breakpoint. 782px, settled over Tailwind's 768px because it is
+// the declared token and it is WordPress's own admin breakpoint, so the front
+// end and wp-admin agree.
+$breakpoint-mobile: 782px;
+
+// -----------------------------------------------------------------------------
+// Runtime. Scoped to .gatedmedia so we never leak into the theme.
+// -----------------------------------------------------------------------------
+//
+// Declared on the document, not on `.gatedmedia`.
+//
+// Scoping them to the wrapper looked tidier and was wrong: a component is a
+// block, so one can be placed on any page, and in the editor each is rendered
+// on its own with no wrapper at all. Tokens that only exist inside the account
+// shell leave every such component unstyled — transparent buttons, 16px where
+// 44px was specified.
+//
+// `:where()` keeps the specificity at zero, so a theme or a host page can
+// still override any of these without a fight.
+// -----------------------------------------------------------------------------
+
+:where( :root ) {
+	// §1 — the spacing scale. Six steps, all multiples of the 4px unit.
+	--gatedmedia-xs: 4px; // icon to label; title to the line under it
+	--gatedmedia-sm: 8px; // related controls; label to input
+	--gatedmedia-md: 16px; // the default — inline padding, box padding, list gaps
+	--gatedmedia-lg: 24px; // between blocks inside a section
+	--gatedmedia-xl: 48px; // between sections
+
+	// §1 — declared, fixed, and deliberately not part of the ramp.
+	--gatedmedia-touch: 44px; // every button, every text input
+
+	// 12px recurs throughout the corpus (gap-3 on 14 screens) without being a
+	// named step: nav icon gap, input inline padding, chip padding, notice gap.
+	// Named here so it is one value rather than a magic number in nine files.
+	--gatedmedia-inset: 12px;
+
+	// §3 — column caps. Settled per page type, not one number.
+	--gatedmedia-cap-list: 896px; // lists and settings
+	--gatedmedia-cap-read: 720px; // a single thing being read (product)
+	--gatedmedia-cap-form: 448px; // a single form (sign in, reset)
+	--gatedmedia-sidebar: 256px;
+	--gatedmedia-topbar: 56px;
+
+	// §2 — type. Inter is named by the spec but never loaded by it, so the
+	// mocks already render in the system stack. We do the same: no webfont
+	// request from someone else's site.
+	--gatedmedia-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+	// §4 — corners. Nearly square throughout; `full` is 12px, not a capsule.
+	--gatedmedia-radius: 2px;
+	--gatedmedia-radius-lg: 4px;
+	--gatedmedia-radius-xl: 8px;
+	--gatedmedia-radius-full: 12px;
+
+	// §4 — lines. The interface is drawn with these, not with boxes: border-b
+	// appears on 24 of the 29 screens and is the commonest thing in the corpus.
+	--gatedmedia-marker: 2px; // active tab underline, active nav item edge
+
+	// §5 — colour.
+	--gatedmedia-background: #fcf8f9;
+	--gatedmedia-surface: #fcf8f9;
+	--gatedmedia-surface-lowest: #ffffff;
+	--gatedmedia-surface-low: #f6f3f4;
+	--gatedmedia-surface-variant: #e5e1e5;
+	--gatedmedia-on-surface: #333235;
+	--gatedmedia-on-surface-variant: #605e61;
+	--gatedmedia-outline: #7c7a7d;
+	--gatedmedia-outline-variant: #b4b1b4;
+	--gatedmedia-primary: #5d5e67;
+	--gatedmedia-primary-dim: #51525b;
+	--gatedmedia-primary-container: #e3e1ed;
+	--gatedmedia-on-primary: #f9f6ff;
+	--gatedmedia-error: #9e3f4e;
+	--gatedmedia-error-container: #ff8b9a;
+	--gatedmedia-error-dim: #4f0116;
+
+	// Composed once so a hairline is one decision, not sixty.
+	--gatedmedia-hairline: 1px solid var(--gatedmedia-outline-variant);
+
+	// §6.4 — the error notice fill is error-container at 10%, as drawn.
+	--gatedmedia-error-fill: color-mix(in srgb, var(--gatedmedia-error-container) 10%, transparent);
+
+	// §5 — muting is opacity, never a second grey. That is what makes it
+	// survive being dropped into a theme whose colours we do not control.
+	--gatedmedia-mute-inactive: 0.7; // an inactive nav item
+	--gatedmedia-mute-spent: 0.6; // expired or spent, still shown
+	--gatedmedia-mute-unavailable: 0.5; // unavailable; paired with a strikethrough
+}
+
+// -----------------------------------------------------------------------------
+// Theme inheritance — opt in.
+//
+// The brief asks for the CSS custom properties from theme.json. Applied
+// unconditionally that breaks the harder requirement, which is that this looks
+// exactly like the mocks: any theme defining a `primary` preset would recolour
+// our buttons. So it is a scope you add rather than the default.
+//
+// Add `gatedmedia-theme` alongside `gatedmedia` on the wrapper to inherit. Each falls back to
+// the §5 value above, so a theme defining none of them changes nothing.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-theme {
+	--gatedmedia-background: var(--wp--preset--color--base, #fcf8f9);
+	--gatedmedia-surface: var(--wp--preset--color--base, #fcf8f9);
+	--gatedmedia-on-surface: var(--wp--preset--color--contrast, #333235);
+	--gatedmedia-primary: var(--wp--preset--color--primary, #5d5e67);
+	--gatedmedia-font: var(--wp--preset--font-family--body, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+// -----------------------------------------------------------------------------
+// Dark mode — the hook only.
+//
+// ui-spec.md §9: `darkMode: "class"` was set in the Stitch config and two
+// screens carry a `dark:` variant, but no dark palette was ever defined. So
+// the switch exists and is wired; what it switches to is not designed yet.
+// Overriding the tokens below is the whole job when it is.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-dark {
+	// Intentionally empty. Redefine the §5 tokens here.
+}

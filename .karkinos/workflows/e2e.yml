@@ -1,0 +1,60 @@
+name: End to end
+
+# Separate from wp-6-9.yml so a browser run never slows the lint-and-test one.
+# That workflow answers "is the code sound"; this one answers "does it render",
+# and they fail for different reasons.
+on:
+  pull_request:
+
+jobs:
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # wp-env brings its own WordPress and MySQL as sibling containers on the
+      # host daemon, so this job needs no service of its own.
+      #
+      # Cleaning up first, not only last: a run killed outright — worker
+      # restart, act killed mid-job — never reaches its teardown, and its
+      # containers would still hold 8931 and 8932 when the next run starts.
+      - name: Clear anything a previous run left behind
+        run: npx wp-env destroy --force || true
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --no-progress
+          npm ci --no-audit --no-fund
+
+      # Blocks are registered from build/blocks, so without this the account
+      # area has nothing to render and every spec fails for the wrong reason.
+      - name: Build assets
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      - name: Start WordPress
+        run: npx wp-env start
+
+      - name: e2e
+        run: npm run test:e2e
+
+      # always(), because a failing spec is exactly when a leak would happen —
+      # the failure case is the one that skips a plain teardown step.
+      - name: Stop WordPress
+        if: always()
+        run: npx wp-env destroy --force || true
+
+      - name: Keep the traces of a failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

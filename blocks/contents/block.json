@@ -1,0 +1,48 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/contents",
+	"version": "0.1.0",
+	"title": "Contents list",
+	"category": "widgets",
+	"icon": "list-view",
+	"description": "ui-spec.md §6.12. What a product contains, or what an order contained.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"items": {
+			"type": "array",
+			"default": [],
+			"items": {
+				"type": "object"
+			}
+		},
+		"note": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php",
+	"example": {
+		"attributes": {
+			"items": [
+				{
+					"icon": "i-doc",
+					"text": "12 documents"
+				},
+				{
+					"icon": "i-video",
+					"text": "3 videos"
+				}
+			]
+		}
+	}
+}

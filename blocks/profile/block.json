@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/profile",
+	"version": "0.1.0",
+	"title": "Profile",
+	"category": "widgets",
+	"icon": "admin-users",
+	"description": "The one profile shape every route fills — name, email, address, phone, company.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"detail": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": false,
+		"multiple": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php"
+}

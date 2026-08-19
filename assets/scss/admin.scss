@@ -1,0 +1,16 @@
+// =============================================================================
+// wp-admin — build/css/admin.css
+//
+// Deliberately almost empty, and it should stay that way.
+//
+// ui-spec.md §9: all 29 designed screens are front end. Nothing admin-side was
+// ever drawn, and architecture.md §9 says why that is not a gap — the admin is
+// core list tables, core metaboxes and the Settings API, so it is core's CSS.
+// Restyling it would mean maintaining a copy of wp-admin every time WordPress
+// moves.
+//
+// So this file exists for the handful of things core has no class for, and
+// takes the same tokens as the front end so the two cannot drift.
+// =============================================================================
+
+@use "tokens";

@@ -1,0 +1,759 @@
+// =============================================================================
+// §6 — the components.
+//
+// The complete vocabulary, sixteen of them, in spec order. Every view in §7 is
+// assembled from these and nothing else; a view needing something absent means
+// this file is wrong and gets the addition first.
+//
+// One nested block per component, named after the component §6 names, so a
+// component is a single place to read and its elements cannot drift away from
+// it. Narrow overrides sit inside the block they change rather than in one
+// media query at the foot of the file.
+//
+// This is also the public contract: a third-party section added through
+// `gatedmedia_account_sections` renders inside our shell and is expected to
+// build from these classes.
+// =============================================================================
+
+@use "mixins" as *;
+
+// -----------------------------------------------------------------------------
+// §6.1 Account nav
+//
+// Wide: a 256px column, the active item marked down its left edge.
+// Narrow: the same items as a horizontally scrolling strip, the active one
+// underlined. Replaced, not collapsed — the corpus draws no hamburger.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-account-nav {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gatedmedia-sm);
+
+	&__item {
+		display: flex;
+		align-items: center;
+		gap: var(--gatedmedia-inset);
+		padding: var(--gatedmedia-sm) var(--gatedmedia-md);
+		text-decoration: none;
+		color: var(--gatedmedia-on-surface-variant);
+		font-size: 16px;
+		font-weight: 400;
+		border-left: var(--gatedmedia-marker) solid transparent;
+		opacity: var(--gatedmedia-mute-inactive);
+
+		&:hover {
+			background: var(--gatedmedia-surface-variant);
+			color: var(--gatedmedia-on-surface);
+		}
+
+		&.is-active {
+			color: var(--gatedmedia-on-surface);
+			font-size: 14px;
+			font-weight: 700;
+			border-left-color: var(--gatedmedia-primary);
+			opacity: 1;
+		}
+	}
+}
+
+// The narrow form of the same navigation.
+//
+// Scrolls with the page rather than sticking: the theme owns the top of the
+// viewport and may have a sticky header of its own to collide with.
+.gatedmedia-tab-strip {
+	display: none;
+
+	@include narrow {
+		display: flex;
+		gap: var(--gatedmedia-lg);
+		padding: var(--gatedmedia-sm) 0;
+		margin-bottom: var(--gatedmedia-lg);
+		border-bottom: var(--gatedmedia-hairline);
+		overflow-x: auto;
+		white-space: nowrap;
+		scrollbar-width: none;
+
+		&::-webkit-scrollbar {
+			display: none;
+		}
+	}
+
+	&__item {
+		display: flex;
+		align-items: center;
+		gap: var(--gatedmedia-sm);
+		text-decoration: none;
+		color: var(--gatedmedia-on-surface-variant);
+		font-size: 16px;
+		padding-bottom: var(--gatedmedia-sm);
+		border-bottom: var(--gatedmedia-marker) solid transparent;
+		opacity: var(--gatedmedia-mute-inactive);
+
+		&.is-active {
+			color: var(--gatedmedia-on-surface);
+			font-size: 14px;
+			font-weight: 700;
+			border-bottom-color: var(--gatedmedia-primary);
+			opacity: 1;
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.2 Row
+//
+// The workhorse: a file, a post, a group, an order. Four states, all drawn.
+//
+// Narrow is the single biggest reflow in the design — the row stacks and its
+// action goes full width beneath. Wide, groups and posts carry no action at
+// all; narrow, they do.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--gatedmedia-md);
+	padding: var(--gatedmedia-md) 0;
+	border-bottom: var(--gatedmedia-hairline);
+
+	@include narrow {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--gatedmedia-sm);
+	}
+
+	&__main {
+		min-width: 0;
+	}
+
+	&__title {
+		@include h4-row;
+		margin: 0;
+	}
+
+	&__meta {
+		@include meta-secondary;
+		margin-top: var(--gatedmedia-xs);
+	}
+
+	&__aside {
+		display: flex;
+		align-items: center;
+		gap: var(--gatedmedia-md);
+		flex-shrink: 0;
+
+		@include narrow {
+			justify-content: space-between;
+		}
+	}
+
+	// §7.1 narrow — groups and posts gain a full-width action they do not have
+	// on wide. Absent above the breakpoint entirely.
+	&__action {
+		display: none;
+
+		@include narrow {
+			display: block;
+
+			// The button sits inside its own block-level host, so both have to
+			// fill the row for the full-width action §7.1 specifies.
+			.gatedmedia-inline-host,
+			.gatedmedia-button {
+				width: 100%;
+			}
+		}
+	}
+
+	// The title is struck through; the row itself is dimmed by `is-unavailable`.
+	&.is-unavailable &__title {
+		text-decoration: line-through;
+	}
+
+	// §7.3 — Orders is the one row that does not stack. Price and status stay
+	// right-aligned at every width.
+	&--order {
+		@include narrow {
+			flex-direction: row;
+			align-items: flex-start;
+
+			.gatedmedia-row__aside {
+				flex-direction: column;
+				align-items: flex-end;
+				gap: var(--gatedmedia-xs);
+			}
+		}
+	}
+}
+
+// §6.2 loading — the only loading state anywhere in the design (§9).
+.gatedmedia-skeleton {
+	background: var(--gatedmedia-outline-variant);
+	border-radius: var(--gatedmedia-radius);
+
+	&--title {
+		height: 20px;
+		width: 192px;
+	}
+
+	&--meta {
+		height: 16px;
+		width: 128px;
+		margin-top: var(--gatedmedia-sm);
+		opacity: 0.5;
+	}
+
+	&--action {
+		height: var(--gatedmedia-touch);
+		width: 96px;
+	}
+}
+
+.gatedmedia-row.is-loading {
+	animation: gatedmedia-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes gatedmedia-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.5;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.gatedmedia-row.is-loading {
+		animation: none;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.3 Buttons — primary, secondary, and the text link.
+//
+// Every button is 44px tall; the corpus has no exception. Narrow drops the
+// minimum width and goes full width.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--gatedmedia-sm);
+	min-height: var(--gatedmedia-touch);
+	min-width: 120px;
+	padding: 0 var(--gatedmedia-lg);
+	font-family: inherit;
+	@include label-bold;
+	border-radius: var(--gatedmedia-radius);
+	border: 1px solid transparent;
+	cursor: pointer;
+	text-decoration: none;
+
+	@include narrow {
+		width: 100%;
+		min-width: 0;
+	}
+
+	&--primary {
+		background: var(--gatedmedia-primary);
+		color: var(--gatedmedia-on-primary);
+
+		&:hover {
+			background: var(--gatedmedia-primary-dim);
+			color: var(--gatedmedia-on-primary);
+		}
+	}
+
+	&--secondary {
+		background: transparent;
+		color: var(--gatedmedia-on-surface);
+		border-color: var(--gatedmedia-outline-variant);
+
+		&:hover {
+			background: var(--gatedmedia-surface-variant);
+			color: var(--gatedmedia-on-surface);
+		}
+	}
+
+	&--full {
+		width: 100%;
+	}
+
+	// Stacked full-width buttons sit sm apart — never flush against each other.
+	&--full + &--full {
+		margin-top: var(--gatedmedia-sm);
+	}
+}
+
+.gatedmedia-text-link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--gatedmedia-xs);
+	color: var(--gatedmedia-primary);
+	@include label-bold;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	background: none;
+	border: 0;
+	padding: 0;
+	font-family: inherit;
+	cursor: pointer;
+
+	&:hover {
+		color: var(--gatedmedia-primary-dim);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.4 Notice — information, error, success.
+//
+// Tinted, per §8 conflict: a border-only notice in a page already drawn from
+// hairlines does not read as a distinct thing.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-notice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--gatedmedia-inset);
+	padding: var(--gatedmedia-md);
+	border: 1px solid var(--gatedmedia-outline-variant);
+	border-radius: var(--gatedmedia-radius);
+	background: var(--gatedmedia-surface-low);
+
+	& + & {
+		margin-top: var(--gatedmedia-md);
+	}
+
+	&__icon {
+		flex-shrink: 0;
+		color: var(--gatedmedia-primary);
+		line-height: 1.5;
+	}
+
+	&__body {
+		flex: 1;
+		min-width: 0;
+	}
+
+	// Rendered only where the notice is genuinely dismissible — §7.5's forced
+	// completion prompt depends on its absence.
+	&__dismiss {
+		flex-shrink: 0;
+		background: none;
+		border: 0;
+		cursor: pointer;
+		color: var(--gatedmedia-on-surface-variant);
+		font-size: 18px;
+		line-height: 1;
+		padding: var(--gatedmedia-xs);
+	}
+
+	&--error {
+		border-color: var(--gatedmedia-error);
+		color: var(--gatedmedia-error);
+		background: var(--gatedmedia-error-fill);
+
+		.gatedmedia-notice__icon,
+		.gatedmedia-notice__dismiss {
+			color: var(--gatedmedia-error);
+		}
+	}
+
+	&--success {
+		border-color: var(--gatedmedia-primary-dim);
+		background: var(--gatedmedia-primary-container);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.5 Expiry — bare in lists, a chip in detail panels.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-expiry {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--gatedmedia-sm);
+	font-size: 14px;
+	line-height: 1.4;
+	white-space: nowrap;
+
+	// Expiring soon.
+	&--warning {
+		color: var(--gatedmedia-error);
+	}
+
+	// Expired, and still shown.
+	&--expired {
+		color: var(--gatedmedia-on-surface-variant);
+		opacity: var(--gatedmedia-mute-spent);
+	}
+
+	// Detail panels only. A list is already busy with rules and buttons.
+	&--chip {
+		background: var(--gatedmedia-surface-low);
+		padding: 6px var(--gatedmedia-inset);
+		border-radius: var(--gatedmedia-radius);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.6 Status pill.
+//
+// Five values: complete, refunded, active, expired, revoked. A refunded or
+// revoked row additionally drops to 60% — that is the row's job, not the pill's.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--gatedmedia-xs);
+	padding: var(--gatedmedia-xs) var(--gatedmedia-inset);
+	border-radius: var(--gatedmedia-radius-full);
+	background: var(--gatedmedia-primary-container);
+	color: var(--gatedmedia-primary);
+	font-size: 14px;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+
+// -----------------------------------------------------------------------------
+// §6.7 Price, inline.
+//
+// Zero renders as the word "Free", never an amount — decided in PHP, not here.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-price {
+	font-size: 16px;
+	font-weight: 600;
+	text-align: right;
+	white-space: nowrap;
+
+	// The pre-discount amount, struck through immediately before what was paid.
+	&__original {
+		text-decoration: line-through;
+		color: var(--gatedmedia-on-surface-variant);
+		font-weight: 400;
+		margin-right: var(--gatedmedia-sm);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.8 Form field.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-field {
+	& + & {
+		margin-top: var(--gatedmedia-md);
+	}
+
+	&__label {
+		display: block;
+		@include label-bold;
+		margin-bottom: var(--gatedmedia-sm);
+	}
+
+	&__input {
+		display: block;
+		width: 100%;
+		min-height: var(--gatedmedia-touch);
+		padding: 0 var(--gatedmedia-inset);
+		font-family: inherit;
+		// 16px matters: anything smaller makes iOS zoom the page on focus.
+		font-size: 16px;
+		color: var(--gatedmedia-on-surface);
+		background: transparent;
+		border: 1px solid var(--gatedmedia-outline-variant);
+		border-radius: var(--gatedmedia-radius);
+
+		&:disabled {
+			background: var(--gatedmedia-surface-variant);
+			color: var(--gatedmedia-on-surface-variant);
+		}
+	}
+
+	// Doubles as the helper line and the validation message — they occupy the
+	// same place and never both appear.
+	&__message {
+		@include meta-secondary;
+		margin-top: var(--gatedmedia-sm);
+	}
+
+	&.is-invalid {
+		.gatedmedia-field__label,
+		.gatedmedia-field__message {
+			color: var(--gatedmedia-error);
+		}
+
+		.gatedmedia-field__input {
+			border-color: var(--gatedmedia-error);
+		}
+	}
+}
+
+textarea.gatedmedia-field__input {
+	padding: var(--gatedmedia-inset);
+	min-height: 100px;
+	resize: vertical;
+}
+
+// -----------------------------------------------------------------------------
+// §6.9 Section heading.
+//
+// Uppercase 12px, tracked, at both widths. It is a label rather than a title —
+// the page already has its heading, and keeping this small stops it competing.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-section-heading {
+	@include xs;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--gatedmedia-on-surface-variant);
+	margin: 0 0 var(--gatedmedia-sm);
+}
+
+// -----------------------------------------------------------------------------
+// §6.10 Empty state.
+//
+// One box, at page level, and only when the view has nothing at all. The only
+// deliberately airy thing in the design.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-empty-state {
+	border: 1px dashed var(--gatedmedia-outline-variant);
+	border-radius: var(--gatedmedia-radius);
+	padding: var(--gatedmedia-xl) var(--gatedmedia-lg);
+	text-align: center;
+
+	&__icon {
+		width: 32px;
+		height: 32px;
+		color: var(--gatedmedia-outline-variant);
+		display: block;
+		margin: 0 auto var(--gatedmedia-md);
+	}
+
+	&__title {
+		@include h4-row;
+		margin: 0 0 var(--gatedmedia-sm);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.11 Filter.
+//
+// Search stays at every width — §8 conflict 8. Dropping it on the device most
+// likely to have a long list is backwards. Narrow swaps the select for chips.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-filter {
+	display: flex;
+	gap: var(--gatedmedia-sm);
+	margin-bottom: var(--gatedmedia-lg);
+
+	@include narrow {
+		flex-direction: column;
+	}
+
+	&__search {
+		flex: 1;
+	}
+
+	&__type {
+		min-height: var(--gatedmedia-touch);
+		padding: 0 var(--gatedmedia-inset);
+		font-family: inherit;
+		font-size: 16px;
+		background: transparent;
+		border: 1px solid var(--gatedmedia-outline-variant);
+		border-radius: var(--gatedmedia-radius);
+		color: var(--gatedmedia-on-surface);
+
+		@include narrow {
+			display: none;
+		}
+	}
+}
+
+.gatedmedia-type-chips {
+	display: none;
+	gap: var(--gatedmedia-sm);
+	flex-wrap: wrap;
+	margin-bottom: var(--gatedmedia-lg);
+
+	@include narrow {
+		display: flex;
+	}
+
+	&__chip {
+		min-height: var(--gatedmedia-touch);
+		display: inline-flex;
+		align-items: center;
+		padding: 0 var(--gatedmedia-inset);
+		border: 1px solid var(--gatedmedia-outline-variant);
+		border-radius: var(--gatedmedia-radius-full);
+		background: transparent;
+		font-family: inherit;
+		font-size: 14px;
+		cursor: pointer;
+		color: var(--gatedmedia-on-surface);
+
+		&.is-active {
+			background: var(--gatedmedia-primary);
+			color: var(--gatedmedia-on-primary);
+			border-color: var(--gatedmedia-primary);
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.12 Contents list.
+//
+// A statement of what something contains, not a list you can act on: no rules
+// between rows, no right-hand column, no actions.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-contents {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+
+	&__item {
+		display: flex;
+		align-items: center;
+		gap: var(--gatedmedia-inset);
+
+		& + & {
+			margin-top: var(--gatedmedia-md);
+		}
+	}
+
+	&__icon {
+		color: var(--gatedmedia-outline-variant);
+		flex-shrink: 0;
+	}
+
+	// Used in order detail to record that the contents are frozen as they were
+	// on the order date.
+	&__note {
+		@include meta-secondary;
+		font-style: italic;
+		margin-top: var(--gatedmedia-md);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.13 Price block.
+//
+// The standalone price on a product page, distinct from the inline price in a
+// row (§6.7). The amount is set at the h1 size but is not a heading.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-price-block {
+	&__original {
+		font-size: 16px;
+		text-decoration: line-through;
+		color: var(--gatedmedia-on-surface-variant);
+		margin-right: var(--gatedmedia-sm);
+	}
+
+	&__amount {
+		@include h1;
+	}
+
+	&__term {
+		@include meta-secondary;
+		margin-top: var(--gatedmedia-xs);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.14 Coupon field.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-coupon {
+	&__row {
+		display: flex;
+		gap: var(--gatedmedia-sm);
+		align-items: flex-end;
+
+		.gatedmedia-field {
+			flex: 1;
+			margin-top: 0;
+		}
+
+		@include narrow {
+			flex-direction: column;
+			align-items: stretch;
+		}
+	}
+
+	// Applied: the input and its button are replaced, not annotated.
+	&__applied {
+		display: flex;
+		align-items: center;
+		gap: var(--gatedmedia-sm);
+		font-size: 14px;
+		line-height: 1.4;
+		background: var(--gatedmedia-surface-low);
+		padding: var(--gatedmedia-sm) var(--gatedmedia-inset);
+		border-radius: var(--gatedmedia-radius);
+
+		.gatedmedia-text-link {
+			margin-left: auto;
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.15 Pinned action bar. Narrow only, Product only.
+//
+// The only pinned bottom element in the design: §8 conflict 3 dropped the
+// bottom tab bar, because a fixed bar owns the bottom of a viewport that is not
+// ours to take. This survives because it is one action on a public page rather
+// than navigation. It must never be used on an account view.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-action-bar {
+	display: none;
+
+	@include narrow {
+		display: block;
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: var(--gatedmedia-sm) var(--gatedmedia-md);
+		background: var(--gatedmedia-surface);
+		border-top: var(--gatedmedia-hairline);
+		z-index: 50;
+
+		// The bar holds one button, inside its own block-level host.
+		.gatedmedia-inline-host,
+		.gatedmedia-button {
+			width: 100%;
+		}
+	}
+}
+
+// Reserves the foot of the page so content clears the bar above.
+.has-action-bar {
+	@include narrow {
+		padding-bottom: 96px;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// §6.16 Summary.
+//
+// The one-line form of the contents list (§6.12), for where the count is
+// incidental to something else rather than the point of it.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-summary {
+	@include meta-secondary;
+}

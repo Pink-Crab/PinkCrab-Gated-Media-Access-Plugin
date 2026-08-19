@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/orders",
+	"version": "0.1.0",
+	"title": "Orders",
+	"category": "widgets",
+	"icon": "list-view",
+	"description": "The record of what this person has taken, and when. Not a shop.",
+	"textdomain": "gated-media-access",
+	"attributes": {
+		"detail": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": false,
+		"multiple": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php"
+}
