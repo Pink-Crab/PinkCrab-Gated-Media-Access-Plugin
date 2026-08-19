@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Settings;
 
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
  * The plugin's top-level menu and its settings screen.
@@ -37,15 +38,12 @@ class Settings_Page implements Hookable {
 
 	/**
 	 * Adds the top-level menu and its first page.
-	 *
-	 * Gated on `manage_options` until `gatedmedia_manage_settings` is granted
-	 * on activation; swap it then.
 	 */
 	public function register_menu(): void {
 		add_menu_page(
 			__( 'Gated Media Access', 'gated-media-access' ),
 			__( 'Gated Access', 'gated-media-access' ),
-			'manage_options',
+			Capabilities::MANAGE_SETTINGS,
 			self::MENU_SLUG,
 			array( $this, 'render' ),
 			'dashicons-lock'

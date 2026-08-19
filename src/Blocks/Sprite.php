@@ -50,8 +50,8 @@ class Sprite implements Hookable {
 	 * @param Hook_Loader $loader The shared loader.
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
-		$loader->filter( 'render_block', array( $this, 'note_block' ), 10, 2 );
-		$loader->action( 'wp_footer', array( $this, 'print_sprite' ), 5 );
+		$loader->filter( 'render_block', array( $this, 'note_block' ), 2, 10 );
+		$loader->action( 'wp_footer', array( $this, 'print_sprite' ), 1, 5 );
 	}
 
 	/**
