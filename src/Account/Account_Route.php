@@ -51,12 +51,14 @@ class Account_Route implements Hookable {
 	public const QUERY_DETAIL = 'gatedmedia_account_detail';
 
 	/**
-	 * Bumped whenever the rules below change, which triggers exactly one flush.
+	 * Bumped whenever the plugin's rewrite rules change — the rules below, or
+	 * a registered post type's — which triggers exactly one flush.
 	 *
 	 * Adding a section does not change the rules, so this does not move when
 	 * one is added — that is the point of the catch-all.
+	 * '2': the gatedmedia_product post type added its rules.
 	 */
-	private const REWRITE_VERSION = '1';
+	private const REWRITE_VERSION = '2';
 
 	private const REWRITE_OPTION = 'gatedmedia_rewrite_version';
 
@@ -100,7 +102,7 @@ class Account_Route implements Hookable {
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'init', array( $this, 'register_rewrites' ) );
 		$loader->filter( 'query_vars', array( $this, 'register_query_vars' ) );
-		$loader->filter( 'the_posts', array( $this, 'supply_virtual_page' ), 10, 2 );
+		$loader->filter( 'the_posts', array( $this, 'supply_virtual_page' ), 2, 10 );
 		$loader->action( 'template_redirect', array( $this, 'require_login' ) );
 		$loader->action( 'template_redirect', array( $this, 'send_not_found_status' ) );
 		$loader->filter( 'the_content', array( $this, 'render_content' ) );
