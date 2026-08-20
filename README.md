@@ -211,10 +211,23 @@ ours. Core's write surfaces are shut (`create_posts`, `publish_posts` and
 
 **Ways to grant.** The Add Access form (user, item, duration — empty duration
 is lifetime); the Access metabox on every restrictable type's edit screen,
-attachments included, which lists the item's direct holders and links here
-pre-filled; and quick edit on the posts and pages lists, whose Access column
+attachments included, which lists the item's direct holders and grants right
+there — user search, days, one button — and manages the item's groups the
+same way; and quick edit on the posts and pages lists, whose Access column
 counts holders and whose inline form grants user-plus-days on save. All of
 them end in `Access_Writer::grant()`, stamped `source=admin` and created-by.
+
+**Editing a record is editing its expiry.** The list's Edit action opens the
+Edit Access page: holder, item and provenance are the record's identity and
+stay fixed; the expiry moves through `Access_Writer::set_expiry()` — status
+follows the date, a past date expires it on the spot, and a future date
+brings an expired record back. Revoked records refuse: the way back is a
+fresh grant. Extending is also just re-granting — the writer stacks days
+onto a live timed record.
+
+**The list filters** by holder (user search over core's `author` var), item
+type, one specific item, and source — `Access_Filters` on the list's own
+toolbar, applied as meta clauses.
 
 **The pickers are components** (`src/Admin/Pickers/`): an abstract `Picker`
 — visible control plus a hidden input carrying the choice — with
