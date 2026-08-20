@@ -130,6 +130,7 @@ class Payments_List_Table extends WP_List_Table {
 		}
 
 		$title = get_the_title( $item->product_id );
+		$title = '' === $title ? __( '(no title)', 'gated-media-access' ) : $title;
 		$link  = get_edit_post_link( $item->product_id );
 
 		// No edit link is a permissions fact about the viewer, not the product.
