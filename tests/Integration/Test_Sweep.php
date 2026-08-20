@@ -100,6 +100,10 @@ class Test_Sweep extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 2, $this->sweep->run() );
+
+		// Same-second records tie on the sweep query's date order, so which
+		// fires first is not part of the claim — only that both fired once.
+		ksort( $fired );
 		$this->assertSame( array( $first => $this->user_id, $second => $this->user_id ), $fired );
 	}
 

@@ -73,7 +73,7 @@ class Test_Smoke extends WP_UnitTestCase {
 		// only attaches those when is_admin() is true.
 		set_current_screen( 'dashboard' );
 
-		$page   = new Settings_Page();
+		$page   = new Settings_Page( new \PinkCrab\Gated_Access\Settings\Settings() );
 		$loader = new Hook_Loader();
 
 		$page->register_hooks( $loader );
