@@ -13,6 +13,10 @@ use WP_Error;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Admin\Pickers\File_Picker;
+use PinkCrab\Gated_Access\Admin\Pickers\Group_Picker;
+use PinkCrab\Gated_Access\Admin\Pickers\Post_Picker;
+use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
@@ -70,16 +74,14 @@ class Add_Access_Page implements Hookable {
 	}
 
 	/**
-	 * The form: user, item, duration.
+	 * The form: user, item, duration — composed from the picker components.
 	 *
-	 * The item metabox links here pre-filled — its type and item land as GET
-	 * args and become the selected values.
+	 * The item metabox links here pre-filled: its type and item land as GET
+	 * args and become the pickers' initial values, printed server-side so
+	 * the prefill stands without the script.
 	 */
 	public function render(): void {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only prefill from our own metabox link.
-		$prefill_type = isset( $_GET['gatedmedia_type'] ) ? sanitize_text_field( wp_unslash( $_GET['gatedmedia_type'] ) ) : '';
-		$prefill_item = isset( $_GET['gatedmedia_item'] ) ? sanitize_text_field( wp_unslash( $_GET['gatedmedia_item'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$prefill = $this->prefill();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Add Access', 'gated-media-access' ); ?></h1>
@@ -88,47 +90,47 @@ class Add_Access_Page implements Hookable {
 				<?php wp_nonce_field( self::ACTION ); ?>
 				<table class="form-table" role="presentation">
 					<tr>
-						<th scope="row"><label for="gatedmedia_user"><?php esc_html_e( 'User', 'gated-media-access' ); ?></label></th>
-						<td>
-							<?php
-							wp_dropdown_users(
-								array(
-									'name'             => 'gatedmedia_user',
-									'id'               => 'gatedmedia_user',
-									'show'             => 'display_name_with_login',
-									'show_option_none' => __( '— Select a user —', 'gated-media-access' ),
-								)
-							);
-							?>
-						</td>
+						<th scope="row"><label for="gatedmedia_user_search"><?php esc_html_e( 'User', 'gated-media-access' ); ?></label></th>
+						<td><?php ( new User_Picker( 'gatedmedia_user', 'gatedmedia_user' ) )->render(); ?></td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="gatedmedia_item_type"><?php esc_html_e( 'Item type', 'gated-media-access' ); ?></label></th>
 						<td>
 							<select name="gatedmedia_item_type" id="gatedmedia_item_type">
-								<option value="group" <?php selected( $prefill_type, 'group' ); ?>><?php esc_html_e( 'Group', 'gated-media-access' ); ?></option>
-								<option value="post" <?php selected( $prefill_type, 'post' ); ?>><?php esc_html_e( 'Post', 'gated-media-access' ); ?></option>
-								<option value="file" <?php selected( $prefill_type, 'file' ); ?>><?php esc_html_e( 'File', 'gated-media-access' ); ?></option>
+								<option value="group" <?php selected( $prefill['type'], 'group' ); ?>><?php esc_html_e( 'Group', 'gated-media-access' ); ?></option>
+								<option value="post" <?php selected( $prefill['type'], 'post' ); ?>><?php esc_html_e( 'Post', 'gated-media-access' ); ?></option>
+								<option value="file" <?php selected( $prefill['type'], 'file' ); ?>><?php esc_html_e( 'File', 'gated-media-access' ); ?></option>
 							</select>
 						</td>
 					</tr>
-					<tr>
+					<tr data-gatedmedia-row="group">
 						<th scope="row"><label for="gatedmedia_group"><?php esc_html_e( 'Group', 'gated-media-access' ); ?></label></th>
+						<td><?php ( new Group_Picker( 'gatedmedia_group', 'gatedmedia_group', $this->groups() ) )->render(); ?></td>
+					</tr>
+					<tr data-gatedmedia-row="post">
+						<th scope="row"><label for="gatedmedia_post_search"><?php esc_html_e( 'Post', 'gated-media-access' ); ?></label></th>
 						<td>
-							<select name="gatedmedia_group" id="gatedmedia_group">
-								<option value=""><?php esc_html_e( '— Select a group —', 'gated-media-access' ); ?></option>
-								<?php foreach ( $this->groups() as $uuid => $name ) : ?>
-									<option value="<?php echo esc_attr( $uuid ); ?>"><?php echo esc_html( $name ); ?></option>
-								<?php endforeach; ?>
-							</select>
-							<p class="description"><?php esc_html_e( 'Used when the item type is Group.', 'gated-media-access' ); ?></p>
+							<?php
+							( new Post_Picker(
+								'gatedmedia_post',
+								'gatedmedia_post',
+								$prefill['post_id'],
+								$prefill['post_title']
+							) )->render();
+							?>
 						</td>
 					</tr>
-					<tr>
-						<th scope="row"><label for="gatedmedia_item_id"><?php esc_html_e( 'Post or file ID', 'gated-media-access' ); ?></label></th>
+					<tr data-gatedmedia-row="file">
+						<th scope="row"><label for="gatedmedia_file_search"><?php esc_html_e( 'File', 'gated-media-access' ); ?></label></th>
 						<td>
-							<input type="number" min="1" name="gatedmedia_item_id" id="gatedmedia_item_id" value="<?php echo esc_attr( $prefill_item ); ?>" />
-							<p class="description"><?php esc_html_e( 'Used when the item type is Post or File.', 'gated-media-access' ); ?></p>
+							<?php
+							( new File_Picker(
+								'gatedmedia_file',
+								'gatedmedia_file',
+								$prefill['file_id'],
+								$prefill['file_title']
+							) )->render();
+							?>
 						</td>
 					</tr>
 					<tr>
@@ -158,16 +160,8 @@ class Add_Access_Page implements Hookable {
 			wp_die( esc_html__( 'You are not allowed to give access.', 'gated-media-access' ), '', 403 );
 		}
 
-		// Sanitised here, validated whole by the writer's Grant_Validator.
-		$granted = $this->create(
-			array(
-				'user'      => isset( $_POST['gatedmedia_user'] ) ? absint( $_POST['gatedmedia_user'] ) : 0,
-				'item_type' => isset( $_POST['gatedmedia_item_type'] ) ? sanitize_text_field( wp_unslash( $_POST['gatedmedia_item_type'] ) ) : '',
-				'group'     => isset( $_POST['gatedmedia_group'] ) ? sanitize_text_field( wp_unslash( $_POST['gatedmedia_group'] ) ) : '',
-				'item_id'   => isset( $_POST['gatedmedia_item_id'] ) ? sanitize_text_field( wp_unslash( $_POST['gatedmedia_item_id'] ) ) : '',
-				'duration'  => isset( $_POST['gatedmedia_duration'] ) ? sanitize_text_field( wp_unslash( $_POST['gatedmedia_duration'] ) ) : '',
-			)
-		);
+		// Sanitised in submitted_input(), validated whole by the writer's Grant_Validator.
+		$granted = $this->create( $this->submitted_input() );
 
 		if ( $granted instanceof WP_Error ) {
 			wp_safe_redirect(
@@ -189,13 +183,66 @@ class Add_Access_Page implements Hookable {
 	}
 
 	/**
+	 * The posted fields, sanitised. The nonce was checked before this reads.
+	 *
+	 * @return array{user: int, item_type: string, group: string, post: string, file: string, duration: string}
+	 */
+	private function submitted_input(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- handle() ran check_admin_referer() before calling this.
+		$text = static fn ( string $key ): string => isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+
+		return array(
+			'user'      => isset( $_POST['gatedmedia_user'] ) ? absint( $_POST['gatedmedia_user'] ) : 0,
+			'item_type' => $text( 'gatedmedia_item_type' ),
+			'group'     => $text( 'gatedmedia_group' ),
+			'post'      => $text( 'gatedmedia_post' ),
+			'file'      => $text( 'gatedmedia_file' ),
+			'duration'  => $text( 'gatedmedia_duration' ),
+		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+	}
+
+	/**
+	 * What the metabox link pre-fills: the item type, and — for a post or
+	 * file — the item's id and current name, ready for the pickers.
+	 *
+	 * @return array{type: string, post_id: string, post_title: string, file_id: string, file_title: string}
+	 */
+	private function prefill(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only prefill from our own metabox link.
+		$type = isset( $_GET['gatedmedia_type'] ) ? sanitize_text_field( wp_unslash( $_GET['gatedmedia_type'] ) ) : '';
+		$item = isset( $_GET['gatedmedia_item'] ) ? absint( $_GET['gatedmedia_item'] ) : 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		$prefill = array(
+			'type'       => $type,
+			'post_id'    => '',
+			'post_title' => '',
+			'file_id'    => '',
+			'file_title' => '',
+		);
+
+		if ( $item > 0 && in_array( $type, array( 'post', 'file' ), true ) ) {
+			$prefill[ $type . '_id' ]    = (string) $item;
+			$prefill[ $type . '_title' ] = (string) get_the_title( $item );
+		}
+
+		return $prefill;
+	}
+
+	/**
 	 * Turns the form's fields into one grant, through the writer.
 	 *
-	 * @param array{user: int, item_type: string, group: string, item_id: string, duration: string} $input The sanitised form values.
+	 * @param array{user: int, item_type: string, group: string, post: string, file: string, duration: string} $input The sanitised form values.
 	 * @return int|WP_Error The new record, or what the writer refused.
 	 */
 	public function create( array $input ): int|WP_Error {
-		$item_id  = 'group' === $input['item_type'] ? $input['group'] : $input['item_id'];
+		$item_id = match ( $input['item_type'] ) {
+			'group' => $input['group'],
+			'file'  => $input['file'],
+			default => $input['post'],
+		};
+
 		$duration = '' === $input['duration'] ? null : absint( $input['duration'] );
 
 		return $this->writer->grant(

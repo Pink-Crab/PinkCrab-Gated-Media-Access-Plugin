@@ -14,3 +14,45 @@
 // =============================================================================
 
 @use "tokens";
+
+// The pickers' autocomplete menu (src/Admin/Pickers) — jQuery UI ships no
+// CSS in wp-admin, so the dropdown gets the minimum to read as a menu.
+.ui-autocomplete {
+	position: absolute;
+	z-index: 100000;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+	max-height: 16em;
+	overflow-y: auto;
+
+	.ui-menu-item {
+		margin: 0;
+	}
+
+	.ui-menu-item-wrapper {
+		display: block;
+		padding: 6px 10px;
+		cursor: pointer;
+
+		&.ui-state-active {
+			background: #2271b1;
+			color: #fff;
+		}
+	}
+}
+
+// The quick edit grant block reads as one unit.
+.gatedmedia-quick-grant {
+	h4 {
+		margin: 0.5em 0;
+	}
+
+	em.inline-edit-group {
+		display: block;
+		padding: 0.5em 0.5em 0;
+	}
+}

@@ -12,6 +12,7 @@ namespace PinkCrab\Gated_Access\Admin;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
@@ -116,25 +117,18 @@ class Quick_Edit_Grant implements Hookable {
 
 		wp_nonce_field( self::NONCE, self::NONCE, false );
 		?>
-		<fieldset class="inline-edit-col-right">
+		<fieldset class="inline-edit-col-right gatedmedia-quick-grant">
 			<div class="inline-edit-col">
-				<label>
-					<span class="title"><?php esc_html_e( 'Grant access', 'gated-media-access' ); ?></span>
-					<?php
-					wp_dropdown_users(
-						array(
-							'name'             => 'gatedmedia_qe_user',
-							'show'             => 'display_name_with_login',
-							'show_option_none' => __( '— No new access —', 'gated-media-access' ),
-						)
-					);
-					?>
+				<h4><?php esc_html_e( 'Grant access', 'gated-media-access' ); ?></h4>
+				<label class="inline-edit-group">
+					<span class="title"><?php esc_html_e( 'User', 'gated-media-access' ); ?></span>
+					<span class="input-text-wrap"><?php ( new User_Picker( 'gatedmedia_qe_user', 'gatedmedia_qe_user' ) )->render(); ?></span>
 				</label>
-				<label>
+				<label class="inline-edit-group">
 					<span class="title"><?php esc_html_e( 'Days', 'gated-media-access' ); ?></span>
-					<input type="number" min="1" name="gatedmedia_qe_duration" />
-					<span class="description"><?php esc_html_e( 'Empty for lifetime.', 'gated-media-access' ); ?></span>
+					<span class="input-text-wrap"><input type="number" min="1" name="gatedmedia_qe_duration" /></span>
 				</label>
+				<em class="inline-edit-group"><?php esc_html_e( 'A picked user gains access to this item when the row saves — empty days means lifetime. Nobody picked, nothing granted.', 'gated-media-access' ); ?></em>
 			</div>
 		</fieldset>
 		<?php

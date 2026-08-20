@@ -11,6 +11,8 @@ namespace PinkCrab\Gated_Access\Assets;
 
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Admin\Picker_Search;
+use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
  * Owns the four built bundles and decides where they load.
@@ -80,7 +82,9 @@ class Asset_Loader implements Hookable {
 		wp_register_script(
 			self::ADMIN_SCRIPT,
 			GATEDMEDIA_DIR_URL . 'build/js/admin.js',
-			$admin_script['dependencies'],
+			// The pickers ride jQuery UI's autocomplete; wp-scripts only
+			// detects @wordpress imports, so the handle is added here.
+			array_merge( $admin_script['dependencies'], array( 'jquery', 'jquery-ui-autocomplete' ) ),
 			$admin_script['version'],
 			true
 		);
@@ -99,17 +103,28 @@ class Asset_Loader implements Hookable {
 	}
 
 	/**
-	 * Admin assets, on our screens only.
+	 * Admin assets, on the screens that use them: our own pages, and the
+	 * list tables whose quick edit carries the grant picker.
 	 *
 	 * @param string $hook_suffix The current admin page.
 	 */
 	public function enqueue_admin( string $hook_suffix ): void {
-		if ( ! str_contains( $hook_suffix, 'gated-media-access' ) ) {
+		$our_page   = str_contains( $hook_suffix, 'gated-media-access' ) || str_contains( $hook_suffix, 'gatedmedia' );
+		$quick_edit = 'edit.php' === $hook_suffix
+			&& in_array( (string) ( get_current_screen()->post_type ?? '' ), array_diff( Access_Taxonomy::object_types(), array( 'attachment' ) ), true );
+
+		if ( ! $our_page && ! $quick_edit ) {
 			return;
 		}
 
 		wp_enqueue_style( self::ADMIN_STYLE );
 		wp_enqueue_script( self::ADMIN_SCRIPT );
+
+		wp_add_inline_script(
+			self::ADMIN_SCRIPT,
+			'window.gatedmediaPicker = ' . (string) wp_json_encode( array( 'nonce' => wp_create_nonce( Picker_Search::NONCE ) ) ) . ';',
+			'before'
+		);
 	}
 
 	/**

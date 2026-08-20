@@ -60,7 +60,7 @@ class Profile_Access_List implements Hookable {
 			return;
 		}
 
-		echo '<table class="widefat striped" style="max-width: 800px;"><thead><tr>';
+		echo '<table class="widefat striped"><thead><tr>';
 		printf(
 			'<th>%s</th><th>%s</th><th>%s</th><th>%s</th>',
 			esc_html__( 'Item', 'gated-media-access' ),

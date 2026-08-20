@@ -30,6 +30,7 @@ use PinkCrab\Gated_Access\Account\View_Data;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Admin\Add_Access_Page;
 use PinkCrab\Gated_Access\Admin\Item_Access_Metabox;
+use PinkCrab\Gated_Access\Admin\Picker_Search;
 use PinkCrab\Gated_Access\Admin\Profile_Access_List;
 use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
@@ -76,6 +77,7 @@ class Plugin {
 		Access_List::class,
 		Add_Access_Page::class,
 		Item_Access_Metabox::class,
+		Picker_Search::class,
 		Quick_Edit_Grant::class,
 		Profile_Access_List::class,
 		Revoke_Action::class,

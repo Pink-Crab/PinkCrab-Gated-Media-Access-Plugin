@@ -58,7 +58,8 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 				'user'      => $this->user_id,
 				'item_type' => 'post',
 				'group'     => '',
-				'item_id'   => (string) $post_id,
+				'post'      => (string) $post_id,
+				'file'      => '',
 				'duration'  => '30',
 			)
 		);
@@ -79,7 +80,8 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 				'user'      => $this->user_id,
 				'item_type' => 'group',
 				'group'     => $uuid,
-				'item_id'   => '999999',
+				'post'      => '999999',
+				'file'      => '',
 				'duration'  => '',
 			)
 		);
@@ -98,7 +100,8 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 				'user'      => $this->user_id,
 				'item_type' => 'post',
 				'group'     => '',
-				'item_id'   => (string) $post_id,
+				'post'      => (string) $post_id,
+				'file'      => '',
 				'duration'  => '',
 			)
 		);
@@ -114,7 +117,8 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 				'user'      => 0,
 				'item_type' => 'post',
 				'group'     => '',
-				'item_id'   => '1',
+				'post'      => '1',
+				'file'      => '',
 				'duration'  => '',
 			)
 		);
@@ -148,11 +152,12 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'admin-post.php', $html );
 		$this->assertStringContainsString( 'gatedmedia_add_access', $html );
-		// wp_dropdown_users() emits single-quoted attributes.
-		$this->assertStringContainsString( "name='gatedmedia_user'", $html );
+		$this->assertStringContainsString( 'name="gatedmedia_user"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_users"', $html );
 		$this->assertStringContainsString( 'name="gatedmedia_item_type"', $html );
 		$this->assertStringContainsString( 'name="gatedmedia_group"', $html );
-		$this->assertStringContainsString( 'name="gatedmedia_item_id"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_posts"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_files"', $html );
 		$this->assertStringContainsString( 'name="gatedmedia_duration"', $html );
 		$this->assertStringContainsString( '_wpnonce', $html );
 		$this->assertStringContainsString( 'Members', $html );

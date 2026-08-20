@@ -173,14 +173,14 @@ class Test_Access_List extends WP_UnitTestCase {
 	}
 
 	/** @testdox Ordering by expiry becomes a meta sort on the list's main query, and touches nothing else. */
-	public function test_sort_by_expiry_rewrites_the_orderby(): void {
+	public function test_shape_list_query_rewrites_the_orderby(): void {
 		$query = new WP_Query();
 		$query->set( 'post_type', Post_Types::ACCESS );
 		$query->set( 'orderby', 'gatedmedia_expiry' );
 
 		// The class only acts on the screen's main query.
 		$GLOBALS['wp_the_query'] = $query;
-		$this->list->sort_by_expiry( $query );
+		$this->list->shape_list_query( $query );
 		unset( $GLOBALS['wp_the_query'] );
 
 		$this->assertSame( Access_Writer::META_EXPIRES_AT, $query->get( 'meta_key' ) );
@@ -191,10 +191,36 @@ class Test_Access_List extends WP_UnitTestCase {
 		$other->set( 'orderby', 'gatedmedia_expiry' );
 
 		$GLOBALS['wp_the_query'] = $other;
-		$this->list->sort_by_expiry( $other );
+		$this->list->shape_list_query( $other );
 		unset( $GLOBALS['wp_the_query'] );
 
 		$this->assertSame( '', $other->get( 'meta_key' ) );
+	}
+
+	/** @testdox The All view names our statuses — an empty post_status would silently skip all three. */
+	public function test_shape_list_query_names_the_statuses_for_all(): void {
+		$query = new WP_Query();
+		$query->set( 'post_type', Post_Types::ACCESS );
+
+		$GLOBALS['wp_the_query'] = $query;
+		$this->list->shape_list_query( $query );
+		unset( $GLOBALS['wp_the_query'] );
+
+		$this->assertSame(
+			array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
+			$query->get( 'post_status' )
+		);
+
+		// An explicit view — Active, say — is left exactly as asked.
+		$active = new WP_Query();
+		$active->set( 'post_type', Post_Types::ACCESS );
+		$active->set( 'post_status', Post_Types::STATUS_ACTIVE );
+
+		$GLOBALS['wp_the_query'] = $active;
+		$this->list->shape_list_query( $active );
+		unset( $GLOBALS['wp_the_query'] );
+
+		$this->assertSame( Post_Types::STATUS_ACTIVE, $active->get( 'post_status' ) );
 	}
 
 	/**

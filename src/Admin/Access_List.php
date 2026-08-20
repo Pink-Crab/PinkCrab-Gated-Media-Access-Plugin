@@ -46,7 +46,7 @@ class Access_List implements Hookable {
 		$loader->admin_filter( 'manage_' . Post_Types::ACCESS . '_posts_columns', array( $this, 'columns' ) );
 		$loader->admin_action( 'manage_' . Post_Types::ACCESS . '_posts_custom_column', array( $this, 'render_column' ), 2 );
 		$loader->admin_filter( 'manage_edit-' . Post_Types::ACCESS . '_sortable_columns', array( $this, 'sortable_columns' ) );
-		$loader->admin_action( 'pre_get_posts', array( $this, 'sort_by_expiry' ) );
+		$loader->admin_action( 'pre_get_posts', array( $this, 'shape_list_query' ) );
 		$loader->admin_filter( 'post_row_actions', array( $this, 'row_actions' ), 2 );
 	}
 
@@ -90,16 +90,26 @@ class Access_List implements Hookable {
 	}
 
 	/**
-	 * Turns the expiry column's orderby into a meta sort.
+	 * Two fixes to the list's main query, admin side only.
 	 *
-	 * Admin list query only — the front never orders by our meta. Every record
-	 * carries the key ('' for lifetime), so the join drops no rows.
+	 * The All view names our statuses: with none given, core falls back to
+	 * behaviour that skips statuses registered `exclude_from_search` — all
+	 * three of ours — and the screen shows counts above an empty list.
+	 *
+	 * The expiry column's orderby becomes a meta sort. Every record carries
+	 * the key ('' for lifetime), so the join drops no rows.
 	 *
 	 * @param WP_Query $query The list query.
 	 */
-	public function sort_by_expiry( WP_Query $query ): void {
+	public function shape_list_query( WP_Query $query ): void {
 		if ( ! $query->is_main_query() || Post_Types::ACCESS !== $query->get( 'post_type' ) ) {
 			return;
+		}
+
+		$status = $query->get( 'post_status' );
+
+		if ( '' === $status || array() === $status ) {
+			$query->set( 'post_status', array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ) );
 		}
 
 		if ( 'gatedmedia_expiry' === $query->get( 'orderby' ) ) {
