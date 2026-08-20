@@ -30,6 +30,16 @@ class Test_Capabilities extends WP_UnitTestCase {
 	public function tear_down(): void {
 		remove_all_filters( 'gatedmedia_give_access_capability' );
 
+		// The rollback restores the roles option, but not the in-memory
+		// WP_Roles cache — a cap removed here would stay missing for every
+		// later test. Put back what the init grant establishes.
+		$role = get_role( 'administrator' );
+
+		if ( null !== $role ) {
+			$role->add_cap( Capabilities::GIVE_ACCESS );
+			$role->add_cap( Capabilities::VIEW_PAYMENTS );
+		}
+
 		parent::tear_down();
 	}
 

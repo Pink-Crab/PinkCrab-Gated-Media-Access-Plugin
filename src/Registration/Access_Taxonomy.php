@@ -41,9 +41,10 @@ class Access_Taxonomy implements Hookable {
 	 * Term meta: the group's stable identity.
 	 *
 	 * Access records point at this, not the term id or slug, so renaming or
-	 * re-slugging a group never orphans anyone's access.
+	 * re-slugging a group never orphans anyone's access. The key is the one
+	 * `Support\Uuid` minter's — products carry the same one on post meta.
 	 */
-	public const UUID_META = 'gatedmedia_uuid';
+	public const UUID_META = \PinkCrab\Gated_Access\Support\Uuid::META;
 
 	/**
 	 * Registers on init, after the post types; mints identity on creation.
@@ -182,9 +183,7 @@ class Access_Taxonomy implements Hookable {
 	 * @param int $term_id The term just created.
 	 */
 	public function mint_uuid( int $term_id ): void {
-		if ( '' === (string) get_term_meta( $term_id, self::UUID_META, true ) ) {
-			update_term_meta( $term_id, self::UUID_META, wp_generate_uuid4() );
-		}
+		\PinkCrab\Gated_Access\Support\Uuid::ensure( 'term', $term_id );
 	}
 
 	/**
@@ -196,14 +195,7 @@ class Access_Taxonomy implements Hookable {
 	 * @param int $term_id The term.
 	 */
 	public function uuid_for( int $term_id ): string {
-		$uuid = (string) get_term_meta( $term_id, self::UUID_META, true );
-
-		if ( '' === $uuid ) {
-			$uuid = wp_generate_uuid4();
-			update_term_meta( $term_id, self::UUID_META, $uuid );
-		}
-
-		return $uuid;
+		return \PinkCrab\Gated_Access\Support\Uuid::ensure( 'term', $term_id );
 	}
 
 	/**

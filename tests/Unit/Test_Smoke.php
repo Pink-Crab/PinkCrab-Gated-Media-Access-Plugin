@@ -40,6 +40,6 @@ class Test_Smoke extends TestCase {
 	 * @testdox Settings_Page is Hookable, so the boot loop will register its hooks
 	 */
 	public function test_settings_page_is_hookable(): void {
-		$this->assertInstanceOf( Hookable::class, new Settings_Page() );
+		$this->assertInstanceOf( Hookable::class, new Settings_Page( new \PinkCrab\Gated_Access\Settings\Settings() ) );
 	}
 }

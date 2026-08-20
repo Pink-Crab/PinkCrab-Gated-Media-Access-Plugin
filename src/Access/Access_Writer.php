@@ -107,9 +107,11 @@ class Access_Writer implements Hookable {
 			return $invalid;
 		}
 
-		// The retry guard: a source and reference we have seen writes nothing.
+		// The retry guard: a source, reference and item we have seen writes
+		// nothing. The item is part of the guard because a product purchase
+		// writes one record per item, all with the same source and reference.
 		if ( '' !== $reference ) {
-			$existing = $this->lookup->find_by_reference( $source, $reference );
+			$existing = $this->lookup->find_by_reference( $source, $reference, $item_type, $item_id );
 
 			if ( null !== $existing ) {
 				return $existing;

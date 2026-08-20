@@ -102,26 +102,34 @@ export function IconControl( {
  */
 export const CURRENCIES = [ 'GBP', 'EUR', 'USD', 'AUD', 'CAD', 'NZD', 'JPY' ];
 
-const SYMBOLS = {
-	GBP: '£',
-	EUR: '€',
-	USD: '$',
-	AUD: '$',
-	CAD: '$',
-	NZD: '$',
-	JPY: '¥',
-};
-
-const ZERO_DECIMAL = [ 'JPY', 'KRW', 'VND', 'CLP', 'ISK' ];
+/**
+ * How many decimal places a currency has, from the browser's own ICU data —
+ * the JS mirror of Support\Money: no hand-kept lists, 2 for a code Intl
+ * does not know.
+ *
+ * @param {string} currency ISO code.
+ * @return {number} Its fraction digits.
+ */
+export function currencyDigits( currency ) {
+	try {
+		return new Intl.NumberFormat( undefined, {
+			style: 'currency',
+			currency: ( currency || 'GBP' ).toUpperCase(),
+		} ).resolvedOptions().maximumFractionDigits;
+	} catch ( error ) {
+		return 2;
+	}
+}
 
 /**
  * Formats minor units for the editor preview.
  *
  * Mirrors Support\Money::format() — including that **zero is the word "Free"**,
- * which §6.7 and §6.13 both state. The server remains the authority; this
- * exists so the canvas shows the answer as you type rather than after a round
- * trip. A site filtering `gatedmedia_format_price` will differ here, which is
- * the accepted cost of a live preview.
+ * which §6.7 and §6.13 both state, and that the currency data comes from ICU
+ * (here the browser's Intl) rather than a hand-kept list. The server remains
+ * the authority; this exists so the canvas shows the answer as you type. A
+ * site filtering `gatedmedia_format_price` will differ here, which is the
+ * accepted cost of a live preview.
  *
  * @param {number} minorUnits Amount in minor units.
  * @param {string} currency   ISO code.
@@ -133,11 +141,19 @@ export function formatMinor( minorUnits, currency = 'GBP' ) {
 	}
 
 	const code = ( currency || 'GBP' ).toUpperCase();
-	const symbol = SYMBOLS[ code ] || `${ code } `;
 
-	return ZERO_DECIMAL.includes( code )
-		? symbol + String( minorUnits )
-		: symbol + ( minorUnits / 100 ).toFixed( 2 );
+	try {
+		const formatter = new Intl.NumberFormat( undefined, {
+			style: 'currency',
+			currency: code,
+		} );
+
+		return formatter.format(
+			minorUnits / 10 ** formatter.resolvedOptions().maximumFractionDigits
+		);
+	} catch ( error ) {
+		return `${ code } ${ minorUnits }`;
+	}
 }
 
 /**
@@ -153,29 +169,27 @@ export function formatMinor( minorUnits, currency = 'GBP' ) {
  * @param {number}   props.value    Amount in minor units.
  * @param {Function} props.onChange Receives minor units.
  * @param {string}   props.help     Extra guidance.
+ * @param {string}   props.currency ISO code — its digits drive the conversion.
  */
-export function MoneyControl( { label, value, onChange, help } ) {
-	const major = ( ( value || 0 ) / 100 ).toFixed( 2 );
+export function MoneyControl( { label, value, onChange, help, currency = 'GBP' } ) {
+	const digits = currencyDigits( currency );
+	const major = ( ( value || 0 ) / 10 ** digits ).toFixed( digits );
 
 	return (
 		<TextControl
 			type="number"
-			step="0.01"
+			step="any"
 			min="0"
 			label={ label }
 			value={ major }
 			onChange={ ( next ) =>
-				onChange( Math.round( parseFloat( next || 0 ) * 100 ) )
-			}
-			help={
-				help ||
-				sprintf(
-					/* translators: %s: the amount as it will be stored, in minor units. */
-					__( 'Stored as %s minor units.', 'gated-media-access' ),
-					String( value || 0 )
+				onChange(
+					Math.round( parseFloat( next || 0 ) * 10 ** digits )
 				)
 			}
+			help={ help }
 			__nextHasNoMarginBottom
+			__next40pxDefaultSize
 		/>
 	);
 }

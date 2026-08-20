@@ -246,9 +246,9 @@ terms create. Assigning existing groups from every surface still works.
 `revoke_behaviour` key of the `gatedmedia_settings` option — `revoke` (the
 default: mark the record, keep the history), `expire` (pull the date to now)
 or `delete` (remove the row outright). `gatedmedia_revoke_behaviour` filters
-over the stored value; the Settings screen's control arrives with the Stripe
-round. All three are writer methods, and the resolver forgets the holder the
-moment any of them fires.
+over the stored value, and the Settings screen carries the control. All three
+are writer methods, and the resolver forgets the holder the moment any of
+them fires.
 
 **The profile screen shows one person's records** — all three statuses,
 rendered by the same column code as the Access list, read-only, gated on the
@@ -259,6 +259,61 @@ moves active records past their date to `gatedmedia_expired`, firing
 `gatedmedia_access_expired` per record. It is housekeeping, not enforcement:
 the resolver compares dates against now on every read, so if the sweep never
 ran, nothing would leak — the admin list would just read stale.
+
+## Payments
+
+Round 5 made all three ways in real: paid on site through Stripe, given by
+an administrator, and a webhook saying they paid elsewhere.
+
+**One table, and the row is the replay guard.** `{prefix}gatedmedia_payments`
+is created by `Payments_Schema` from a load-time version check — never an
+activation hook — and `Payment_Store` owns every query. Each status move is
+a single conditional update (`pending→complete`, `complete→refunded`,
+`pending→failed`): affected rows answers who was first, so a retried Stripe
+delivery changes nothing and needs no event log. `Payment` is the typed
+read-back, snapshot decoded.
+
+**Access lands on Stripe's confirmation and nowhere else.** `Checkout`
+creates the pending row — contents snapshot frozen, since groups are live —
+*before* the buyer leaves for the hosted session, and grants nothing for a
+priced product. `Stripe_Webhook` verifies the signature (the gateway wraps
+the SDK; anything unverifiable is a 400), moves the row, and grants from
+the snapshot via `Access_Writer::grant()`, source `stripe`, reference the
+payment's uuid. The return page polls `GET /payment/{uuid}` — owner only,
+status only, everything else the same 404. A refund (`charge.refunded`)
+moves the row once and revokes every record the payment created. A free
+product involves Stripe not at all: direct grants, no row. A coupon spends
+exactly when a payment completes — usage is counted from the table, never
+stored — and one that takes the price to zero completes its row on the
+spot. Eligibility is the product's email allow-list plus the
+`gatedmedia_product_eligibility` filter.
+
+**They paid elsewhere.** `POST /access` (application password plus the
+give-access capability): a payload names a person by email — found or
+created, profile fields filled like every other route — a target, a
+duration and the sender's source and reference, which the writer's guard
+makes retry-safe per item. A `product` target expands to one record per
+item. Every delivery fires `gatedmedia_webhook_received`, accepted or not.
+
+**A product is edited as a block and reached by its UUID.** The product
+form is the locked `gated-media-access/product-details` block — price in
+the shop currency, duration, visibility, the items it grants, the email
+allow-list — saving to registered meta over REST, managers only. Identity
+is minted by the shared `Support\Uuid` (the same key groups carry), and
+`/{product_path}/{uuid}` is the only public road in: slugs and IDs answer
+404, products stay out of search, sitemaps and public REST, and
+`get_permalink()` answers the UUID URL so every redirect points the one
+way. Products and coupons both sit behind `gatedmedia_manage_products`.
+
+**Settings** gained its own submenu entry and the round's fields: the shop
+currency (a real ISO list — every product is priced and stamped in it),
+the product URL path, the Stripe mode with test and live key sets (secrets
+are never echoed back; an empty resubmit keeps what is stored, and
+`Settings` is the one reader, filtered so wp-config can own the keys), and
+the revoke behaviour. `Support\Money` formats any ISO currency — ICU data
+through the intl extension where loaded, symfony/intl's bundled copy where
+not, and the browser's own `Intl` in the editor — with zero always the
+word "Free".
 
 ## Tests
 

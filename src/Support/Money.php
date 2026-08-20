@@ -9,43 +9,25 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Support;
 
+use Symfony\Component\Intl\Currencies;
+
 /**
- * Turns minor units into something a person reads.
+ * Turns minor units into something a person reads, and typed amounts back
+ * into minor units for storage.
  *
  * Amounts are held in minor units throughout (specification.md §1a), so every
  * display of one has to divide and format. Doing that in each template is how
  * two screens end up disagreeing about whether zero is "Free" or "£0.00" — and
  * ui-spec.md §6.7 and §6.13 are both emphatic that it is "Free".
  *
- * **Currency formatting is not specified anywhere.** Neither the brief nor the
- * spec says how an amount is presented, so the default below is a reasonable
- * reading rather than a settled decision, and it is filtered so a site can
- * replace it without touching a template.
+ * No hand-kept currency tables. ICU answers every currency question — the
+ * fraction digits that drive the minor-unit division, the symbol, the
+ * placement. The intl extension is used when the host has it (locale-aware
+ * formatting); where it is not loaded, symfony/intl supplies the same ICU
+ * data as plain PHP and the layout falls back to symbol-prefix. Either way
+ * the amount is right for all of ISO 4217.
  */
 class Money {
-
-	/**
-	 * Symbols for the currencies most likely to come up. Anything else falls
-	 * back to its ISO code, which is correct if plain.
-	 *
-	 * @var array<string, string>
-	 */
-	private const SYMBOLS = array(
-		'GBP' => '£',
-		'EUR' => '€',
-		'USD' => '$',
-		'AUD' => '$',
-		'CAD' => '$',
-		'NZD' => '$',
-		'JPY' => '¥',
-	);
-
-	/**
-	 * Currencies with no minor unit — the amount is already whole.
-	 *
-	 * @var array<int, string>
-	 */
-	private const ZERO_DECIMAL = array( 'JPY', 'KRW', 'VND', 'CLP', 'ISK' );
 
 	/**
 	 * Formats an amount for display.
@@ -62,13 +44,10 @@ class Money {
 		}
 
 		$currency = strtoupper( $currency );
-		$symbol   = self::SYMBOLS[ $currency ] ?? $currency . ' ';
+		$digits   = self::digits( $currency );
+		$amount   = $minor_units / ( 10 ** $digits );
 
-		$formatted = in_array( $currency, self::ZERO_DECIMAL, true )
-			? number_format_i18n( (float) $minor_units, 0 )
-			: number_format_i18n( $minor_units / 100, 2 );
-
-		return self::filter( $symbol . $formatted, $minor_units, $currency );
+		return self::filter( self::render( $amount, $currency, $digits ), $minor_units, $currency );
 	}
 
 	/**
@@ -80,11 +59,82 @@ class Money {
 	}
 
 	/**
+	 * A typed decimal amount to stored minor units — "12.50" GBP is 1250,
+	 * "1250" JPY is 1250.
+	 *
+	 * @param string $amount   A decimal amount, dot-separated, as an admin input submits it.
+	 * @param string $currency ISO code.
+	 */
+	public static function to_minor( string $amount, string $currency ): int {
+		return (int) round( (float) $amount * ( 10 ** self::digits( strtoupper( $currency ) ) ) );
+	}
+
+	/**
+	 * Stored minor units back to the plain decimal an input can hold —
+	 * 1250 GBP is "12.50", 1250 JPY is "1250".
+	 *
+	 * @param int    $minor_units The amount, in minor units.
+	 * @param string $currency    ISO code.
+	 */
+	public static function to_decimal( int $minor_units, string $currency ): string {
+		$digits = self::digits( strtoupper( $currency ) );
+
+		return number_format( $minor_units / ( 10 ** $digits ), $digits, '.', '' );
+	}
+
+	/**
+	 * The amount as the site's locale writes it: the extension where loaded,
+	 * symbol-prefix from the bundled data where not, code-prefix where the
+	 * code is unknown to either.
+	 *
+	 * @param float  $amount   The amount, in major units.
+	 * @param string $currency ISO code, uppercased.
+	 * @param int    $digits   Its fraction digits.
+	 */
+	private static function render( float $amount, string $currency, int $digits ): string {
+		if ( class_exists( \NumberFormatter::class ) ) {
+			$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
+			$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
+
+			$formatted = $formatter->formatCurrency( $amount, $currency );
+
+			if ( false !== $formatted ) {
+				return $formatted;
+			}
+		}
+
+		$symbol = Currencies::exists( $currency ) ? Currencies::getSymbol( $currency ) : $currency . ' ';
+
+		return $symbol . number_format_i18n( $amount, $digits );
+	}
+
+	/**
+	 * How many decimal places a currency has — ICU's answer through either
+	 * door, 2 for a code neither knows (most of ISO 4217).
+	 *
+	 * @param string $currency ISO code, already uppercased.
+	 */
+	private static function digits( string $currency ): int {
+		if ( class_exists( \NumberFormatter::class ) ) {
+			$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
+			$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
+
+			$digits = $formatter->getAttribute( \NumberFormatter::FRACTION_DIGITS );
+
+			if ( false !== $digits ) {
+				return $digits;
+			}
+		}
+
+		return Currencies::exists( $currency ) ? Currencies::getFractionDigits( $currency ) : 2;
+	}
+
+	/**
 	 * Lets a site format money its own way.
 	 *
 	 * @param string $formatted   What we produced.
 	 * @param int    $minor_units The amount, in minor units.
-	 * @param string $currency    ISO code.
+	 * @param string $currency    ISO currency code.
 	 */
 	private static function filter( string $formatted, int $minor_units, string $currency ): string {
 		/**

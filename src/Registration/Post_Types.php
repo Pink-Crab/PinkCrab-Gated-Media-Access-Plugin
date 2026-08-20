@@ -67,6 +67,20 @@ class Post_Types implements Hookable {
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'init', array( $this, 'register' ) );
+		$loader->filter( 'wp_sitemaps_post_types', array( $this, 'hide_products_from_sitemaps' ) );
+	}
+
+	/**
+	 * Products out of wp-sitemap.xml — `public` alone would list every
+	 * product page for crawlers, unlisted ones included.
+	 *
+	 * @param array<string, \WP_Post_Type> $types The sitemap's post types.
+	 * @return array<string, \WP_Post_Type>
+	 */
+	public function hide_products_from_sitemaps( array $types ): array {
+		unset( $types[ self::PRODUCT ] );
+
+		return $types;
 	}
 
 	/**
@@ -132,7 +146,7 @@ class Post_Types implements Hookable {
 		register_post_type(
 			self::PRODUCT,
 			array(
-				'labels'          => array(
+				'labels'              => array(
 					'name'          => __( 'Products', 'gated-media-access' ),
 					'singular_name' => __( 'Product', 'gated-media-access' ),
 					'add_new_item'  => __( 'Add New Product', 'gated-media-access' ),
@@ -140,14 +154,44 @@ class Post_Types implements Hookable {
 					'view_item'     => __( 'View Product', 'gated-media-access' ),
 					'search_items'  => __( 'Search Products', 'gated-media-access' ),
 				),
-				'public'          => true,
-				'show_ui'         => true,
-				'show_in_rest'    => true,
-				'supports'        => array( 'title', 'editor' ),
-				'has_archive'     => false,
-				'rewrite'         => array( 'slug' => 'product' ),
-				'menu_icon'       => 'dashicons-products',
-				'capability_type' => array( 'gatedmedia_product', 'gatedmedia_products' ),
+				'public'              => true,
+				'show_ui'             => true,
+				// In REST for the block editor; Product_Meta's guard 404s
+				// the surface for anyone without manage-products, so the
+				// public cannot enumerate products there. Search and
+				// sitemaps (hide_products_from_sitemaps() below) stay shut:
+				// a product is found through our own listings or its direct
+				// link, never by crawling the site (Glynn's round 5 ruling).
+				'show_in_rest'        => true,
+				'exclude_from_search' => true,
+				// custom-fields is the flag that lets the block editor send
+				// the meta field at all — without it every block save is
+				// silently dropped. Our keys stay out of the Custom Fields
+				// panel regardless: they are all is_protected_meta.
+				'supports'            => array( 'title', 'editor', 'custom-fields' ),
+				// The product form is this block, present from the first
+				// paint, pinned and not removable — the description writes
+				// freely around it.
+				'template'            => array(
+					array(
+						'gated-media-access/product-details',
+						array(
+							'lock' => array(
+								'move'   => true,
+								'remove' => true,
+							),
+						),
+					),
+				),
+				'has_archive'         => false,
+				'rewrite'             => array( 'slug' => 'product' ),
+				'menu_icon'           => 'dashicons-products',
+				'map_meta_cap'        => true,
+				'capability_type'     => array( 'gatedmedia_product', 'gatedmedia_products' ),
+				// Spec §7: the screens sit behind the one filtered
+				// manage-products capability — without this map the menu
+				// asked for caps nobody was ever granted.
+				'capabilities'        => $this->manage_products_capabilities(),
 			)
 		);
 	}
@@ -172,8 +216,36 @@ class Post_Types implements Hookable {
 				'supports'        => array( 'title' ),
 				'rewrite'         => false,
 				'query_var'       => false,
+				'map_meta_cap'    => true,
 				'capability_type' => array( 'gatedmedia_coupon', 'gatedmedia_coupons' ),
+				// Same gate as products — spec §7 puts both behind it.
+				'capabilities'    => $this->manage_products_capabilities(),
 			)
+		);
+	}
+
+	/**
+	 * Every primitive capability both commerce types check, pointed at the
+	 * one filtered manage-products capability (spec §7) — administrators
+	 * hold it from the init grant, and a site can move it wholesale.
+	 *
+	 * @return array<string, string>
+	 */
+	private function manage_products_capabilities(): array {
+		$manage = Capabilities::manage_products();
+
+		return array(
+			'edit_posts'             => $manage,
+			'edit_others_posts'      => $manage,
+			'publish_posts'          => $manage,
+			'read_private_posts'     => $manage,
+			'create_posts'           => $manage,
+			'delete_posts'           => $manage,
+			'delete_others_posts'    => $manage,
+			'delete_private_posts'   => $manage,
+			'delete_published_posts' => $manage,
+			'edit_private_posts'     => $manage,
+			'edit_published_posts'   => $manage,
 		);
 	}
 
