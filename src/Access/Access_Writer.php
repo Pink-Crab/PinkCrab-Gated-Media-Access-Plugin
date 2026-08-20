@@ -13,7 +13,6 @@ use WP_Error;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Post_Types;
-use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
  * Every route in — Stripe, an administrator, the webhook — turns its input
@@ -39,15 +38,12 @@ class Access_Writer implements Hookable {
 	public const META_CREATED_BY = 'gatedmedia_created_by';
 	public const META_PAYLOAD    = 'gatedmedia_payload';
 
-	/** What an access record may point at. */
-	private const ITEM_TYPES = array( 'file', 'post', 'group' );
-
 	/**
-	 * Group lookups go through the taxonomy's UUID identity.
+	 * Input checking lives beside the writer, not in it.
 	 *
-	 * @param Access_Taxonomy $taxonomy Resolves a group UUID to its term.
+	 * @param Grant_Validator $validator Checks a grant's four facts.
 	 */
-	public function __construct( private Access_Taxonomy $taxonomy ) {
+	public function __construct( private Grant_Validator $validator ) {
 	}
 
 	/**
@@ -102,7 +98,7 @@ class Access_Writer implements Hookable {
 	 * @return int|WP_Error The access record's ID — new, extended, or already existing.
 	 */
 	public function grant( int $user_id, string $item_type, string $item_id, ?int $duration_days, string $source, string $reference = '', array $payload = array(), int $created_by = 0 ): int|WP_Error {
-		$invalid = $this->validate( $user_id, $item_type, $item_id, $duration_days, $source );
+		$invalid = $this->validator->validate( $user_id, $item_type, $item_id, $duration_days, $source );
 
 		if ( $invalid instanceof WP_Error ) {
 			return $invalid;
@@ -132,9 +128,52 @@ class Access_Writer implements Hookable {
 	/**
 	 * Withdraws one record. Authoritative and dateless, unlike expiry.
 	 *
+	 * Fires `gatedmedia_access_revoked` with the record and its holder.
+	 *
 	 * @param int $access_id The record to revoke.
 	 */
 	public function revoke( int $access_id ): bool {
+		return $this->move_status( $access_id, Post_Types::STATUS_REVOKED, 'gatedmedia_access_revoked' );
+	}
+
+	/**
+	 * Moves one record to expired.
+	 *
+	 * Two callers, one method: the daily sweep passes records already past
+	 * their date, where only the status moves; the expire revoke behaviour
+	 * passes live ones, where the date is pulled to now first — expiry stays
+	 * a date the resolver can trust either way.
+	 *
+	 * Fires `gatedmedia_access_expired` with the record and its holder.
+	 *
+	 * @param int $access_id The record to expire.
+	 */
+	public function expire( int $access_id ): bool {
+		if ( Post_Types::ACCESS !== get_post_type( $access_id ) ) {
+			return false;
+		}
+
+		$expires    = (string) get_post_meta( $access_id, self::META_EXPIRES_AT, true );
+		$expires_at = '' === $expires ? false : strtotime( $expires . ' +0000' );
+
+		if ( false === $expires_at || $expires_at > time() ) {
+			update_post_meta( $access_id, self::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s' ) );
+		}
+
+		return $this->move_status( $access_id, Post_Types::STATUS_EXPIRED, 'gatedmedia_access_expired' );
+	}
+
+	/**
+	 * The shared shape of a withdrawal: guard, move the status, announce.
+	 *
+	 * Every announcement carries the same pair the grant action does — the
+	 * record and its holder.
+	 *
+	 * @param int              $access_id The record to move.
+	 * @param string           $status    The status it moves to.
+	 * @param non-empty-string $action    The action announcing it.
+	 */
+	private function move_status( int $access_id, string $status, string $action ): bool {
 		$record = get_post( $access_id );
 
 		if ( null === $record || Post_Types::ACCESS !== $record->post_type ) {
@@ -144,7 +183,7 @@ class Access_Writer implements Hookable {
 		$updated = wp_update_post(
 			array(
 				'ID'          => $access_id,
-				'post_status' => Post_Types::STATUS_REVOKED,
+				'post_status' => $status,
 			),
 			true
 		);
@@ -153,68 +192,10 @@ class Access_Writer implements Hookable {
 			return false;
 		}
 
-		/**
-		 * Fires the moment access is withdrawn.
-		 *
-		 * @param int $access_id The record revoked.
-		 * @param int $user_id   Who held it.
-		 */
-		do_action( 'gatedmedia_access_revoked', $access_id, (int) $record->post_author );
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Both callers pass a literal gatedmedia_ name, documented on their methods.
+		do_action( $action, $access_id, (int) $record->post_author );
 
 		return true;
-	}
-
-	/**
-	 * The four facts have to point at real things before anything is written.
-	 *
-	 * @param int      $user_id       Who holds it.
-	 * @param string   $item_type     One of file, post, group.
-	 * @param string   $item_id       The target's identifier.
-	 * @param int|null $duration_days Days, or null for lifetime.
-	 * @param string   $source        The system it came from.
-	 * @return WP_Error|null Null when everything checks out.
-	 */
-	private function validate( int $user_id, string $item_type, string $item_id, ?int $duration_days, string $source ): ?WP_Error {
-		if ( false === get_userdata( $user_id ) ) {
-			return new WP_Error( 'gatedmedia_invalid_user', 'No such user to hold the access.' );
-		}
-
-		if ( ! in_array( $item_type, self::ITEM_TYPES, true ) ) {
-			return new WP_Error( 'gatedmedia_invalid_item_type', 'Item type must be file, post or group.' );
-		}
-
-		if ( null !== $duration_days && $duration_days < 1 ) {
-			return new WP_Error( 'gatedmedia_invalid_duration', 'Duration is days from now, or null for lifetime.' );
-		}
-
-		if ( '' === trim( $source ) ) {
-			return new WP_Error( 'gatedmedia_invalid_source', 'Every record names the system it came from.' );
-		}
-
-		return $this->validate_target( $item_type, $item_id );
-	}
-
-	/**
-	 * The target must exist: an attachment, a non-attachment post, or a group.
-	 *
-	 * @param string $item_type One of file, post, group.
-	 * @param string $item_id   The target's identifier.
-	 * @return WP_Error|null Null when the target resolves.
-	 */
-	private function validate_target( string $item_type, string $item_id ): ?WP_Error {
-		if ( 'group' === $item_type ) {
-			$exists = null !== $this->taxonomy->find_group( $item_id );
-		} else {
-			$target        = get_post( (int) $item_id );
-			$is_attachment = null !== $target && 'attachment' === $target->post_type;
-			$exists        = 'file' === $item_type ? $is_attachment : ( null !== $target && ! $is_attachment );
-		}
-
-		if ( ! $exists ) {
-			return new WP_Error( 'gatedmedia_invalid_item', sprintf( 'No %s found for "%s".', $item_type, $item_id ) );
-		}
-
-		return null;
 	}
 
 	/**
