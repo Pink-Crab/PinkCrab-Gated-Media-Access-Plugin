@@ -86,4 +86,40 @@ class Capabilities implements Hookable {
 		 */
 		return (string) apply_filters( 'gatedmedia_give_access_capability', self::GIVE_ACCESS );
 	}
+
+	/**
+	 * The capability required to manage products and coupons.
+	 */
+	public static function manage_products(): string {
+		/**
+		 * Filters the capability required to manage products and coupons.
+		 *
+		 * @param string $capability Defaults to gatedmedia_manage_products.
+		 */
+		return (string) apply_filters( 'gatedmedia_manage_products_capability', self::MANAGE_PRODUCTS );
+	}
+
+	/**
+	 * The capability required to read the payments screen.
+	 */
+	public static function view_payments(): string {
+		/**
+		 * Filters the capability required to read the payments screen.
+		 *
+		 * @param string $capability Defaults to gatedmedia_view_payments.
+		 */
+		return (string) apply_filters( 'gatedmedia_view_payments_capability', self::VIEW_PAYMENTS );
+	}
+
+	/**
+	 * The capability required to change the settings.
+	 */
+	public static function manage_settings(): string {
+		/**
+		 * Filters the capability required to change the settings.
+		 *
+		 * @param string $capability Defaults to gatedmedia_manage_settings.
+		 */
+		return (string) apply_filters( 'gatedmedia_manage_settings_capability', self::MANAGE_SETTINGS );
+	}
 }

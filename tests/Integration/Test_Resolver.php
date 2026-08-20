@@ -12,6 +12,8 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
+use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
@@ -30,7 +32,7 @@ class Test_Resolver extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->writer  = new Access_Writer( new Access_Taxonomy() );
+		$this->writer  = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 	}
 

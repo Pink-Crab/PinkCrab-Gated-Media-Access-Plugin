@@ -11,6 +11,9 @@ namespace PinkCrab\Gated_Access\Assets;
 
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Admin\Picker_Search;
+use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
  * Owns the four built bundles and decides where they load.
@@ -80,7 +83,9 @@ class Asset_Loader implements Hookable {
 		wp_register_script(
 			self::ADMIN_SCRIPT,
 			GATEDMEDIA_DIR_URL . 'build/js/admin.js',
-			$admin_script['dependencies'],
+			// The pickers ride jQuery UI's autocomplete; wp-scripts only
+			// detects @wordpress imports, so the handle is added here.
+			array_merge( $admin_script['dependencies'], array( 'jquery', 'jquery-ui-autocomplete' ) ),
 			$admin_script['version'],
 			true
 		);
@@ -99,17 +104,34 @@ class Asset_Loader implements Hookable {
 	}
 
 	/**
-	 * Admin assets, on our screens only.
+	 * Admin assets, on the screens that use them: our own pages, the list
+	 * tables whose quick edit carries the grant picker, and the restrictable
+	 * types' editors, where the item metabox's group button lives.
 	 *
 	 * @param string $hook_suffix The current admin page.
 	 */
 	public function enqueue_admin( string $hook_suffix ): void {
-		if ( ! str_contains( $hook_suffix, 'gated-media-access' ) ) {
+		$screen_type = (string) ( get_current_screen()->post_type ?? '' );
+
+		$our_page    = str_contains( $hook_suffix, 'gated-media-access' ) || str_contains( $hook_suffix, 'gatedmedia' );
+		$access_list = 'edit.php' === $hook_suffix && Post_Types::ACCESS === $screen_type;
+		$quick_edit  = 'edit.php' === $hook_suffix
+			&& in_array( $screen_type, array_diff( Access_Taxonomy::object_types(), array( 'attachment' ) ), true );
+		$editor      = in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true )
+			&& in_array( $screen_type, Access_Taxonomy::object_types(), true );
+
+		if ( ! $our_page && ! $access_list && ! $quick_edit && ! $editor ) {
 			return;
 		}
 
 		wp_enqueue_style( self::ADMIN_STYLE );
 		wp_enqueue_script( self::ADMIN_SCRIPT );
+
+		wp_add_inline_script(
+			self::ADMIN_SCRIPT,
+			'window.gatedmediaPicker = ' . (string) wp_json_encode( array( 'nonce' => wp_create_nonce( Picker_Search::NONCE ) ) ) . ';',
+			'before'
+		);
 	}
 
 	/**

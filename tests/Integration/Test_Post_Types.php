@@ -27,14 +27,35 @@ class Test_Post_Types extends WP_UnitTestCase {
 		$this->assertTrue( post_type_exists( Post_Types::COUPON ) );
 	}
 
-	/** @testdox Access is pure data: not public, no admin UI, no query var. */
-	public function test_access_is_hidden_everywhere(): void {
+	/** @testdox Access is pure data with a list screen: not public, no query var, UI under the plugin menu. */
+	public function test_access_is_hidden_from_the_front(): void {
 		$access = get_post_type_object( Post_Types::ACCESS );
 
 		$this->assertNotNull( $access );
 		$this->assertFalse( $access->public );
-		$this->assertFalse( $access->show_ui );
+		// True since round 4 — the core list screen is the Access screen.
+		$this->assertTrue( $access->show_ui );
+		$this->assertSame( 'gated-media-access', $access->show_in_menu );
 		$this->assertFalse( $access->query_var );
+		$this->assertFalse( $access->show_in_rest );
+	}
+
+	/** @testdox The Access screen is gated on the give-access capability, and core's write surfaces are shut. */
+	public function test_access_caps_gate_the_screen_and_shut_core_writes(): void {
+		$access = get_post_type_object( Post_Types::ACCESS );
+
+		$this->assertNotNull( $access );
+		$this->assertSame( 'gatedmedia_give_access', $access->cap->edit_posts );
+		$this->assertSame( 'gatedmedia_give_access', $access->cap->edit_others_posts );
+		$this->assertSame( 'do_not_allow', $access->cap->create_posts );
+		$this->assertSame( 'do_not_allow', $access->cap->publish_posts );
+		$this->assertSame( 'do_not_allow', $access->cap->delete_posts );
+
+		$administrator = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		$subscriber    = self::factory()->user->create_and_get( array( 'role' => 'subscriber' ) );
+
+		$this->assertTrue( user_can( $administrator, $access->cap->edit_posts ) );
+		$this->assertFalse( user_can( $subscriber, $access->cap->edit_posts ) );
 	}
 
 	/**

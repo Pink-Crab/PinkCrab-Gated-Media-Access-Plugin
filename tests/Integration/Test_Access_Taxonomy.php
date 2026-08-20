@@ -62,12 +62,18 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertFalse( $taxonomy->publicly_queryable );
 	}
 
-	/** @testdox The taxonomy is exposed over REST, for the block editor's panel. */
-	public function test_show_in_rest(): void {
+	/** @testdox Core's free-tagging surfaces are all off — the item metabox is the assignment surface. */
+	public function test_editor_surfaces_are_off(): void {
 		$taxonomy = get_taxonomy( Access_Taxonomy::TAXONOMY );
 
 		$this->assertNotFalse( $taxonomy );
-		$this->assertTrue( $taxonomy->show_in_rest );
+		// Round 4: the editor panel (REST), the classic tag box and the
+		// quick edit field all gave a free-tagging way to mint groups.
+		$this->assertFalse( $taxonomy->show_in_rest );
+		$this->assertFalse( $taxonomy->meta_box_cb );
+		$this->assertFalse( $taxonomy->show_in_quick_edit );
+		// The Groups screens themselves stay.
+		$this->assertTrue( $taxonomy->show_ui );
 	}
 
 	/**
@@ -117,5 +123,53 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 
 		$this->assertTrue( wp_is_uuid( $uuid ) );
 		$this->assertSame( $uuid, get_term_meta( $term['term_id'], Access_Taxonomy::UUID_META, true ) );
+	}
+
+	/** @testdox An editor save cannot create a group; assigning an existing one still works. */
+	public function test_editor_saves_cannot_create_groups(): void {
+		$existing = wp_insert_term( 'Made On The Groups Screen', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $existing );
+
+		foreach ( array( 'inline-save', 'editpost', 'bulk-edit' ) as $origin ) {
+			$_POST['action'] = $origin;
+
+			$refused = wp_insert_term( 'Sneaky Group ' . $origin, Access_Taxonomy::TAXONOMY );
+
+			$this->assertInstanceOf( \WP_Error::class, $refused, $origin );
+			$this->assertSame( 'gatedmedia_group_creation_forbidden', $refused->get_error_code(), $origin );
+		}
+
+		// Assigning the existing group from those saves is untouched.
+		$_POST['action'] = 'inline-save';
+		$post_id         = self::factory()->post->create();
+		$assigned        = wp_set_object_terms( $post_id, array( $existing['term_id'] ), Access_Taxonomy::TAXONOMY );
+		unset( $_POST['action'] );
+
+		$this->assertIsArray( $assigned );
+		$this->assertNotEmpty( $assigned );
+
+		// Other taxonomies are left alone entirely.
+		$_POST['action'] = 'inline-save';
+		$category        = wp_insert_term( 'Ordinary Category', 'category' );
+		unset( $_POST['action'] );
+
+		$this->assertIsArray( $category );
+	}
+
+	/** @testdox REST cannot create a group — no terms route exists, and the guard 403s regardless. */
+	public function test_rest_cannot_create_groups(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		do_action( 'rest_api_init' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Booting core's own REST server for the test.
+
+		$request = new \WP_REST_Request( 'POST', '/wp/v2/' . Access_Taxonomy::TAXONOMY );
+		$request->set_param( 'name', 'Sneaky REST Group' );
+
+		$response = rest_do_request( $request );
+
+		// show_in_rest false means no route at all (404); the
+		// rest_request_before_callbacks guard would 403 one if it ever
+		// came back. Either way: refused, and nothing written.
+		$this->assertContains( $response->get_status(), array( 403, 404 ) );
+		$this->assertSame( array(), get_terms( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'hide_empty' => false, 'name' => 'Sneaky REST Group' ) ) );
 	}
 }

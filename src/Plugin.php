@@ -25,7 +25,17 @@ use PinkCrab\Gated_Access\Access\File_Boundary;
 use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
+use PinkCrab\Gated_Access\Access\Sweep;
 use PinkCrab\Gated_Access\Account\View_Data;
+use PinkCrab\Gated_Access\Admin\Access_Filters;
+use PinkCrab\Gated_Access\Admin\Access_List;
+use PinkCrab\Gated_Access\Admin\Add_Access_Page;
+use PinkCrab\Gated_Access\Admin\Edit_Access_Page;
+use PinkCrab\Gated_Access\Admin\Item_Access_Metabox;
+use PinkCrab\Gated_Access\Admin\Picker_Search;
+use PinkCrab\Gated_Access\Admin\Profile_Access_List;
+use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
+use PinkCrab\Gated_Access\Admin\Revoke_Action;
 
 /**
  * Builds every service through the container and attaches their hooks in one
@@ -58,6 +68,7 @@ class Plugin {
 		Resolver::class,
 		Restriction::class,
 		Post_Boundary::class,
+		Sweep::class,
 		Asset_Loader::class,
 		Block_Registrar::class,
 		Sprite::class,
@@ -65,6 +76,15 @@ class Plugin {
 		Profile_Writer::class,
 		View_Data::class,
 		Settings_Page::class,
+		Access_Filters::class,
+		Access_List::class,
+		Add_Access_Page::class,
+		Edit_Access_Page::class,
+		Item_Access_Metabox::class,
+		Picker_Search::class,
+		Quick_Edit_Grant::class,
+		Profile_Access_List::class,
+		Revoke_Action::class,
 	);
 
 	/**
