@@ -187,15 +187,9 @@ export function MoneyControl( { label, value, onChange, help, currency = 'GBP' }
 					Math.round( parseFloat( next || 0 ) * 10 ** digits )
 				)
 			}
-			help={
-				help ||
-				sprintf(
-					/* translators: %s: the amount as it will be stored, in minor units. */
-					__( 'Stored as %s minor units.', 'gated-media-access' ),
-					String( value || 0 )
-				)
-			}
+			help={ help }
 			__nextHasNoMarginBottom
+			__next40pxDefaultSize
 		/>
 	);
 }

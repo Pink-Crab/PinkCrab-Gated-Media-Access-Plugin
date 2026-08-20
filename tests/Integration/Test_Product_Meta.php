@@ -35,7 +35,7 @@ class Test_Product_Meta extends WP_UnitTestCase {
 		parent::set_up();
 
 		// The framework's tear_down unregisters every meta key.
-		$this->meta = new Product_Meta( new Settings() );
+		$this->meta = new Product_Meta( new Settings(), new \PinkCrab\Gated_Access\Registration\Access_Taxonomy() );
 		$this->meta->register_meta();
 
 		$this->product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
@@ -101,7 +101,8 @@ class Test_Product_Meta extends WP_UnitTestCase {
 		global $wp_rest_server;
 		$wp_rest_server = new WP_REST_Server();
 
-		add_filter( 'rest_request_before_callbacks', array( $this->meta, 'guard_product_rest' ), 10, 3 );
+		$route = new \PinkCrab\Gated_Access\Products\Product_Route( new Settings() );
+		add_filter( 'rest_request_before_callbacks', array( $route, 'guard_product_rest' ), 10, 3 );
 		do_action( 'rest_api_init', $wp_rest_server );
 
 		$request = new WP_REST_Request( 'GET', '/wp/v2/' . Post_Types::PRODUCT );
@@ -112,6 +113,6 @@ class Test_Product_Meta extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->assertSame( 200, rest_get_server()->dispatch( $request )->get_status() );
 
-		remove_filter( 'rest_request_before_callbacks', array( $this->meta, 'guard_product_rest' ) );
+		remove_filter( 'rest_request_before_callbacks', array( $route, 'guard_product_rest' ) );
 	}
 }

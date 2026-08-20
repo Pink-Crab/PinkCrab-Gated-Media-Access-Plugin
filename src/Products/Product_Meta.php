@@ -39,11 +39,13 @@ class Product_Meta implements Hookable {
 	public const META_EMAILS     = 'gatedmedia_allowed_email';
 
 	/**
-	 * The currency stamp reads settings.
+	 * The currency stamp reads settings; stored item rows label through the
+	 * taxonomy's UUID identity.
 	 *
-	 * @param Settings $settings The settings reader.
+	 * @param Settings                                            $settings The settings reader.
+	 * @param \PinkCrab\Gated_Access\Registration\Access_Taxonomy $taxonomy Turns a group UUID back into its term.
 	 */
-	public function __construct( private Settings $settings ) {
+	public function __construct( private Settings $settings, private \PinkCrab\Gated_Access\Registration\Access_Taxonomy $taxonomy ) {
 	}
 
 	/**
@@ -56,7 +58,6 @@ class Product_Meta implements Hookable {
 		$loader->action( 'init', array( $this, 'register_meta' ) );
 		$loader->filter( 'is_protected_meta', array( $this, 'protect_meta' ), 3 );
 		$loader->action( 'save_post_' . Post_Types::PRODUCT, array( $this, 'stamp' ) );
-		$loader->filter( 'rest_request_before_callbacks', array( $this, 'guard_product_rest' ), 3 );
 		$loader->action( 'enqueue_block_editor_assets', array( $this, 'supply_editor_data' ) );
 	}
 
@@ -98,31 +99,6 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * The whole product REST surface is managers-only: without this,
-	 * `show_in_rest` would let anyone list published products at
-	 * `/wp/v2/gatedmedia_product` — the enumeration the front rules refuse.
-	 *
-	 * The route-level lever, per round 4: a 404, not a 403, so the guard
-	 * confirms nothing.
-	 *
-	 * @param mixed            $response The current response, usually null.
-	 * @param array<mixed>     $handler  The matched handler.
-	 * @param \WP_REST_Request $request  The request being dispatched.
-	 * @return mixed
-	 */
-	public function guard_product_rest( mixed $response, array $handler, \WP_REST_Request $request ): mixed {
-		if ( ! str_starts_with( $request->get_route(), '/wp/v2/' . Post_Types::PRODUCT ) ) {
-			return $response;
-		}
-
-		if ( current_user_can( Capabilities::manage_products() ) ) {
-			return $response;
-		}
-
-		return new \WP_Error( 'rest_no_route', __( 'No route was found matching the URL and request method.', 'gated-media-access' ), array( 'status' => 404 ) );
-	}
-
-	/**
 	 * What the product-details block needs and the client cannot know: the
 	 * shop currency, its decimal digits, and the picker-search nonce.
 	 */
@@ -137,13 +113,49 @@ class Product_Meta implements Hookable {
 			'wp-block-editor',
 			'window.gatedmediaProduct = ' . (string) wp_json_encode(
 				array(
-					'currency' => $currency,
-					'digits'   => \Symfony\Component\Intl\Currencies::getFractionDigits( $currency ),
-					'nonce'    => wp_create_nonce( \PinkCrab\Gated_Access\Admin\Picker_Search::NONCE ),
+					'currency'   => $currency,
+					'digits'     => \Symfony\Component\Intl\Currencies::getFractionDigits( $currency ),
+					'nonce'      => wp_create_nonce( \PinkCrab\Gated_Access\Admin\Picker_Search::NONCE ),
+					'itemLabels' => $this->item_labels( (int) get_the_ID() ),
 				)
 			) . ';',
 			'before'
 		);
+	}
+
+	/**
+	 * Display labels for the product's stored item rows — without these a
+	 * reloaded editor could only show raw ids, since the search that chose
+	 * them is long gone.
+	 *
+	 * @param int $product_id The product being edited, 0 on Add New.
+	 * @return array<string, string> `type:id` row to label.
+	 */
+	private function item_labels( int $product_id ): array {
+		$labels = array();
+
+		if ( 0 === $product_id ) {
+			return $labels;
+		}
+
+		foreach ( array_map( 'strval', (array) get_post_meta( $product_id, self::META_ITEMS, false ) ) as $item ) {
+			list( $type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
+
+			if ( '' === $identifier ) {
+				continue;
+			}
+
+			if ( 'group' === $type ) {
+				$term            = $this->taxonomy->find_group( $identifier );
+				$labels[ $item ] = null === $term ? $identifier : $term->name;
+				continue;
+			}
+
+			$title           = get_the_title( (int) $identifier );
+			$labels[ $item ] = '' === $title ? "#{$identifier}" : $title;
+		}
+
+		return $labels;
 	}
 
 	/**

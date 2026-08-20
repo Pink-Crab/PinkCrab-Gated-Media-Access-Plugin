@@ -164,7 +164,11 @@ class Post_Types implements Hookable {
 				// link, never by crawling the site (Glynn's round 5 ruling).
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
-				'supports'            => array( 'title', 'editor' ),
+				// custom-fields is the flag that lets the block editor send
+				// the meta field at all — without it every block save is
+				// silently dropped. Our keys stay out of the Custom Fields
+				// panel regardless: they are all is_protected_meta.
+				'supports'            => array( 'title', 'editor', 'custom-fields' ),
 				// The product form is this block, present from the first
 				// paint, pinned and not removable — the description writes
 				// freely around it.

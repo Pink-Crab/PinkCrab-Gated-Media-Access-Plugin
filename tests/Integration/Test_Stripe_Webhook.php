@@ -58,7 +58,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		// The framework's tear_down unregisters every meta key.
 		$writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$writer->register_meta();
-		( new Product_Meta( new Settings() ) )->register_meta();
+		( new Product_Meta( new Settings(), new Access_Taxonomy() ) )->register_meta();
 
 		$this->store     = new Payment_Store();
 		$this->lookup    = new Access_Lookup();

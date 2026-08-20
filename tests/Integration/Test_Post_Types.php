@@ -105,14 +105,16 @@ class Test_Post_Types extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @testdox No post type of ours supports custom-fields.
+	 * @testdox Only the product supports custom-fields — the flag the block editor needs to save meta.
 	 *
-	 * The Custom Fields metabox is gated on post_type_supports(), so this is
-	 * the mechanism keeping our meta keys out of the editor.
+	 * The Custom Fields metabox is gated on post_type_supports(); access and
+	 * coupon keep the flag off. The product needs it on or the block editor
+	 * silently drops every meta save — its keys stay out of the panel anyway,
+	 * because all of them are is_protected_meta (Test_Product_Meta).
 	 */
-	public function test_nothing_supports_custom_fields(): void {
+	public function test_custom_fields_support(): void {
 		$this->assertFalse( post_type_supports( Post_Types::ACCESS, 'custom-fields' ) );
-		$this->assertFalse( post_type_supports( Post_Types::PRODUCT, 'custom-fields' ) );
+		$this->assertTrue( post_type_supports( Post_Types::PRODUCT, 'custom-fields' ) );
 		$this->assertFalse( post_type_supports( Post_Types::COUPON, 'custom-fields' ) );
 	}
 

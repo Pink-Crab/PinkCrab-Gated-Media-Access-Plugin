@@ -63,6 +63,62 @@ class Product_Route implements Hookable {
 		$loader->filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		$loader->filter( 'request', array( $this, 'route_request' ) );
 		$loader->filter( 'post_type_link', array( $this, 'product_link' ), 2 );
+		$loader->filter( 'rest_request_before_callbacks', array( $this, 'guard_product_rest' ), 3 );
+		$loader->filter( 'rest_prepare_' . Post_Types::PRODUCT, array( $this, 'ensure_block' ), 3 );
+	}
+
+	/**
+	 * The whole product REST surface is managers-only: without this,
+	 * `show_in_rest` would let anyone list published products at
+	 * `/wp/v2/gatedmedia_product` — the enumeration the front rules refuse.
+	 *
+	 * The route-level lever, per round 4: a 404, not a 403, so the guard
+	 * confirms nothing.
+	 *
+	 * @param mixed            $response The current response, usually null.
+	 * @param array<mixed>     $handler  The matched handler.
+	 * @param \WP_REST_Request $request  The request being dispatched.
+	 * @return mixed
+	 */
+	public function guard_product_rest( mixed $response, array $handler, \WP_REST_Request $request ): mixed {
+		if ( ! str_starts_with( $request->get_route(), '/wp/v2/' . Post_Types::PRODUCT ) ) {
+			return $response;
+		}
+
+		if ( current_user_can( \PinkCrab\Gated_Access\Registration\Capabilities::manage_products() ) ) {
+			return $response;
+		}
+
+		return new \WP_Error( 'rest_no_route', __( 'No route was found matching the URL and request method.', 'gated-media-access' ), array( 'status' => 404 ) );
+	}
+
+	/**
+	 * Every product opens with its form: the post-type template only seeds
+	 * brand-new posts, so a product from before the block existed would
+	 * open on an empty canvas. When the editor fetches one whose content
+	 * lacks the block, the locked delimiter is prepended — it persists on
+	 * the next save and the product has healed itself.
+	 *
+	 * Returns the response untouched otherwise — never a bare WP_Error
+	 * (the round 2 rest_prepare trap).
+	 *
+	 * @param \WP_REST_Response $response The prepared product.
+	 * @param WP_Post           $post     The product.
+	 * @param \WP_REST_Request  $request  The request being answered.
+	 * @return \WP_REST_Response
+	 */
+	public function ensure_block( \WP_REST_Response $response, WP_Post $post, \WP_REST_Request $request ): \WP_REST_Response {
+		if ( 'edit' !== $request->get_param( 'context' ) ) {
+			return $response;
+		}
+
+		$raw = $response->data['content']['raw'] ?? null;
+
+		if ( is_string( $raw ) && ! str_contains( $raw, 'wp:gated-media-access/product-details' ) ) {
+			$response->data['content']['raw'] = '<!-- wp:gated-media-access/product-details {"lock":{"move":true,"remove":true}} /-->' . "\n" . $raw;
+		}
+
+		return $response;
 	}
 
 	/**
@@ -99,6 +155,13 @@ class Product_Route implements Hookable {
 	 * @return array<string, mixed>
 	 */
 	public function route_request( array $query_vars ): array {
+		// Front rules only: the admin list and editor query the type
+		// legitimately, and clobbering their vars sends core's list table
+		// back to a default posts query.
+		if ( is_admin() ) {
+			return $query_vars;
+		}
+
 		$uuid = (string) ( $query_vars[ self::QUERY_VAR ] ?? '' );
 
 		if ( '' !== $uuid ) {

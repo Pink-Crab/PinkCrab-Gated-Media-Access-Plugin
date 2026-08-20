@@ -57,7 +57,7 @@ class Test_Checkout extends WP_UnitTestCase {
 
 		// The framework's tear_down unregisters every meta key.
 		( new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() ) )->register_meta();
-		( new Product_Meta( new Settings() ) )->register_meta();
+		( new Product_Meta( new Settings(), new Access_Taxonomy() ) )->register_meta();
 		( new Coupon_Metabox() )->register_meta();
 
 		$this->store     = new Payment_Store();

@@ -40,7 +40,7 @@ class Test_Access_Grant_Route extends WP_UnitTestCase {
 		// The framework's tear_down unregisters every meta key.
 		$writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$writer->register_meta();
-		( new Product_Meta( new \PinkCrab\Gated_Access\Settings\Settings() ) )->register_meta();
+		( new Product_Meta( new \PinkCrab\Gated_Access\Settings\Settings(), new Access_Taxonomy() ) )->register_meta();
 
 		$this->lookup    = new Access_Lookup();
 		$this->post_item = self::factory()->post->create();
