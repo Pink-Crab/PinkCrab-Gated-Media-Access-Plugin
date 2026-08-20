@@ -50,6 +50,26 @@ add_action(
 			return;
 		}
 
-		( new Plugin() )->boot();
+		$plugin = new Plugin();
+		$plugin->boot();
+
+		// The file boundary attaches here, not in Plugin::SERVICES — files
+		// are served on parse_request, before the main query. The class
+		// behind both hooks is built on the first call, not now.
+		add_filter(
+			'restrict_media_file_access_protect_file',
+			static fn ( $refuse, $protected_file ): bool => $plugin->file_boundary()->protect_file( (bool) $refuse, (string) $protected_file ),
+			10,
+			2
+		);
+
+		add_action(
+			'restrict_media_file_access_before_serve',
+			static function ( $attachment_id, $file_path ) use ( $plugin ): void {
+				$plugin->file_boundary()->announce_download( (int) $attachment_id, (string) $file_path );
+			},
+			10,
+			2
+		);
 	}
 );

@@ -223,6 +223,22 @@ These cover what the PHP suites cannot see: that the theme still renders around
 us, that a refused URL answers 404 rather than a soft one, that the sidebar and
 the tab strip never both show, and that nothing overflows the viewport.
 
+**The component fixture builds itself.** `tests/e2e/global-setup.js` runs
+`tests/e2e/fixtures/kitchen-sink.php` before the suite, which creates a page
+holding every component in the states §6 documents, plus the four section views.
+It used to exist only because it had been made by hand on one machine, which
+meant those specs passed there and nowhere else — a test that only passes where
+it was written reads as coverage while providing none.
+
+That page is also why the component specs matter: everything else visits
+`/account/`, where the shell wraps the lot. Three faults survived a full suite
+that way — design tokens scoped so a component had none outside the shell, the
+icon sprite printed only on the account route, and inline components with no
+block-level host to sit in a theme's content column.
+
+The setup derives the plugin directory from the checkout rather than assuming
+the slug, because CI checks out into a directory named after the run.
+
 **The bootstrap downloads `restrict-media-file-access` on first run**, from its
 public GitHub release, using
 `Gin0115\WPUnit_Helpers\WP\WP_Dependencies::install_remote_plugin_from_zip()`.
@@ -268,11 +284,25 @@ via `scanFiles`.
 
 ## CI
 
-`.karkinos/workflows/wp-6-9.yml` runs on the local act runner — checkout,
-composer install, phpcs, phpstan, phpmd, phpunit. It triggers on
-`pull_request`, which is how the runner discovers work.
+Two workflows, both on the local act runner, both triggered by `pull_request`,
+which is how the runner discovers work:
 
-Three things in it are runner-specific and will look wrong out of context:
+| | |
+|---|---|
+| `.karkinos/workflows/wp-6-9.yml` | checkout, composer install, phpcs, phpstan, phpmd, phpunit — *is the code sound* |
+| `.karkinos/workflows/e2e.yml` | build assets, start wp-env, Playwright at both viewports — *does it render* |
+
+They are separate files so a browser run never slows the lint-and-test one, and
+because they fail for different reasons.
+
+The e2e one brings WordPress and MySQL up itself, as containers on the host
+daemon, so it declares no services of its own. It destroys any leftover
+environment **before** it starts as well as after: a run killed outright never
+reaches its teardown, and its containers would still be holding 8931 and 8932
+when the next one begins.
+
+Three things in `wp-6-9.yml` are runner-specific and will look wrong out of
+context:
 
 1. **`WPCompat.pluginFile` is set in `.phpstan.neon`.** `johnbillion/wp-compat`
    otherwise looks for `<cwd>/<basename of cwd>.php` to read `Requires at

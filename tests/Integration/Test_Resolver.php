@@ -42,7 +42,7 @@ class Test_Resolver extends WP_UnitTestCase {
 
 	/**
 	 * A resolver with nothing memoised — group membership changes mid-test
-	 * need a fresh picture, exactly as a new request would get one.
+	 * need a fresh answer, exactly as a new request would get one.
 	 */
 	private function resolver(): Resolver {
 		return new Resolver( new Access_Taxonomy() );
@@ -144,7 +144,7 @@ class Test_Resolver extends WP_UnitTestCase {
 		$this->assertFalse( $this->resolver()->can_see( $this->user_id, 'post', (string) $held ) );
 	}
 
-	/** @testdox The second ask costs zero queries — the picture is built once per user. */
+	/** @testdox The second ask costs zero queries — the allowed items are built once per user. */
 	public function test_the_second_ask_is_free(): void {
 		$post_id = self::factory()->post->create();
 		$file_id = self::factory()->attachment->create();
@@ -158,7 +158,7 @@ class Test_Resolver extends WP_UnitTestCase {
 
 		$resolver->can_see( $this->user_id, 'file', (string) $file_id );
 		$resolver->can_see( $this->user_id, 'post', (string) $post_id );
-		$resolver->picture_for( $this->user_id );
+		$resolver->allowed_for( $this->user_id );
 
 		$this->assertSame( $queries_before, get_num_queries() );
 	}

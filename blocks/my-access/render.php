@@ -40,8 +40,8 @@ if ( 0 === $gatedmedia_user_id ) {
 }
 
 /**
- * Supplied by View_Data from the resolver's picture; the empty defaults are
- * what a user holding nothing renders.
+ * Supplied by View_Data from the resolver's allowed items; the empty defaults
+ * are what a user holding nothing renders.
  *
  * @var array{groups: array<int, array<string, mixed>>, posts: array<int, array<string, mixed>>, files: array<int, array<string, mixed>>} $gatedmedia_data
  */
