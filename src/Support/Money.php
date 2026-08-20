@@ -25,33 +25,17 @@ namespace PinkCrab\Gated_Access\Support;
 class Money {
 
 	/**
-	 * Symbols for the currencies most likely to come up. Anything else falls
-	 * back to its ISO code, which is correct if plain.
-	 *
-	 * @var array<string, string>
-	 */
-	private const SYMBOLS = array(
-		'GBP' => '£',
-		'EUR' => '€',
-		'USD' => '$',
-		'AUD' => '$',
-		'CAD' => '$',
-		'NZD' => '$',
-		'JPY' => '¥',
-	);
-
-	/**
-	 * Currencies with no minor unit — the amount is already whole.
-	 *
-	 * @var array<int, string>
-	 */
-	private const ZERO_DECIMAL = array( 'JPY', 'KRW', 'VND', 'CLP', 'ISK' );
-
-	/**
 	 * Formats an amount for display.
 	 *
 	 * Zero is the word "Free" and never a zero amount — the one display rule
 	 * both §6.7 and §6.13 state outright.
+	 *
+	 * ICU (the intl extension) supplies both facts a currency needs: its
+	 * fraction digits — so minor units divide by 10^digits, never an assumed
+	 * 100 — and its presentation in the site's locale. The locale's own
+	 * currency gets its bare symbol, a foreign one its unambiguous form
+	 * (CHF, PLN, JP¥): three kronas all write "kr", so this is ICU's
+	 * disambiguation, not a fallback.
 	 *
 	 * @param int    $minor_units The amount, in minor units.
 	 * @param string $currency    ISO code.
@@ -61,14 +45,21 @@ class Money {
 			return self::filter( __( 'Free', 'gated-media-access' ), $minor_units, $currency );
 		}
 
-		$currency = strtoupper( $currency );
-		$symbol   = self::SYMBOLS[ $currency ] ?? $currency . ' ';
+		$currency  = strtoupper( $currency );
+		$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
+		$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
 
-		$formatted = in_array( $currency, self::ZERO_DECIMAL, true )
-			? number_format_i18n( (float) $minor_units, 0 )
-			: number_format_i18n( $minor_units / 100, 2 );
+		$digits = $formatter->getAttribute( \NumberFormatter::FRACTION_DIGITS );
+		$digits = false === $digits ? 2 : $digits;
+		$amount = $minor_units / ( 10 ** $digits );
 
-		return self::filter( $symbol . $formatted, $minor_units, $currency );
+		$formatted = $formatter->formatCurrency( $amount, $currency );
+
+		if ( false === $formatted ) {
+			$formatted = $currency . ' ' . number_format_i18n( $amount, $digits );
+		}
+
+		return self::filter( $formatted, $minor_units, $currency );
 	}
 
 	/**
