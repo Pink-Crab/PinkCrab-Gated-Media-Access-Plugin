@@ -21,6 +21,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Account\View_Data;
 
 /**
@@ -50,6 +51,7 @@ class Plugin {
 		Access_Taxonomy::class,
 		Capabilities::class,
 		Access_Writer::class,
+		Restriction::class,
 		Asset_Loader::class,
 		Block_Registrar::class,
 		Sprite::class,
