@@ -158,6 +158,21 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Members', $html );
 	}
 
+	/** @testdox The metabox's link pre-fills the form: type selected, item filled. */
+	public function test_prefill_from_the_metabox_link(): void {
+		$_GET['gatedmedia_type'] = 'file';
+		$_GET['gatedmedia_item'] = '123';
+
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+
+		unset( $_GET['gatedmedia_type'], $_GET['gatedmedia_item'] );
+
+		$this->assertMatchesRegularExpression( '/value="file"\s+selected=\'selected\'/', $html );
+		$this->assertStringContainsString( 'value="123"', $html );
+	}
+
 	/** @testdox The outcome notices render from the redirect flags. */
 	public function test_notices_render_from_flags(): void {
 		$_GET['gatedmedia_granted'] = '1';

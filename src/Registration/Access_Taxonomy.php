@@ -57,18 +57,28 @@ class Access_Taxonomy implements Hookable {
 	}
 
 	/**
-	 * Registers the taxonomy against the restrictable types.
+	 * The restrictable post types — what the taxonomy registers against, and
+	 * where the item-side admin surfaces appear.
+	 *
+	 * @return array<int, string>
 	 */
-	public function register(): void {
+	public static function object_types(): array {
 		/**
 		 * The post types the access taxonomy attaches to.
 		 *
 		 * @param array<int, string> $object_types Defaults to post, page and attachment.
 		 */
-		$object_types = apply_filters(
+		return (array) apply_filters(
 			'gatedmedia_access_object_types',
 			array( 'post', 'page', 'attachment' )
 		);
+	}
+
+	/**
+	 * Registers the taxonomy against the restrictable types.
+	 */
+	public function register(): void {
+		$object_types = self::object_types();
 
 		register_taxonomy(
 			self::TAXONOMY,

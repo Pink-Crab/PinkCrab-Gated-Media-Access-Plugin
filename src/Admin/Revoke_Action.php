@@ -80,14 +80,22 @@ class Revoke_Action implements Hookable {
 
 		$applied = $this->apply( $access_id );
 
-		wp_safe_redirect(
-			add_query_arg(
-				'gatedmedia_revoked',
-				$applied ? '1' : '0',
-				admin_url( 'edit.php?post_type=' . Post_Types::ACCESS )
-			)
-		);
+		wp_safe_redirect( add_query_arg( 'gatedmedia_revoked', $applied ? '1' : '0', $this->return_url() ) );
 		exit;
+	}
+
+	/**
+	 * Back where the click came from — the list, a metabox, wherever —
+	 * defaulting to the Access list.
+	 */
+	private function return_url(): string {
+		$referer = wp_get_referer();
+
+		if ( is_string( $referer ) && '' !== $referer ) {
+			return remove_query_arg( 'gatedmedia_revoked', $referer );
+		}
+
+		return admin_url( 'edit.php?post_type=' . Post_Types::ACCESS );
 	}
 
 	/**

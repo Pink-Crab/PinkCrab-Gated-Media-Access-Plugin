@@ -71,8 +71,15 @@ class Add_Access_Page implements Hookable {
 
 	/**
 	 * The form: user, item, duration.
+	 *
+	 * The item metabox links here pre-filled — its type and item land as GET
+	 * args and become the selected values.
 	 */
 	public function render(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only prefill from our own metabox link.
+		$prefill_type = isset( $_GET['gatedmedia_type'] ) ? sanitize_text_field( wp_unslash( $_GET['gatedmedia_type'] ) ) : '';
+		$prefill_item = isset( $_GET['gatedmedia_item'] ) ? sanitize_text_field( wp_unslash( $_GET['gatedmedia_item'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Add Access', 'gated-media-access' ); ?></h1>
@@ -99,9 +106,9 @@ class Add_Access_Page implements Hookable {
 						<th scope="row"><label for="gatedmedia_item_type"><?php esc_html_e( 'Item type', 'gated-media-access' ); ?></label></th>
 						<td>
 							<select name="gatedmedia_item_type" id="gatedmedia_item_type">
-								<option value="group"><?php esc_html_e( 'Group', 'gated-media-access' ); ?></option>
-								<option value="post"><?php esc_html_e( 'Post', 'gated-media-access' ); ?></option>
-								<option value="file"><?php esc_html_e( 'File', 'gated-media-access' ); ?></option>
+								<option value="group" <?php selected( $prefill_type, 'group' ); ?>><?php esc_html_e( 'Group', 'gated-media-access' ); ?></option>
+								<option value="post" <?php selected( $prefill_type, 'post' ); ?>><?php esc_html_e( 'Post', 'gated-media-access' ); ?></option>
+								<option value="file" <?php selected( $prefill_type, 'file' ); ?>><?php esc_html_e( 'File', 'gated-media-access' ); ?></option>
 							</select>
 						</td>
 					</tr>
@@ -120,7 +127,7 @@ class Add_Access_Page implements Hookable {
 					<tr>
 						<th scope="row"><label for="gatedmedia_item_id"><?php esc_html_e( 'Post or file ID', 'gated-media-access' ); ?></label></th>
 						<td>
-							<input type="number" min="1" name="gatedmedia_item_id" id="gatedmedia_item_id" />
+							<input type="number" min="1" name="gatedmedia_item_id" id="gatedmedia_item_id" value="<?php echo esc_attr( $prefill_item ); ?>" />
 							<p class="description"><?php esc_html_e( 'Used when the item type is Post or File.', 'gated-media-access' ); ?></p>
 						</td>
 					</tr>
