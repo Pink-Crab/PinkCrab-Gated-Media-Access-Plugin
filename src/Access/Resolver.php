@@ -16,27 +16,28 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
  * Answers the brief's two questions — can this user see this thing right now,
- * and what can this user see right now — from one per-user picture. Nothing
- * else evaluates expiry, revocation or group membership (architecture.md §4).
+ * and what can this user see right now — from one per-user set of allowed
+ * items. Nothing else evaluates expiry, revocation or group membership
+ * (architecture.md §4).
  *
  * A shared service others call; its only hooks keep the memo honest. The file
  * boundary (round 3) attaches at plugin load and resolves this lazily.
  *
- * The picture is memoised per instance, and instances are shared through the
- * container, so a page asking once per image size pays for one build. A grant
- * or revocation forgets that holder's picture, so a write is visible to the
- * rest of its own request. (A stacked expiry extension is not — the writer
- * fires nothing there, and the held item stays held either way.) Expiry is
- * compared against now at read time — no sweep has to have run.
+ * The allowed items are memoised per instance, and instances are shared
+ * through the container, so a page asking once per image size pays for one
+ * build. A grant or revocation forgets that holder's items, so a write is
+ * visible to the rest of its own request. (A stacked expiry extension is not
+ * — the writer fires nothing there, and the held item stays held either way.)
+ * Expiry is compared against now at read time — no sweep has to have run.
  */
 class Resolver implements Hookable {
 
 	/**
-	 * One built picture per user, for this request.
+	 * One built set of allowed items per user, for this request.
 	 *
-	 * @var array<int, Access_Picture>
+	 * @var array<int, Allowed_Items>
 	 */
-	private array $pictures = array();
+	private array $allowed = array();
 
 	/**
 	 * Groups resolve through the taxonomy's UUID identity.
@@ -47,7 +48,7 @@ class Resolver implements Hookable {
 	}
 
 	/**
-	 * Watches the writer, so a write never leaves a stale picture behind.
+	 * Watches the writer, so a write never leaves a stale answer behind.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -57,13 +58,13 @@ class Resolver implements Hookable {
 	}
 
 	/**
-	 * Drops one holder's memoised picture; the next ask rebuilds it.
+	 * Drops one holder's memoised items; the next ask rebuilds them.
 	 *
 	 * @param int $access_id The record written (unused; both actions lead with it).
-	 * @param int $user_id   Whose picture is now out of date.
+	 * @param int $user_id   Whose items are now out of date.
 	 */
 	public function forget_holder( int $access_id, int $user_id ): void {
-		unset( $this->pictures[ $user_id ] );
+		unset( $this->allowed[ $user_id ] );
 	}
 
 	/**
@@ -71,30 +72,30 @@ class Resolver implements Hookable {
 	 *
 	 * @param int $user_id The user asking, 0 for signed out.
 	 */
-	public function picture_for( int $user_id ): Access_Picture {
-		if ( ! isset( $this->pictures[ $user_id ] ) ) {
-			$this->pictures[ $user_id ] = $this->build( $user_id );
+	public function allowed_for( int $user_id ): Allowed_Items {
+		if ( ! isset( $this->allowed[ $user_id ] ) ) {
+			$this->allowed[ $user_id ] = $this->build( $user_id );
 		}
 
-		return $this->pictures[ $user_id ];
+		return $this->allowed[ $user_id ];
 	}
 
 	/**
 	 * Can this user see this thing right now?
 	 *
-	 * A membership test against the picture — no query after the first ask.
+	 * A membership test against the allowed items — no query after the first ask.
 	 *
 	 * @param int    $user_id   The user asking.
 	 * @param string $item_type One of file, post, group.
 	 * @param string $item_id   Attachment ID, post ID, or group UUID.
 	 */
 	public function can_see( int $user_id, string $item_type, string $item_id ): bool {
-		$picture = $this->picture_for( $user_id );
+		$items = $this->allowed_for( $user_id );
 
 		$allowed = match ( $item_type ) {
-			'file'  => $picture->has_file( (int) $item_id ),
-			'post'  => $picture->has_post( (int) $item_id ),
-			'group' => $picture->has_group( $item_id ),
+			'file'  => $items->has_file( (int) $item_id ),
+			'post'  => $items->has_post( (int) $item_id ),
+			'group' => $items->has_group( $item_id ),
 			default => false,
 		};
 
@@ -110,11 +111,11 @@ class Resolver implements Hookable {
 	}
 
 	/**
-	 * Builds the picture: live direct records, expanded through groups.
+	 * Builds the allowed items: live direct records, expanded through groups.
 	 *
 	 * @param int $user_id Whose access.
 	 */
-	private function build( int $user_id ): Access_Picture {
+	private function build( int $user_id ): Allowed_Items {
 		$records = array();
 		$files   = array();
 		$posts   = array();
@@ -146,7 +147,7 @@ class Resolver implements Hookable {
 			}
 		}
 
-		return new Access_Picture( $records, $files, $posts, $groups );
+		return new Allowed_Items( $records, $files, $posts, $groups );
 	}
 
 	/**

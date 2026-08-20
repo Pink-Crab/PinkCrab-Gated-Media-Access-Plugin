@@ -22,8 +22,8 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  * does hold stay visible everywhere (architecture.md §6).
  *
  * The exclusion is the architecture's "not restricted, or one of these IDs":
- * one term lookup for the marker's objects, the resolver's picture for the
- * holder's IDs, and the difference lands in `post__not_in` on every
+ * one term lookup for the marker's objects, the resolver's allowed items for
+ * the holder's IDs, and the difference lands in `post__not_in` on every
  * front-of-site query. That covers listings, feeds and sitemaps in one move;
  * the 404 and the REST refusal guard the two ways of asking for a post by
  * name.
@@ -40,7 +40,7 @@ class Post_Boundary implements Hookable {
 	 *
 	 * The resolver's own record query runs through WP_Query, so pre_get_posts
 	 * re-enters this class mid-build; without the guard that recursion never
-	 * bottoms out.
+	 * bottoms out. (The resolver memoises only once a build completes.)
 	 *
 	 * @var bool
 	 */
@@ -164,17 +164,17 @@ class Post_Boundary implements Hookable {
 	}
 
 	/**
-	 * The marker's objects minus the current user's picture.
+	 * The marker's objects minus the current user's allowed items.
 	 *
 	 * Computed per call, not memoised: core caches the term lookup and the
-	 * resolver memoises the picture, so a repeat costs no queries — and a
-	 * stale instance cache here would outlive test transactions.
+	 * resolver memoises the allowed items, so a repeat costs no queries — and
+	 * a stale instance cache here would outlive test transactions.
 	 *
 	 * @return array<int>
 	 */
 	private function blocked_ids(): array {
-		// Queries made while the picture builds stand unfiltered — they are
-		// the resolver's own, never front-of-site content.
+		// Queries made while the allowed items build stand unfiltered — they
+		// are the resolver's own, never front-of-site content.
 		if ( $this->building ) {
 			return array();
 		}
@@ -194,7 +194,7 @@ class Post_Boundary implements Hookable {
 		$this->building = true;
 
 		try {
-			$picture = $this->resolver->picture_for( get_current_user_id() );
+			$items = $this->resolver->allowed_for( get_current_user_id() );
 		} finally {
 			$this->building = false;
 		}
@@ -202,7 +202,7 @@ class Post_Boundary implements Hookable {
 		$blocked = array();
 
 		foreach ( array_map( 'intval', $objects ) as $object_id ) {
-			if ( ! $picture->has_post( $object_id ) && ! $picture->has_file( $object_id ) ) {
+			if ( ! $items->has_post( $object_id ) && ! $items->has_file( $object_id ) ) {
 				$blocked[] = $object_id;
 			}
 		}

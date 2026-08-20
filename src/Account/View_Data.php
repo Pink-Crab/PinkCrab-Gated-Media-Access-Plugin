@@ -18,7 +18,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Turns the resolver's picture into the shapes the view blocks declare.
+ * Turns the resolver's allowed items into the shapes the view blocks declare.
  *
  * The render files cannot reach container services, so each view's data
  * arrives by filter — `gatedmedia_my_access_data` and `gatedmedia_files_data`
@@ -37,7 +37,7 @@ class View_Data implements Hookable {
 	/**
 	 * Reads, never writes.
 	 *
-	 * @param Resolver        $resolver The per-user picture.
+	 * @param Resolver        $resolver The per-user allowed items.
 	 * @param Access_Taxonomy $taxonomy Group identity and contents.
 	 */
 	public function __construct(
@@ -69,7 +69,7 @@ class View_Data implements Hookable {
 			return $data;
 		}
 
-		foreach ( $this->resolver->picture_for( $user_id )->records() as $record ) {
+		foreach ( $this->resolver->allowed_for( $user_id )->records() as $record ) {
 			$item = $this->record_item( $record );
 
 			if ( null === $item ) {
@@ -103,9 +103,9 @@ class View_Data implements Hookable {
 			return $data;
 		}
 
-		$picture = $this->resolver->picture_for( $user_id );
+		$items = $this->resolver->allowed_for( $user_id );
 
-		foreach ( $picture->files() as $file_id => $expires_at ) {
+		foreach ( $items->files() as $file_id => $expires_at ) {
 			$item = $this->file_item( $file_id, $expires_at );
 
 			if ( null !== $item ) {
@@ -116,7 +116,7 @@ class View_Data implements Hookable {
 		foreach ( $this->expired_file_ids( $user_id ) as $file_id ) {
 			// Still reachable another way — a live group, a fresh grant — is
 			// not past.
-			if ( $picture->has_file( $file_id ) ) {
+			if ( $items->has_file( $file_id ) ) {
 				continue;
 			}
 

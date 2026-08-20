@@ -10,8 +10,9 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Access;
 
 /**
- * The per-user picture the resolver builds once and everything reads: the live
- * direct records, and the flattened maps they expand to.
+ * Everything one user is allowed to see, resolved once by the resolver and
+ * read by everything else: the live direct records, and the flattened maps
+ * they expand to.
  *
  * Expiries are UTC timestamps, or null for lifetime. Where an item is reachable
  * more than one way — held directly and inside a held group — the map carries
@@ -20,7 +21,7 @@ namespace PinkCrab\Gated_Access\Access;
  * Immutable; revoked and expired records were dropped during the build, so
  * membership here *is* the answer.
  */
-final class Access_Picture {
+final class Allowed_Items {
 
 	/**
 	 * Built by the resolver, nothing else.

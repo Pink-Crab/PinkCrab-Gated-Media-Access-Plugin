@@ -42,9 +42,9 @@ if ( 0 === $gatedmedia_user_id ) {
 }
 
 /**
- * Supplied by View_Data from the resolver's picture; the empty defaults are
- * what a user holding nothing renders. Downloading is a client-side state and
- * stays empty server-side.
+ * Supplied by View_Data from the resolver's allowed items; the empty defaults
+ * are what a user holding nothing renders. Downloading is a client-side state
+ * and stays empty server-side.
  *
  * @var array{available: array<int, array<string, mixed>>, downloading: array<int, array<string, mixed>>, past: array<int, array<string, mixed>>} $gatedmedia_data
  */
