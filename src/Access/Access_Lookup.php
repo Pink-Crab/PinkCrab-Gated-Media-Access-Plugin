@@ -20,13 +20,39 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 class Access_Lookup {
 
 	/**
-	 * An already-recorded source and reference, if we hold one.
+	 * An already-recorded source and reference, if we hold one — narrowed to
+	 * one item when the caller names it, since a product purchase writes one
+	 * record per item all carrying the same source and reference (spec §4).
 	 *
 	 * @param string $source    The system.
 	 * @param string $reference That system's reference.
+	 * @param string $item_type The record's item type, '' for any.
+	 * @param string $item_id   The record's item, '' for any.
 	 * @return int|null The existing record's ID, or null.
 	 */
-	public function find_by_reference( string $source, string $reference ): ?int {
+	public function find_by_reference( string $source, string $reference, string $item_type = '', string $item_id = '' ): ?int {
+		$clauses = array(
+			array(
+				'key'   => Access_Writer::META_SOURCE,
+				'value' => $source,
+			),
+			array(
+				'key'   => Access_Writer::META_REFERENCE,
+				'value' => $reference,
+			),
+		);
+
+		if ( '' !== $item_type && '' !== $item_id ) {
+			$clauses[] = array(
+				'key'   => Access_Writer::META_ITEM_TYPE,
+				'value' => $item_type,
+			);
+			$clauses[] = array(
+				'key'   => Access_Writer::META_ITEM_ID,
+				'value' => $item_id,
+			);
+		}
+
 		$found = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
@@ -38,16 +64,7 @@ class Access_Lookup {
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The write path is rare; retry safety needs the pair.
-				'meta_query'     => array(
-					array(
-						'key'   => Access_Writer::META_SOURCE,
-						'value' => $source,
-					),
-					array(
-						'key'   => Access_Writer::META_REFERENCE,
-						'value' => $reference,
-					),
-				),
+				'meta_query'     => $clauses,
 			)
 		);
 

@@ -26,6 +26,8 @@ use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Access\Sweep;
+use PinkCrab\Gated_Access\Payments\Checkout_Action;
+use PinkCrab\Gated_Access\Payments\Payment_Status_Route;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Account\View_Data;
 use PinkCrab\Gated_Access\Admin\Access_Filters;
@@ -74,6 +76,8 @@ class Plugin {
 		Post_Boundary::class,
 		Sweep::class,
 		Payments_Schema::class,
+		Checkout_Action::class,
+		Payment_Status_Route::class,
 		Asset_Loader::class,
 		Block_Registrar::class,
 		Sprite::class,
