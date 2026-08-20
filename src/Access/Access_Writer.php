@@ -40,11 +40,13 @@ class Access_Writer implements Hookable {
 	public const META_PAYLOAD    = 'gatedmedia_payload';
 
 	/**
-	 * Input checking lives beside the writer, not in it.
+	 * Input checking and the read-side queries live beside the writer,
+	 * not in it.
 	 *
-	 * @param Grant_Validator $validator Checks a grant's four facts.
+	 * @param Access_Validator $validator Checks a grant's four facts.
+	 * @param Access_Lookup    $lookup    The retry-guard and stacking queries.
 	 */
-	public function __construct( private Grant_Validator $validator ) {
+	public function __construct( private Access_Validator $validator, private Access_Lookup $lookup ) {
 	}
 
 	/**
@@ -107,7 +109,7 @@ class Access_Writer implements Hookable {
 
 		// The retry guard: a source and reference we have seen writes nothing.
 		if ( '' !== $reference ) {
-			$existing = $this->find_by_reference( $source, $reference );
+			$existing = $this->lookup->find_by_reference( $source, $reference );
 
 			if ( null !== $existing ) {
 				return $existing;
@@ -162,6 +164,40 @@ class Access_Writer implements Hookable {
 		}
 
 		return $this->move_status( $access_id, Post_Types::STATUS_EXPIRED, 'gatedmedia_access_expired' );
+	}
+
+	/**
+	 * Moves one record's expiry to a chosen date — the Edit Access screen.
+	 *
+	 * The status follows the date: future or lifetime is active, past is
+	 * expired — the resolver reads dates, and the status only mirrors them.
+	 * A revoked record is refused: revocation is a state, and undoing one
+	 * is a fresh grant, not an edit.
+	 *
+	 * Fires `gatedmedia_access_rescheduled` with the record and its holder.
+	 *
+	 * @param int         $access_id  The record to reschedule.
+	 * @param string|null $expires_at UTC `Y-m-d H:i:s`, or null/'' for lifetime.
+	 */
+	public function set_expiry( int $access_id, ?string $expires_at ): bool {
+		$record = get_post( $access_id );
+
+		if ( null === $record || Post_Types::ACCESS !== $record->post_type || Post_Types::STATUS_REVOKED === $record->post_status ) {
+			return false;
+		}
+
+		$stored    = $expires_at ?? '';
+		$timestamp = '' === $stored ? null : strtotime( $stored . ' +0000' );
+
+		if ( false === $timestamp ) {
+			return false;
+		}
+
+		update_post_meta( $access_id, self::META_EXPIRES_AT, null === $timestamp ? '' : gmdate( 'Y-m-d H:i:s', $timestamp ) );
+
+		$status = null === $timestamp || $timestamp > time() ? Post_Types::STATUS_ACTIVE : Post_Types::STATUS_EXPIRED;
+
+		return $this->move_status( $access_id, $status, 'gatedmedia_access_rescheduled' );
 	}
 
 	/**
@@ -227,41 +263,6 @@ class Access_Writer implements Hookable {
 	}
 
 	/**
-	 * An already-recorded source and reference, if we hold one.
-	 *
-	 * @param string $source    The system.
-	 * @param string $reference That system's reference.
-	 * @return int|null The existing record's ID, or null.
-	 */
-	private function find_by_reference( string $source, string $reference ): ?int {
-		$found = get_posts(
-			array(
-				'post_type'      => Post_Types::ACCESS,
-				// Never 'any': it excludes statuses registered with
-				// exclude_from_search, which is all three of ours — the guard
-				// would find nothing and every retry would grant again.
-				'post_status'    => array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The write path is rare; retry safety needs the pair.
-				'meta_query'     => array(
-					array(
-						'key'   => self::META_SOURCE,
-						'value' => $source,
-					),
-					array(
-						'key'   => self::META_REFERENCE,
-						'value' => $reference,
-					),
-				),
-			)
-		);
-
-		return array() === $found ? null : (int) $found[0];
-	}
-
-	/**
 	 * Extends a live timed record instead of writing a second one.
 	 *
 	 * A live lifetime record is left alone — there is no expiry to stack
@@ -274,7 +275,7 @@ class Access_Writer implements Hookable {
 	 * @return int|null The extended record's ID, or null when nothing stacked.
 	 */
 	private function stack_onto_live( int $user_id, string $item_type, string $item_id, int $duration_days ): ?int {
-		foreach ( $this->records_for_item( $user_id, $item_type, $item_id ) as $record_id ) {
+		foreach ( $this->lookup->records_for_item( $user_id, $item_type, $item_id ) as $record_id ) {
 			$expires    = (string) get_post_meta( $record_id, self::META_EXPIRES_AT, true );
 			$expires_at = '' === $expires ? false : strtotime( $expires . ' +0000' );
 
@@ -292,40 +293,6 @@ class Access_Writer implements Hookable {
 		}
 
 		return null;
-	}
-
-	/**
-	 * The user's active records for one item.
-	 *
-	 * @param int    $user_id   Who holds them.
-	 * @param string $item_type One of file, post, group.
-	 * @param string $item_id   The target's identifier.
-	 * @return array<int, int>
-	 */
-	private function records_for_item( int $user_id, string $item_type, string $item_id ): array {
-		$ids = get_posts(
-			array(
-				'post_type'      => Post_Types::ACCESS,
-				'post_status'    => Post_Types::STATUS_ACTIVE,
-				'author'         => $user_id,
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The write path is rare; stacking needs the item pair.
-				'meta_query'     => array(
-					array(
-						'key'   => self::META_ITEM_TYPE,
-						'value' => $item_type,
-					),
-					array(
-						'key'   => self::META_ITEM_ID,
-						'value' => $item_id,
-					),
-				),
-			)
-		);
-
-		return array_map( 'intval', $ids );
 	}
 
 	/**

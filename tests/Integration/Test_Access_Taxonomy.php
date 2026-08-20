@@ -62,12 +62,18 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertFalse( $taxonomy->publicly_queryable );
 	}
 
-	/** @testdox The taxonomy is exposed over REST, for the block editor's panel. */
-	public function test_show_in_rest(): void {
+	/** @testdox Core's free-tagging surfaces are all off — the item metabox is the assignment surface. */
+	public function test_editor_surfaces_are_off(): void {
 		$taxonomy = get_taxonomy( Access_Taxonomy::TAXONOMY );
 
 		$this->assertNotFalse( $taxonomy );
-		$this->assertTrue( $taxonomy->show_in_rest );
+		// Round 4: the editor panel (REST), the classic tag box and the
+		// quick edit field all gave a free-tagging way to mint groups.
+		$this->assertFalse( $taxonomy->show_in_rest );
+		$this->assertFalse( $taxonomy->meta_box_cb );
+		$this->assertFalse( $taxonomy->show_in_quick_edit );
+		// The Groups screens themselves stay.
+		$this->assertTrue( $taxonomy->show_ui );
 	}
 
 	/**
@@ -150,7 +156,7 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertIsArray( $category );
 	}
 
-	/** @testdox REST cannot create a group — the block editor's add-new path is shut. */
+	/** @testdox REST cannot create a group — no terms route exists, and the guard 403s regardless. */
 	public function test_rest_cannot_create_groups(): void {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		do_action( 'rest_api_init' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Booting core's own REST server for the test.
@@ -160,7 +166,10 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 
 		$response = rest_do_request( $request );
 
-		$this->assertSame( 403, $response->get_status() );
+		// show_in_rest false means no route at all (404); the
+		// rest_request_before_callbacks guard would 403 one if it ever
+		// came back. Either way: refused, and nothing written.
+		$this->assertContains( $response->get_status(), array( 403, 404 ) );
 		$this->assertSame( array(), get_terms( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'hide_empty' => false, 'name' => 'Sneaky REST Group' ) ) );
 	}
 }

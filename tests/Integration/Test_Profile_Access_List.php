@@ -13,7 +13,8 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Admin\Profile_Access_List;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Access\Grant_Validator;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
+use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
@@ -34,7 +35,7 @@ class Test_Profile_Access_List extends WP_UnitTestCase {
 		parent::set_up();
 
 		$taxonomy           = new Access_Taxonomy();
-		$this->writer       = new Access_Writer( new Grant_Validator( $taxonomy ) );
+		$this->writer       = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 		$this->profile_list = new Profile_Access_List( new Access_List( $taxonomy ) );
 
 		// The framework's tear_down() unregisters every meta key after every

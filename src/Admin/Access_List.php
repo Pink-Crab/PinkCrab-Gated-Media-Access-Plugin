@@ -119,9 +119,9 @@ class Access_List implements Hookable {
 	}
 
 	/**
-	 * Revoke is the one row action — a record is never edited, only put
-	 * through the writer, and revoking a record already expired or revoked
-	 * withdraws nothing.
+	 * Two row actions, both writer-bound: Edit (the record's expiry, on the
+	 * Edit Access page) and, on active rows, Revoke. A revoked record gets
+	 * neither — revocation is final, and a fresh grant is the way back.
 	 *
 	 * @param array<string, string> $actions Core's actions, discarded.
 	 * @param WP_Post               $post    The row's record.
@@ -132,17 +132,27 @@ class Access_List implements Hookable {
 			return $actions;
 		}
 
-		if ( Post_Types::STATUS_ACTIVE !== $post->post_status || ! current_user_can( Capabilities::give_access() ) ) {
+		if ( Post_Types::STATUS_REVOKED === $post->post_status || ! current_user_can( Capabilities::give_access() ) ) {
 			return array();
 		}
 
-		return array(
-			'gatedmedia_revoke' => sprintf(
+		$ours = array(
+			'gatedmedia_edit' => sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( Edit_Access_Page::url_for( (int) $post->ID ) ),
+				esc_html__( 'Edit', 'gated-media-access' )
+			),
+		);
+
+		if ( Post_Types::STATUS_ACTIVE === $post->post_status ) {
+			$ours['gatedmedia_revoke'] = sprintf(
 				'<a href="%s">%s</a>',
 				esc_url( Revoke_Action::url_for( (int) $post->ID ) ),
 				esc_html__( 'Revoke', 'gated-media-access' )
-			),
-		);
+			);
+		}
+
+		return $ours;
 	}
 
 	/**

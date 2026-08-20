@@ -91,21 +91,26 @@ class Access_Taxonomy implements Hookable {
 			array(
 				// "Groups" is the docs' name for these screens — specification.md
 				// §2 and the architecture.md admin table both use it.
-				'labels'            => array(
+				'labels'             => array(
 					'name'          => __( 'Groups', 'gated-media-access' ),
 					'singular_name' => __( 'Group', 'gated-media-access' ),
 					'search_items'  => __( 'Search Groups', 'gated-media-access' ),
 					'edit_item'     => __( 'Edit Group', 'gated-media-access' ),
 					'add_new_item'  => __( 'Add New Group', 'gated-media-access' ),
 				),
-				'public'            => false,
-				'show_ui'           => true,
-				// The block editor's taxonomy panel needs it.
-				'show_in_rest'      => true,
-				'hierarchical'      => false,
-				'show_admin_column' => true,
-				'rewrite'           => false,
-				'capabilities'      => array(
+				'public'             => false,
+				'show_ui'            => true,
+				// Round 4: the item's Access metabox is the assignment
+				// surface, so core's free-tagging fields all switch off —
+				// the editor panel (REST), the classic tag box, and the
+				// quick/bulk edit field. The Groups screens stay.
+				'show_in_rest'       => false,
+				'meta_box_cb'        => false,
+				'show_in_quick_edit' => false,
+				'hierarchical'       => false,
+				'show_admin_column'  => true,
+				'rewrite'            => false,
+				'capabilities'       => array(
 					'manage_terms' => 'manage_categories',
 					'edit_terms'   => 'manage_categories',
 					'delete_terms' => 'manage_categories',

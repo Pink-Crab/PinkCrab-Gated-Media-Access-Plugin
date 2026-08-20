@@ -19,7 +19,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  * Split from `Access_Writer` for size, not for reuse: the writer is its only
  * caller, and stays the only path that creates or changes a record.
  */
-class Grant_Validator {
+class Access_Validator {
 
 	/** What an access record may point at. */
 	private const ITEM_TYPES = array( 'file', 'post', 'group' );

@@ -56,6 +56,7 @@ class Resolver implements Hookable {
 		$loader->action( 'gatedmedia_access_granted', array( $this, 'forget_holder' ), 2 );
 		$loader->action( 'gatedmedia_access_revoked', array( $this, 'forget_holder' ), 2 );
 		$loader->action( 'gatedmedia_access_expired', array( $this, 'forget_holder' ), 2 );
+		$loader->action( 'gatedmedia_access_rescheduled', array( $this, 'forget_holder' ), 2 );
 	}
 
 	/**

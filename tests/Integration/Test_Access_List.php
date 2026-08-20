@@ -13,7 +13,8 @@ use WP_Query;
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Access\Grant_Validator;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
+use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
@@ -36,7 +37,7 @@ class Test_Access_List extends WP_UnitTestCase {
 
 		$taxonomy     = new Access_Taxonomy();
 		$this->list   = new Access_List( $taxonomy );
-		$this->writer = new Access_Writer( new Grant_Validator( $taxonomy ) );
+		$this->writer = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 
 		// The framework's tear_down() unregisters every meta key after every
 		// test (abstract-testcase.php:212), so re-register here.
@@ -148,17 +149,22 @@ class Test_Access_List extends WP_UnitTestCase {
 		$this->assertSame( $actions, $this->list->row_actions( $actions, $plain_post ) );
 	}
 
-	/** @testdox With the capability, an active row offers revoke and nothing else; a withdrawn row offers nothing. */
-	public function test_row_actions_offer_revoke_to_the_capable(): void {
+	/** @testdox With the capability, an active row offers edit and revoke; an expired row only edit; a revoked row nothing. */
+	public function test_row_actions_offer_edit_and_revoke_to_the_capable(): void {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
 		$access_id = $this->grant_for_post();
 		$actions   = $this->list->row_actions( array( 'edit' => 'Edit' ), get_post( $access_id ) );
 
-		$this->assertSame( array( 'gatedmedia_revoke' ), array_keys( $actions ) );
+		$this->assertSame( array( 'gatedmedia_edit', 'gatedmedia_revoke' ), array_keys( $actions ) );
+		$this->assertStringContainsString( 'gatedmedia-edit-access', $actions['gatedmedia_edit'] );
 		$this->assertStringContainsString( 'gatedmedia_revoke_access', $actions['gatedmedia_revoke'] );
 		$this->assertStringContainsString( 'access=' . $access_id, $actions['gatedmedia_revoke'] );
 		$this->assertStringContainsString( '_wpnonce', $actions['gatedmedia_revoke'] );
+
+		$expired = $this->grant_for_post();
+		$this->writer->expire( $expired );
+		$this->assertSame( array( 'gatedmedia_edit' ), array_keys( $this->list->row_actions( array(), get_post( $expired ) ) ) );
 
 		$this->writer->revoke( $access_id );
 		$this->assertSame( array(), $this->list->row_actions( array(), get_post( $access_id ) ) );

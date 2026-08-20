@@ -12,7 +12,8 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Access\Grant_Validator;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
+use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
@@ -34,7 +35,7 @@ class Test_Quick_Edit_Grant extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->writer     = new Access_Writer( new Grant_Validator( new Access_Taxonomy() ) );
+		$this->writer     = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->quick_edit = new Quick_Edit_Grant( $this->writer );
 
 		// The framework's tear_down() unregisters every meta key after every

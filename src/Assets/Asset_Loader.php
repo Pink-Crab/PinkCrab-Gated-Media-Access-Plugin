@@ -103,17 +103,22 @@ class Asset_Loader implements Hookable {
 	}
 
 	/**
-	 * Admin assets, on the screens that use them: our own pages, and the
-	 * list tables whose quick edit carries the grant picker.
+	 * Admin assets, on the screens that use them: our own pages, the list
+	 * tables whose quick edit carries the grant picker, and the restrictable
+	 * types' editors, where the item metabox's group button lives.
 	 *
 	 * @param string $hook_suffix The current admin page.
 	 */
 	public function enqueue_admin( string $hook_suffix ): void {
+		$screen_type = (string) ( get_current_screen()->post_type ?? '' );
+
 		$our_page   = str_contains( $hook_suffix, 'gated-media-access' ) || str_contains( $hook_suffix, 'gatedmedia' );
 		$quick_edit = 'edit.php' === $hook_suffix
-			&& in_array( (string) ( get_current_screen()->post_type ?? '' ), array_diff( Access_Taxonomy::object_types(), array( 'attachment' ) ), true );
+			&& in_array( $screen_type, array_diff( Access_Taxonomy::object_types(), array( 'attachment' ) ), true );
+		$editor     = in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true )
+			&& in_array( $screen_type, Access_Taxonomy::object_types(), true );
 
-		if ( ! $our_page && ! $quick_edit ) {
+		if ( ! $our_page && ! $quick_edit && ! $editor ) {
 			return;
 		}
 

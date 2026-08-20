@@ -23,12 +23,13 @@ use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
  */
 class Test_Pickers extends WP_UnitTestCase {
 
-	/** @testdox Each search picker renders the pair against its own endpoint. */
+	/** @testdox Each search picker renders the pair against its own endpoint — one pattern for all four. */
 	public function test_search_pickers_render_their_endpoints(): void {
 		$expected = array(
-			'gatedmedia_search_users' => new User_Picker( 'the_user', 'the_user' ),
-			'gatedmedia_search_posts' => new Post_Picker( 'the_post', 'the_post' ),
-			'gatedmedia_search_files' => new File_Picker( 'the_file', 'the_file' ),
+			'gatedmedia_search_users'  => new User_Picker( 'the_user', 'the_user' ),
+			'gatedmedia_search_posts'  => new Post_Picker( 'the_post', 'the_post' ),
+			'gatedmedia_search_files'  => new File_Picker( 'the_file', 'the_file' ),
+			'gatedmedia_search_groups' => new Group_Picker( 'the_group', 'the_group' ),
 		);
 
 		foreach ( $expected as $endpoint => $picker ) {
@@ -52,24 +53,4 @@ class Test_Pickers extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'value="Dave Holder (dave@example.test)"', $html );
 	}
 
-	/** @testdox The group picker is a UUID-valued select with the chosen group selected. */
-	public function test_group_picker_select(): void {
-		ob_start();
-		( new Group_Picker(
-			'the_group',
-			'the_group',
-			array(
-				'uuid-one' => 'Members',
-				'uuid-two' => 'Staff',
-			),
-			'uuid-two'
-		) )->render();
-		$html = (string) ob_get_clean();
-
-		$this->assertStringContainsString( 'name="the_group"', $html );
-		$this->assertStringContainsString( 'value="uuid-one"', $html );
-		$this->assertMatchesRegularExpression( '/value="uuid-two"\s+selected=\'selected\'/', $html );
-		$this->assertStringContainsString( 'Members', $html );
-		$this->assertStringContainsString( 'Staff', $html );
-	}
 }

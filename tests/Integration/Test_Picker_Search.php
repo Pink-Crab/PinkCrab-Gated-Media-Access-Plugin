@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Admin\Picker_Search;
+use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
  * Each search finds its own kind and shapes the result for the picker:
@@ -25,7 +26,23 @@ class Test_Picker_Search extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->search = new Picker_Search();
+		$this->search = new Picker_Search( new Access_Taxonomy() );
+	}
+
+	/** @testdox Groups are found by name, id'd by their UUID; the restricted marker never appears. */
+	public function test_find_groups(): void {
+		$term = self::factory()->term->create_and_get( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'name' => 'Gated Members' ) );
+		// Put a post in the group so the restricted marker exists.
+		wp_set_object_terms( self::factory()->post->create(), array( $term->term_id ), Access_Taxonomy::TAXONOMY );
+
+		$found = $this->search->find_groups( 'Gated' );
+
+		$this->assertCount( 1, $found );
+		$this->assertSame( 'Gated Members', $found[0]['label'] );
+		$this->assertSame( ( new Access_Taxonomy() )->uuid_for( $term->term_id ), $found[0]['id'] );
+
+		$everything = $this->search->find_groups( '' );
+		$this->assertNotContains( 'restricted', array_column( $everything, 'label' ) );
 	}
 
 	/** @testdox Users are found by name, login or email, labelled name (email). */

@@ -22,14 +22,22 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  */
 class Picker_Search implements Hookable {
 
-	/** The nonce action both endpoints check, shared with the JS. */
+	/** The nonce action every endpoint checks, shared with the JS. */
 	public const NONCE = 'gatedmedia_picker';
 
 	/** How many matches a picker shows. */
 	private const LIMIT = 20;
 
 	/**
-	 * Both endpoints, private ajax only.
+	 * Group identity is the taxonomy's UUID.
+	 *
+	 * @param Access_Taxonomy $taxonomy Turns a term into its UUID.
+	 */
+	public function __construct( private Access_Taxonomy $taxonomy ) {
+	}
+
+	/**
+	 * The four endpoints, private ajax only.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -37,6 +45,7 @@ class Picker_Search implements Hookable {
 		$loader->ajax( 'gatedmedia_search_users', array( $this, 'search_users' ), false, true );
 		$loader->ajax( 'gatedmedia_search_posts', array( $this, 'search_posts' ), false, true );
 		$loader->ajax( 'gatedmedia_search_files', array( $this, 'search_files' ), false, true );
+		$loader->ajax( 'gatedmedia_search_groups', array( $this, 'search_groups' ), false, true );
 	}
 
 	/**
@@ -58,6 +67,13 @@ class Picker_Search implements Hookable {
 	 */
 	public function search_files(): void {
 		wp_send_json( $this->find_files( $this->guarded_term() ) );
+	}
+
+	/**
+	 * The groups endpoint.
+	 */
+	public function search_groups(): void {
+		wp_send_json( $this->find_groups( $this->guarded_term() ) );
 	}
 
 	/**
@@ -137,6 +153,40 @@ class Picker_Search implements Hookable {
 			),
 			$found
 		);
+	}
+
+	/**
+	 * Groups matching the term by name, id'd by their UUID — the identity
+	 * access records point at. The restricted marker is not a group, and
+	 * `Restriction`'s term-list exclusion already keeps it out.
+	 *
+	 * @param string $term What was typed.
+	 * @return array<int, array{id: string, label: string}>
+	 */
+	public function find_groups( string $term ): array {
+		$terms = get_terms(
+			array(
+				'taxonomy'   => Access_Taxonomy::TAXONOMY,
+				'hide_empty' => false,
+				'number'     => self::LIMIT,
+				'name__like' => $term,
+			)
+		);
+
+		if ( ! is_array( $terms ) ) {
+			return array();
+		}
+
+		$groups = array();
+
+		foreach ( $terms as $group ) {
+			$groups[] = array(
+				'id'    => $this->taxonomy->uuid_for( $group->term_id ),
+				'label' => $group->name,
+			);
+		}
+
+		return $groups;
 	}
 
 	/**

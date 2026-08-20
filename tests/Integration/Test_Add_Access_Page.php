@@ -13,7 +13,8 @@ use WP_Error;
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Admin\Add_Access_Page;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Access\Grant_Validator;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
+use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
@@ -36,8 +37,8 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		parent::set_up();
 
 		$taxonomy     = new Access_Taxonomy();
-		$this->writer = new Access_Writer( new Grant_Validator( $taxonomy ) );
-		$this->page   = new Add_Access_Page( $this->writer, $taxonomy );
+		$this->writer = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
+		$this->page   = new Add_Access_Page( $this->writer );
 
 		// The framework's tear_down() unregisters every meta key after every
 		// test (abstract-testcase.php:212), so re-register here.
@@ -142,10 +143,8 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->assertSame( Capabilities::GIVE_ACCESS, $entries[0][1] );
 	}
 
-	/** @testdox The form renders the four fields, nonced, posting to admin-post. */
+	/** @testdox The form renders the four fields, nonced, posting to admin-post — every picker the same searchable pattern. */
 	public function test_form_renders_the_fields(): void {
-		self::factory()->term->create( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'name' => 'Members' ) );
-
 		ob_start();
 		$this->page->render();
 		$html = (string) ob_get_clean();
@@ -156,11 +155,11 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_users"', $html );
 		$this->assertStringContainsString( 'name="gatedmedia_item_type"', $html );
 		$this->assertStringContainsString( 'name="gatedmedia_group"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_groups"', $html );
 		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_posts"', $html );
 		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_files"', $html );
 		$this->assertStringContainsString( 'name="gatedmedia_duration"', $html );
 		$this->assertStringContainsString( '_wpnonce', $html );
-		$this->assertStringContainsString( 'Members', $html );
 	}
 
 	/** @testdox The metabox's link pre-fills the form: type selected, item filled. */

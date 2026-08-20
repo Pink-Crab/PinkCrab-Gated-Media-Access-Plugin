@@ -20,7 +20,6 @@ use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
-use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
  * Adding access is picking a user, an item and a duration (architecture.md
@@ -40,12 +39,11 @@ class Add_Access_Page implements Hookable {
 	public const ACTION = 'gatedmedia_add_access';
 
 	/**
-	 * Grants go through the writer; group choices resolve to UUIDs.
+	 * Grants go through the writer, nothing else.
 	 *
-	 * @param Access_Writer   $writer   The one writer of access records.
-	 * @param Access_Taxonomy $taxonomy Lists the groups and their identities.
+	 * @param Access_Writer $writer   The one writer of access records.
 	 */
-	public function __construct( private Access_Writer $writer, private Access_Taxonomy $taxonomy ) {
+	public function __construct( private Access_Writer $writer ) {
 	}
 
 	/**
@@ -105,7 +103,7 @@ class Add_Access_Page implements Hookable {
 					</tr>
 					<tr data-gatedmedia-row="group">
 						<th scope="row"><label for="gatedmedia_group"><?php esc_html_e( 'Group', 'gated-media-access' ); ?></label></th>
-						<td><?php ( new Group_Picker( 'gatedmedia_group', 'gatedmedia_group', $this->groups() ) )->render(); ?></td>
+						<td><?php ( new Group_Picker( 'gatedmedia_group', 'gatedmedia_group' ) )->render(); ?></td>
 					</tr>
 					<tr data-gatedmedia-row="post">
 						<th scope="row"><label for="gatedmedia_post_search"><?php esc_html_e( 'Post', 'gated-media-access' ); ?></label></th>
@@ -160,7 +158,7 @@ class Add_Access_Page implements Hookable {
 			wp_die( esc_html__( 'You are not allowed to give access.', 'gated-media-access' ), '', 403 );
 		}
 
-		// Sanitised in submitted_input(), validated whole by the writer's Grant_Validator.
+		// Sanitised in submitted_input(), validated whole by the writer's Access_Validator.
 		$granted = $this->create( $this->submitted_input() );
 
 		if ( $granted instanceof WP_Error ) {
@@ -280,31 +278,5 @@ class Add_Access_Page implements Hookable {
 			);
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-	}
-
-	/**
-	 * Every group, UUID to name, for the form's select.
-	 *
-	 * @return array<string, string>
-	 */
-	private function groups(): array {
-		$terms = get_terms(
-			array(
-				'taxonomy'   => Access_Taxonomy::TAXONOMY,
-				'hide_empty' => false,
-			)
-		);
-
-		if ( ! is_array( $terms ) ) {
-			return array();
-		}
-
-		$groups = array();
-
-		foreach ( $terms as $term ) {
-			$groups[ $this->taxonomy->uuid_for( $term->term_id ) ] = $term->name;
-		}
-
-		return $groups;
 	}
 }

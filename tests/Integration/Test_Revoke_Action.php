@@ -13,7 +13,8 @@ use WP_UnitTestCase;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Access\Grant_Validator;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
+use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
 use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Registration\Post_Types;
@@ -36,7 +37,7 @@ class Test_Revoke_Action extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->writer = new Access_Writer( new Grant_Validator( new Access_Taxonomy() ) );
+		$this->writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->action = new Revoke_Action( $this->writer, new Settings() );
 
 		// The framework's tear_down() unregisters every meta key after every
