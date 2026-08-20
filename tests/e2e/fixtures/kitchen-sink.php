@@ -291,7 +291,7 @@ if ( $e2e_user instanceof WP_User ) {
 		wp_set_object_terms( $granted_post_id, array( $e2e_group->term_id ), 'gatedmedia_access', true );
 
 		$gatedmedia_taxonomy = new PinkCrab\Gated_Access\Registration\Access_Taxonomy();
-		$gatedmedia_writer   = new PinkCrab\Gated_Access\Access\Access_Writer( $gatedmedia_taxonomy );
+		$gatedmedia_writer   = new PinkCrab\Gated_Access\Access\Access_Writer( new PinkCrab\Gated_Access\Access\Grant_Validator( $gatedmedia_taxonomy ) );
 
 		$gatedmedia_writer->grant( $e2e_user->ID, 'post', (string) $granted_post_id, null, 'e2e', 'fixture-post' );
 		$gatedmedia_writer->grant( $e2e_user->ID, 'file', (string) $granted_file_id, null, 'e2e', 'fixture-file' );
