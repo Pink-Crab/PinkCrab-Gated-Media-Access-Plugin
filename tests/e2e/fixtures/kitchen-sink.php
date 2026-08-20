@@ -251,14 +251,34 @@ if ( $e2e_user instanceof WP_User ) {
 		)
 	);
 
+	// A real file on disk, so the dependency can genuinely move and serve it —
+	// the boundary spec downloads it and reads these exact bytes back.
 	$granted_file    = get_page_by_path( 'e2e-granted-file', OBJECT, 'attachment' );
 	$granted_file_id = $granted_file instanceof WP_Post ? $granted_file->ID : wp_insert_attachment(
 		array(
 			'post_title'     => 'Granted file',
 			'post_name'      => 'e2e-granted-file',
-			'post_mime_type' => 'application/pdf',
+			'post_mime_type' => 'text/plain',
 		)
 	);
+
+	// Bytes and metadata are settled outside the create path, healing an
+	// attachment left fileless by fixtures that ran before the file boundary
+	// existed. Skipped once restricted — the file has moved by then.
+	if ( is_int( $granted_file_id ) && ! rmfa_is_media_restricted( $granted_file_id ) ) {
+		$e2e_upload = wp_upload_dir();
+		$e2e_file   = $e2e_upload['basedir'] . '/e2e-granted-file.txt';
+
+		file_put_contents( $e2e_file, 'E2E protected file contents' );
+		update_attached_file( $granted_file_id, $e2e_file );
+		wp_update_attachment_metadata(
+			$granted_file_id,
+			array(
+				'file'  => 'e2e-granted-file.txt',
+				'sizes' => array(),
+			)
+		);
+	}
 
 	$e2e_group = get_term_by( 'name', 'E2E Group', 'gatedmedia_access' );
 
@@ -276,7 +296,34 @@ if ( $e2e_user instanceof WP_User ) {
 		$gatedmedia_writer->grant( $e2e_user->ID, 'post', (string) $granted_post_id, null, 'e2e', 'fixture-post' );
 		$gatedmedia_writer->grant( $e2e_user->ID, 'file', (string) $granted_file_id, null, 'e2e', 'fixture-file' );
 		$gatedmedia_writer->grant( $e2e_user->ID, 'group', $gatedmedia_taxonomy->uuid_for( $e2e_group->term_id ), null, 'e2e', 'fixture-group' );
+
+		// The dependency's own guard makes this a no-op on re-runs.
+		rmfa_set_file_as_protected( $granted_file_id );
 	}
+}
+
+// The other side of the boundary: restricted content nobody is granted. The
+// boundary spec asserts the hard 404 and its absence from search.
+$refused_post    = get_page_by_path( 'e2e-refused-post', OBJECT, 'post' );
+$refused_post_id = $refused_post instanceof WP_Post ? $refused_post->ID : wp_insert_post(
+	array(
+		'post_title'   => 'Refused post',
+		'post_name'    => 'e2e-refused-post',
+		'post_type'    => 'post',
+		'post_status'  => 'publish',
+		'post_content' => 'Locked away.',
+	)
+);
+
+$locked_group = get_term_by( 'name', 'E2E Locked Group', 'gatedmedia_access' );
+
+if ( ! $locked_group instanceof WP_Term ) {
+	$locked_inserted = wp_insert_term( 'E2E Locked Group', 'gatedmedia_access' );
+	$locked_group    = is_array( $locked_inserted ) ? get_term( $locked_inserted['term_id'] ) : null;
+}
+
+if ( $locked_group instanceof WP_Term && is_int( $refused_post_id ) ) {
+	wp_set_object_terms( $refused_post_id, array( $locked_group->term_id ), 'gatedmedia_access', true );
 }
 
 $existing = get_page_by_path( 'component-kitchen-sink', OBJECT, 'page' );

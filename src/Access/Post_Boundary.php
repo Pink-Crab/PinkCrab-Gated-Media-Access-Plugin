@@ -63,7 +63,9 @@ class Post_Boundary implements Hookable {
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'pre_get_posts', array( $this, 'exclude_from_queries' ) );
-		$loader->action( 'template_redirect', array( $this, 'refuse_singular' ) );
+		// Before redirect_canonical (priority 10), or a guessed ?p=ID would
+		// redirect to the pretty slug — a clue — before the 404 lands.
+		$loader->action( 'template_redirect', array( $this, 'refuse_singular' ), 1, 0 );
 		// After the taxonomy registers (init 10): its object types name the
 		// rest_prepare_{type} hooks to guard.
 		$loader->action( 'init', array( $this, 'attach_rest_refusals' ), 1, 20 );
