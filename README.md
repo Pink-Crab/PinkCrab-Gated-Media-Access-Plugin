@@ -6,18 +6,18 @@ payment, by an administrator, or by webhook.
 A general WordPress plugin, distributed for use on other people's sites. It is
 not a shop — payment is one of three ways in.
 
-**Status: the account area is in.** The boot loop, the QA tooling and CI were
-first; on top of them now sit the asset pipeline, the account route, the
-section extension point and the four account blocks.
+**Status: the admin screens are in.** Underneath them, in build order: the
+boot loop, QA tooling and CI; the account area (route, sections, the twenty
+blocks); the registrations (post types, statuses, the `gatedmedia_access`
+taxonomy, capabilities); `Access_Writer` and the resolver; the restriction
+and the file/post boundary. This round adds the Access list screen, the Add
+Access form, the per-item metabox, quick edit grants, the profile section,
+revoke with its three behaviours, and the daily expiry sweep.
 
-Still not built: no post types, no taxonomy, no tables, **no resolver**. That
-last one is why the account views render their structure and their empty
-states rather than rows — what a person can see is the resolver's answer, and
-it is step 2 of `_temp/architecture.md` §12. The settings screen is still an
-empty page.
-
-Profile is the exception and is fully working, because it is WordPress user
-fields rather than anything waiting on the resolver.
+Still not built: Stripe and the webhook (with the payments table),
+notifications, and the Settings screen's fields — the screen itself is an
+empty page, and the one live setting (`revoke_behaviour`) ships UI-less with
+a filter until it gets its control there.
 
 ## Requires
 
@@ -72,10 +72,11 @@ them by type, which is what keeps the pieces testable.
 The list is fixed. Third-party code extends through hooks, not by registering
 services into it.
 
-**One exception is coming.** The file access filter cannot wait for the boot
-loop: files are served on `parse_request`, before the main query, so a filter
-added after `init` is never consulted. It will be attached at plugin load and
-resolve its service lazily. There is a note on `Plugin::SERVICES` saying so.
+**One exception.** The file access filter cannot wait for the boot loop:
+files are served on `parse_request`, before the main query, so a filter added
+after `init` is never consulted. `File_Boundary` is therefore attached at
+plugin load and resolves its service lazily on the first protected-file
+request. There is a note on `Plugin::SERVICES` saying so.
 
 ## Layout
 
@@ -84,12 +85,15 @@ resolve its service lazily. There is a note on `Plugin::SERVICES` saying so.
 | `gated-media-access.php` | Plugin header, constants, dependency guard, boot |
 | `src/Plugin.php` | The boot loop and the missing-dependency notice |
 | `src/Hookable.php` | `register_hooks( Hook_Loader $loader ): void` |
+| `src/Registration/` | Post types and statuses, the `gatedmedia_access` taxonomy, capabilities |
+| `src/Access/` | The writer and its validator, the resolver and allowed items, restriction, both boundaries, the sweep |
+| `src/Admin/` | The round 4 screens — list, add form, metabox, quick edit, profile section, revoke |
 | `src/Account/` | The account area — route, shell, collection, profile writer |
 | `src/Account/Sections/` | The four pages, each implementing `Account_Section` |
 | `src/Support/` | `Block` composes a block from PHP; `Money` owns the Free rule |
 | `src/Assets/Asset_Loader.php` | Registers the four bundles; enqueues none by default |
 | `src/Blocks/Block_Registrar.php` | Registers every block in `build/blocks` |
-| `src/Settings/Settings_Page.php` | Top-level menu, currently an empty page |
+| `src/Settings/` | `Settings_Page` (top-level menu, empty page) and `Settings` (the option, read-only) |
 | `assets/scss/` | Tokens, base, the sixteen §6 components, the §7 views |
 | `assets/js/` | `front.js`, `admin.js`, and `shared/` pulled into both |
 | `assets/icons.svg` | The icon sprite, 24 symbols, inlined into the page |
@@ -190,6 +194,46 @@ section renders inside our shell and will declare it as a dependency.
 
 Everything is prefixed `gatedmedia`, in CSS as well as PHP. No abbreviations,
 because short prefixes collide.
+
+## The admin screens
+
+Native wp-admin: core list tables, core CSS, no admin framework. Every screen
+requires a capability rather than a role, and every capability is filtered
+(`gatedmedia_give_access_capability` and its three siblings), so a site
+decides who does what without touching us.
+
+**The Access screen is core's list table, re-columned.** The `gatedmedia_access`
+post type turned `show_ui` on for exactly this — the list, the search and the
+pagination are core's; the columns (holder, item, status, expires, source) are
+ours. Core's write surfaces are shut (`create_posts`, `publish_posts` and
+`delete_posts` are `do_not_allow`): a record is never edited, it is written by
+`Access_Writer`, the one path every change takes.
+
+**Ways to grant.** The Add Access form (user, item, duration — group grants
+pick from a select, post and file grants take an ID, empty duration is
+lifetime); the Access metabox on every restrictable type's edit screen,
+attachments included, which lists the item's direct holders and links here
+pre-filled; and quick edit on the posts and pages lists, whose Access column
+counts holders and whose inline form grants user-plus-days on save. All of
+them end in `Access_Writer::grant()`, stamped `source=admin` and created-by.
+
+**Revoke is one row action, three behaviours.** What it does is the
+`revoke_behaviour` key of the `gatedmedia_settings` option — `revoke` (the
+default: mark the record, keep the history), `expire` (pull the date to now)
+or `delete` (remove the row outright). `gatedmedia_revoke_behaviour` filters
+over the stored value; the Settings screen's control arrives with the Stripe
+round. All three are writer methods, and the resolver forgets the holder the
+moment any of them fires.
+
+**The profile screen shows one person's records** — all three statuses,
+rendered by the same column code as the Access list, read-only, gated on the
+same capability.
+
+**The sweep keeps the list honest.** `gatedmedia_sweep_expired` runs daily and
+moves active records past their date to `gatedmedia_expired`, firing
+`gatedmedia_access_expired` per record. It is housekeeping, not enforcement:
+the resolver compares dates against now on every read, so if the sweep never
+ran, nothing would leak — the admin list would just read stale.
 
 ## Tests
 
