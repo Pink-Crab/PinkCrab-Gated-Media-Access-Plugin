@@ -27,6 +27,7 @@ use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Access\Sweep;
 use PinkCrab\Gated_Access\Account\View_Data;
+use PinkCrab\Gated_Access\Admin\Access_Filters;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Admin\Add_Access_Page;
 use PinkCrab\Gated_Access\Admin\Edit_Access_Page;
@@ -75,6 +76,7 @@ class Plugin {
 		Profile_Writer::class,
 		View_Data::class,
 		Settings_Page::class,
+		Access_Filters::class,
 		Access_List::class,
 		Add_Access_Page::class,
 		Edit_Access_Page::class,

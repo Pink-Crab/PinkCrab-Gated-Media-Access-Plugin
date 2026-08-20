@@ -100,6 +100,31 @@ onReady( () => {
 		);
 	}
 
+	// The Access list's item filter searches whatever the type select says.
+	const filterType = document.getElementById( 'gatedmedia_filter_item_type' );
+
+	if ( filterType ) {
+		filterType.addEventListener( 'change', () => {
+			const search = document.getElementById(
+				'gatedmedia_filter_item_search'
+			);
+			const hidden = document.getElementById( 'gatedmedia_filter_item' );
+
+			if ( search ) {
+				search.dataset.gatedmediaPicker =
+					{
+						group: 'gatedmedia_search_groups',
+						file: 'gatedmedia_search_files',
+					}[ filterType.value ] || 'gatedmedia_search_posts';
+				search.value = '';
+			}
+
+			if ( hidden ) {
+				hidden.value = '';
+			}
+		} );
+	}
+
 	// The item metabox's buttons: each turns its picker's choice into a
 	// navigation to the nonced admin-post URL — no form inside the
 	// editor's form.

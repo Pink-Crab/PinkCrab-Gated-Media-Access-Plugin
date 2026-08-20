@@ -116,6 +116,8 @@ class Access_List implements Hookable {
 			$query->set( 'meta_key', Access_Writer::META_EXPIRES_AT );
 			$query->set( 'orderby', 'meta_value' );
 		}
+
+		// The toolbar filters live in Access_Filters, on this same hook.
 	}
 
 	/**

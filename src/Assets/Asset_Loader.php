@@ -13,6 +13,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Admin\Picker_Search;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
  * Owns the four built bundles and decides where they load.
@@ -112,13 +113,14 @@ class Asset_Loader implements Hookable {
 	public function enqueue_admin( string $hook_suffix ): void {
 		$screen_type = (string) ( get_current_screen()->post_type ?? '' );
 
-		$our_page   = str_contains( $hook_suffix, 'gated-media-access' ) || str_contains( $hook_suffix, 'gatedmedia' );
-		$quick_edit = 'edit.php' === $hook_suffix
+		$our_page    = str_contains( $hook_suffix, 'gated-media-access' ) || str_contains( $hook_suffix, 'gatedmedia' );
+		$access_list = 'edit.php' === $hook_suffix && Post_Types::ACCESS === $screen_type;
+		$quick_edit  = 'edit.php' === $hook_suffix
 			&& in_array( $screen_type, array_diff( Access_Taxonomy::object_types(), array( 'attachment' ) ), true );
-		$editor     = in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true )
+		$editor      = in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true )
 			&& in_array( $screen_type, Access_Taxonomy::object_types(), true );
 
-		if ( ! $our_page && ! $quick_edit && ! $editor ) {
+		if ( ! $our_page && ! $access_list && ! $quick_edit && ! $editor ) {
 			return;
 		}
 
