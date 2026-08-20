@@ -34,7 +34,9 @@ use PinkCrab\Gated_Access\Admin\Add_Access_Page;
 use PinkCrab\Gated_Access\Admin\Edit_Access_Page;
 use PinkCrab\Gated_Access\Admin\Item_Access_Metabox;
 use PinkCrab\Gated_Access\Admin\Picker_Search;
+use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Admin\Payments_Page;
+use PinkCrab\Gated_Access\Admin\Product_Metabox;
 use PinkCrab\Gated_Access\Admin\Profile_Access_List;
 use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
@@ -84,6 +86,8 @@ class Plugin {
 		Add_Access_Page::class,
 		Edit_Access_Page::class,
 		Item_Access_Metabox::class,
+		Product_Metabox::class,
+		Coupon_Metabox::class,
 		Picker_Search::class,
 		Quick_Edit_Grant::class,
 		Payments_Page::class,
