@@ -28,6 +28,7 @@ use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Access\Sweep;
 use PinkCrab\Gated_Access\Account\View_Data;
 use PinkCrab\Gated_Access\Admin\Access_List;
+use PinkCrab\Gated_Access\Admin\Add_Access_Page;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
 
 /**
@@ -70,6 +71,7 @@ class Plugin {
 		View_Data::class,
 		Settings_Page::class,
 		Access_List::class,
+		Add_Access_Page::class,
 		Revoke_Action::class,
 	);
 
