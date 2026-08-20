@@ -72,6 +72,39 @@ class Access_Lookup {
 	}
 
 	/**
+	 * Every record a source and reference created — what a refund revokes:
+	 * a product purchase writes one per item, and the refund takes them all.
+	 *
+	 * @param string $source    The system.
+	 * @param string $reference That system's reference.
+	 * @return array<int, int> The record IDs.
+	 */
+	public function records_for_reference( string $source, string $reference ): array {
+		$found = get_posts(
+			array(
+				'post_type'      => Post_Types::ACCESS,
+				'post_status'    => array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Refunds are rare; the pair is the whole condition.
+				'meta_query'     => array(
+					array(
+						'key'   => Access_Writer::META_SOURCE,
+						'value' => $source,
+					),
+					array(
+						'key'   => Access_Writer::META_REFERENCE,
+						'value' => $reference,
+					),
+				),
+			)
+		);
+
+		return array_map( 'intval', $found );
+	}
+
+	/**
 	 * The user's active records for one item.
 	 *
 	 * @param int    $user_id   Who holds them.

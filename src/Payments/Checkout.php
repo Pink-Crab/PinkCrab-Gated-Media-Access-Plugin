@@ -179,7 +179,7 @@ class Checkout {
 
 		if ( 0 === $total ) {
 			$this->store->mark_complete( $payment->uuid );
-			$this->grant_items( $product, $user_id, self::SOURCE_STRIPE, $payment->uuid );
+			$this->grant_snapshot( $payment );
 
 			/** This hook is documented in Stripe_Webhook. */
 			do_action( 'gatedmedia_payment_completed', $payment->payment_id );
@@ -205,6 +205,30 @@ class Checkout {
 		$this->store->attach_session( $payment->uuid, $session['id'] );
 
 		return array( 'redirect' => $session['url'] );
+	}
+
+	/**
+	 * One Access record per snapshot row — how payment-backed access lands,
+	 * on completion. The snapshot, not the product's live items: groups are
+	 * live and the contents at purchase are not recoverable later (spec §3).
+	 * Duration still reads from the product — a duration is a promise about
+	 * time, not contents.
+	 *
+	 * @param Payment $payment The completed payment.
+	 */
+	public function grant_snapshot( Payment $payment ): void {
+		$duration = (string) get_post_meta( $payment->product_id, Product_Metabox::META_DURATION, true );
+		$days     = '' === $duration ? null : (int) $duration;
+
+		foreach ( $payment->contents_snapshot as $item ) {
+			list( $type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
+
+			if ( '' === $identifier ) {
+				continue;
+			}
+
+			$this->writer->grant( $payment->user_id, $type, $identifier, $days, self::SOURCE_STRIPE, $payment->uuid );
+		}
 	}
 
 	/**
