@@ -209,13 +209,25 @@ ours. Core's write surfaces are shut (`create_posts`, `publish_posts` and
 `delete_posts` are `do_not_allow`): a record is never edited, it is written by
 `Access_Writer`, the one path every change takes.
 
-**Ways to grant.** The Add Access form (user, item, duration — group grants
-pick from a select, post and file grants take an ID, empty duration is
-lifetime); the Access metabox on every restrictable type's edit screen,
+**Ways to grant.** The Add Access form (user, item, duration — empty duration
+is lifetime); the Access metabox on every restrictable type's edit screen,
 attachments included, which lists the item's direct holders and links here
 pre-filled; and quick edit on the posts and pages lists, whose Access column
 counts holders and whose inline form grants user-plus-days on save. All of
 them end in `Access_Writer::grant()`, stamped `source=admin` and created-by.
+
+**The pickers are components** (`src/Admin/Pickers/`): an abstract `Picker`
+— visible control plus a hidden input carrying the choice — with
+search-as-you-type `User_Picker`, `Post_Picker` and `File_Picker` against
+`Picker_Search`'s capability-gated admin-ajax endpoints (an attachment is a
+post, so files are the same search), and `Group_Picker` as a UUID-valued
+select, the right control for tens of groups. Any later surface drops one in
+with `( new User_Picker( 'field', 'field' ) )->render()`.
+
+**Groups are created on the Groups screen only.** Free-tagging would let
+quick edit, bulk edit and both editors mint a group as a side effect of
+saving a post; `Access_Taxonomy` refuses those origins and 403s the REST
+terms create. Assigning existing groups from every surface still works.
 
 **Revoke is one row action, three behaviours.** What it does is the
 `revoke_behaviour` key of the `gatedmedia_settings` option — `revoke` (the
