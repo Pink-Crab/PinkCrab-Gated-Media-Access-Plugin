@@ -26,6 +26,7 @@ use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Account\View_Data;
+use PinkCrab\Gated_Access\Admin\Access_List;
 
 /**
  * Builds every service through the container and attaches their hooks in one
@@ -65,6 +66,7 @@ class Plugin {
 		Profile_Writer::class,
 		View_Data::class,
 		Settings_Page::class,
+		Access_List::class,
 	);
 
 	/**

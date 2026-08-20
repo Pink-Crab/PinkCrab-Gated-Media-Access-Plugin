@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Registration;
 
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Settings\Settings_Page;
 
 /**
  * Registers the three containers — access records, products, coupons — and the
@@ -79,11 +80,13 @@ class Post_Types implements Hookable {
 	}
 
 	/**
-	 * The access record. Pure data: no UI, no REST, no front end.
+	 * The access record. Pure data: no editor, no REST, no front end.
 	 *
-	 * `show_ui` false follows specification.md §1. The admin step wants the
-	 * core list screen for these, which needs it true — that is its problem
-	 * and one argument to change.
+	 * `show_ui` is true for the core list screen only — the round 4 flip the
+	 * original docblock argued for. The `capabilities` map points the caps the
+	 * list screen checks at the filtered give-access capability, and shuts the
+	 * core write surfaces (Add New, publish, trash): records are made by the
+	 * Add Access form and changed by `Access_Writer`, nothing else.
 	 */
 	private function register_access(): void {
 		register_post_type(
@@ -92,9 +95,12 @@ class Post_Types implements Hookable {
 				'labels'              => array(
 					'name'          => __( 'Access', 'gated-media-access' ),
 					'singular_name' => __( 'Access', 'gated-media-access' ),
+					'search_items'  => __( 'Search Access', 'gated-media-access' ),
+					'not_found'     => __( 'No access records found.', 'gated-media-access' ),
 				),
 				'public'              => false,
-				'show_ui'             => false,
+				'show_ui'             => true,
+				'show_in_menu'        => Settings_Page::MENU_SLUG,
 				'show_in_rest'        => false,
 				// false, not array(): register_post_type() reads an empty
 				// array as "use the defaults" and would add title and editor.
@@ -106,6 +112,15 @@ class Post_Types implements Hookable {
 				'can_export'          => true,
 				'map_meta_cap'        => true,
 				'capability_type'     => array( 'gatedmedia_access', 'gatedmedia_accesses' ),
+				'capabilities'        => array(
+					'edit_posts'          => Capabilities::give_access(),
+					'edit_others_posts'   => Capabilities::give_access(),
+					'read_private_posts'  => Capabilities::give_access(),
+					'create_posts'        => 'do_not_allow',
+					'publish_posts'       => 'do_not_allow',
+					'delete_posts'        => 'do_not_allow',
+					'delete_others_posts' => 'do_not_allow',
+				),
 			)
 		);
 	}

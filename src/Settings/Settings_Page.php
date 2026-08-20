@@ -43,7 +43,7 @@ class Settings_Page implements Hookable {
 		add_menu_page(
 			__( 'Gated Media Access', 'gated-media-access' ),
 			__( 'Gated Access', 'gated-media-access' ),
-			Capabilities::MANAGE_SETTINGS,
+			Capabilities::manage_settings(),
 			self::MENU_SLUG,
 			array( $this, 'render' ),
 			'dashicons-lock'
