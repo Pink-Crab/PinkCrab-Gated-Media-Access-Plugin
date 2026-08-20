@@ -15,6 +15,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
@@ -108,11 +109,11 @@ class Access_List implements Hookable {
 	}
 
 	/**
-	 * No row actions: a record is not edited, it is written by the writer.
+	 * Revoke is the one row action — a record is never edited, only put
+	 * through the writer, and revoking a record already expired or revoked
+	 * withdraws nothing.
 	 *
-	 * The revoke action lands here in a later step, still writer-bound.
-	 *
-	 * @param array<string, string> $actions Core's actions.
+	 * @param array<string, string> $actions Core's actions, discarded.
 	 * @param WP_Post               $post    The row's record.
 	 * @return array<string, string>
 	 */
@@ -121,7 +122,17 @@ class Access_List implements Hookable {
 			return $actions;
 		}
 
-		return array();
+		if ( Post_Types::STATUS_ACTIVE !== $post->post_status || ! current_user_can( Capabilities::give_access() ) ) {
+			return array();
+		}
+
+		return array(
+			'gatedmedia_revoke' => sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( Revoke_Action::url_for( (int) $post->ID ) ),
+				esc_html__( 'Revoke', 'gated-media-access' )
+			),
+		);
 	}
 
 	/**

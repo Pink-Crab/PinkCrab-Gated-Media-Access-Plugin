@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Access;
 
 use WP_Error;
+use WP_Post;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Post_Types;
@@ -161,6 +162,33 @@ class Access_Writer implements Hookable {
 		}
 
 		return $this->move_status( $access_id, Post_Types::STATUS_EXPIRED, 'gatedmedia_access_expired' );
+	}
+
+	/**
+	 * Removes one record outright — the delete revoke behaviour. No history
+	 * is kept; that is the point of the behaviour (architecture.md §9).
+	 *
+	 * Fires `gatedmedia_access_revoked` once the record is gone, so listeners
+	 * — the resolver's forget included — see the same withdrawal a revoke
+	 * announces. The record no longer resolves by then; the IDs are what a
+	 * listener gets.
+	 *
+	 * @param int $access_id The record to remove.
+	 */
+	public function delete( int $access_id ): bool {
+		$record = get_post( $access_id );
+
+		if ( null === $record || Post_Types::ACCESS !== $record->post_type ) {
+			return false;
+		}
+
+		if ( ! wp_delete_post( $access_id, true ) instanceof WP_Post ) {
+			return false;
+		}
+
+		do_action( 'gatedmedia_access_revoked', $access_id, (int) $record->post_author );
+
+		return true;
 	}
 
 	/**

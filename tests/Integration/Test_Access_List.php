@@ -136,15 +136,32 @@ class Test_Access_List extends WP_UnitTestCase {
 		$this->assertSame( 'admin', $this->render( 'gatedmedia_source', $access_id ) );
 	}
 
-	/** @testdox Access rows offer no row actions at all; other types keep theirs. */
+	/** @testdox Access rows offer nothing without the capability; other types keep their actions. */
 	public function test_row_actions_are_stripped_for_access_only(): void {
 		$access_id = $this->grant_for_post();
 		$actions   = array( 'edit' => 'Edit', 'trash' => 'Trash' );
 
+		// No user is signed in, so no capability — and no actions.
 		$this->assertSame( array(), $this->list->row_actions( $actions, get_post( $access_id ) ) );
 
 		$plain_post = self::factory()->post->create_and_get();
 		$this->assertSame( $actions, $this->list->row_actions( $actions, $plain_post ) );
+	}
+
+	/** @testdox With the capability, an active row offers revoke and nothing else; a withdrawn row offers nothing. */
+	public function test_row_actions_offer_revoke_to_the_capable(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$access_id = $this->grant_for_post();
+		$actions   = $this->list->row_actions( array( 'edit' => 'Edit' ), get_post( $access_id ) );
+
+		$this->assertSame( array( 'gatedmedia_revoke' ), array_keys( $actions ) );
+		$this->assertStringContainsString( 'gatedmedia_revoke_access', $actions['gatedmedia_revoke'] );
+		$this->assertStringContainsString( 'access=' . $access_id, $actions['gatedmedia_revoke'] );
+		$this->assertStringContainsString( '_wpnonce', $actions['gatedmedia_revoke'] );
+
+		$this->writer->revoke( $access_id );
+		$this->assertSame( array(), $this->list->row_actions( array(), get_post( $access_id ) ) );
 	}
 
 	/** @testdox Expiry and holder are sortable. */
