@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Registration;
 
+use WP_Error;
 use WP_Term;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
@@ -54,6 +55,10 @@ class Access_Taxonomy implements Hookable {
 		// created_{$taxonomy} — fires for terms made anywhere, including the
 		// core screens, which is what keeps this UI-free.
 		$loader->action( 'created_' . self::TAXONOMY, array( $this, 'mint_uuid' ) );
+		// Groups are created on the Groups screens only — not typed into the
+		// editors' free-tagging fields. Assigning existing groups stays.
+		$loader->filter( 'pre_insert_term', array( $this, 'forbid_editor_creation' ), 2 );
+		$loader->filter( 'rest_request_before_callbacks', array( $this, 'forbid_rest_creation' ), 3 );
 	}
 
 	/**
@@ -108,6 +113,62 @@ class Access_Taxonomy implements Hookable {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Refuses a group typed into an editor's free-tagging field.
+	 *
+	 * Non-hierarchical taxonomies create unknown names on save — quick edit,
+	 * bulk edit and the classic editor all pass through here. A group is a
+	 * deliberate thing with an identity; it is made on the Groups screen, not
+	 * as a side effect of saving a post. Code calling `wp_insert_term()` —
+	 * the restricted marker included — is untouched.
+	 *
+	 * @param string|WP_Error $term     The prospective term name, or an earlier refusal.
+	 * @param string          $taxonomy The taxonomy it would land in.
+	 * @return string|WP_Error
+	 */
+	public function forbid_editor_creation( string|WP_Error $term, string $taxonomy ): string|WP_Error {
+		if ( self::TAXONOMY !== $taxonomy || $term instanceof WP_Error ) {
+			return $term;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only routing check; each of these actions verifies its own nonce.
+		$origin = isset( $_POST['action'] ) ? sanitize_text_field( wp_unslash( $_POST['action'] ) ) : '';
+
+		if ( in_array( $origin, array( 'inline-save', 'editpost', 'bulk-edit' ), true ) ) {
+			return new WP_Error(
+				'gatedmedia_group_creation_forbidden',
+				__( 'Groups are created on the Groups screen, not from the editor.', 'gated-media-access' )
+			);
+		}
+
+		return $term;
+	}
+
+	/**
+	 * Refuses group creation over REST — the block editor's "add new" path.
+	 *
+	 * A POST to the terms collection is a create; the panel assigning
+	 * existing groups goes through the posts endpoint and passes untouched.
+	 * (Not `rest_pre_insert_{taxonomy}`: the terms controller, unlike the
+	 * posts one, never error-checks that filter's return.)
+	 *
+	 * @param mixed                $response The dispatch result so far.
+	 * @param array<string, mixed> $handler  The matched route handler.
+	 * @param \WP_REST_Request     $request  The request.
+	 * @return mixed
+	 */
+	public function forbid_rest_creation( mixed $response, array $handler, \WP_REST_Request $request ): mixed {
+		if ( 'POST' === $request->get_method() && '/wp/v2/' . self::TAXONOMY === $request->get_route() ) {
+			return new WP_Error(
+				'gatedmedia_group_creation_forbidden',
+				__( 'Groups are created on the Groups screen, not from the editor.', 'gated-media-access' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		return $response;
 	}
 
 	/**
