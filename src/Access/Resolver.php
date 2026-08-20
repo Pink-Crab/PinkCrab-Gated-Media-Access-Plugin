@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Access;
 
+use PinkCrab\Loader\Hook_Loader;
+use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
@@ -17,14 +19,17 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  * and what can this user see right now — from one per-user picture. Nothing
  * else evaluates expiry, revocation or group membership (architecture.md §4).
  *
- * Not Hookable: a shared service others call. The file boundary (round 3)
- * attaches at plugin load and resolves this lazily.
+ * A shared service others call; its only hooks keep the memo honest. The file
+ * boundary (round 3) attaches at plugin load and resolves this lazily.
  *
  * The picture is memoised per instance, and instances are shared through the
- * container, so a page asking once per image size pays for one build. Expiry
- * is compared against now at read time — no sweep has to have run.
+ * container, so a page asking once per image size pays for one build. A grant
+ * or revocation forgets that holder's picture, so a write is visible to the
+ * rest of its own request. (A stacked expiry extension is not — the writer
+ * fires nothing there, and the held item stays held either way.) Expiry is
+ * compared against now at read time — no sweep has to have run.
  */
-class Resolver {
+class Resolver implements Hookable {
 
 	/**
 	 * One built picture per user, for this request.
@@ -39,6 +44,26 @@ class Resolver {
 	 * @param Access_Taxonomy $taxonomy Turns a UUID into its term.
 	 */
 	public function __construct( private Access_Taxonomy $taxonomy ) {
+	}
+
+	/**
+	 * Watches the writer, so a write never leaves a stale picture behind.
+	 *
+	 * @param Hook_Loader $loader The shared loader.
+	 */
+	public function register_hooks( Hook_Loader $loader ): void {
+		$loader->action( 'gatedmedia_access_granted', array( $this, 'forget_holder' ), 2 );
+		$loader->action( 'gatedmedia_access_revoked', array( $this, 'forget_holder' ), 2 );
+	}
+
+	/**
+	 * Drops one holder's memoised picture; the next ask rebuilds it.
+	 *
+	 * @param int $access_id The record written (unused; both actions lead with it).
+	 * @param int $user_id   Whose picture is now out of date.
+	 */
+	public function forget_holder( int $access_id, int $user_id ): void {
+		unset( $this->pictures[ $user_id ] );
 	}
 
 	/**

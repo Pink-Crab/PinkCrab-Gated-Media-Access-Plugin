@@ -22,6 +22,8 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\File_Boundary;
+use PinkCrab\Gated_Access\Access\Post_Boundary;
+use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Account\View_Data;
 
@@ -52,7 +54,10 @@ class Plugin {
 		Access_Taxonomy::class,
 		Capabilities::class,
 		Access_Writer::class,
+		// For its memo-honesty hooks only — everything else calls it.
+		Resolver::class,
 		Restriction::class,
+		Post_Boundary::class,
 		Asset_Loader::class,
 		Block_Registrar::class,
 		Sprite::class,
