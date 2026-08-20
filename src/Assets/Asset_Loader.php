@@ -118,7 +118,7 @@ class Asset_Loader implements Hookable {
 		$quick_edit  = 'edit.php' === $hook_suffix
 			&& in_array( $screen_type, array_diff( Access_Taxonomy::object_types(), array( 'attachment' ) ), true );
 		$editor      = in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true )
-			&& in_array( $screen_type, array_merge( Access_Taxonomy::object_types(), array( Post_Types::PRODUCT ) ), true );
+			&& in_array( $screen_type, Access_Taxonomy::object_types(), true );
 
 		if ( ! $our_page && ! $access_list && ! $quick_edit && ! $editor ) {
 			return;

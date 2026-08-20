@@ -133,6 +133,29 @@ class Settings_Page implements Hookable {
 			<h1><?php esc_html_e( 'Gated Media Access — Settings', 'gated-media-access' ); ?></h1>
 			<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>">
 				<?php settings_fields( self::GROUP ); ?>
+				<h2><?php esc_html_e( 'Store', 'gated-media-access' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><label for="gatedmedia_currency"><?php esc_html_e( 'Currency', 'gated-media-access' ); ?></label></th>
+						<td>
+							<select name="<?php echo esc_attr( Settings::OPTION ); ?>[currency]" id="gatedmedia_currency">
+								<?php foreach ( \Symfony\Component\Intl\Currencies::getNames() as $code => $name ) : ?>
+									<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $code, $this->settings->currency() ); ?>><?php echo esc_html( "{$code} — {$name}" ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Every product is priced and sold in this currency.', 'gated-media-access' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="gatedmedia_product_path"><?php esc_html_e( 'Product URL path', 'gated-media-access' ); ?></label></th>
+						<td>
+							<code><?php echo esc_html( home_url( '/' ) ); ?></code>
+							<input type="text" class="regular-text code" name="<?php echo esc_attr( Settings::OPTION ); ?>[product_path]" id="gatedmedia_product_path" value="<?php echo esc_attr( $this->settings->product_path() ); ?>" />
+							<code>/&lt;uuid&gt;</code>
+							<p class="description"><?php esc_html_e( 'The only public way to a product is this path plus its UUID — never a slug or an ID.', 'gated-media-access' ); ?></p>
+						</td>
+					</tr>
+				</table>
 				<h2><?php esc_html_e( 'Stripe', 'gated-media-access' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tr>
@@ -239,10 +262,51 @@ class Settings_Page implements Hookable {
 
 		$clean['stripe_mode'] = Settings::MODE_LIVE === ( $input['stripe_mode'] ?? '' ) ? Settings::MODE_LIVE : Settings::MODE_TEST;
 
+		$clean = $this->sanitize_store( $input, $clean );
+
 		$behaviour                 = (string) ( $input['revoke_behaviour'] ?? '' );
 		$known                     = array( Settings::REVOKE_BEHAVIOUR_REVOKE, Settings::REVOKE_BEHAVIOUR_EXPIRE, Settings::REVOKE_BEHAVIOUR_DELETE );
 		$clean['revoke_behaviour'] = in_array( $behaviour, $known, true ) ? $behaviour : Settings::REVOKE_BEHAVIOUR_REVOKE;
 
+		$clean = $this->sanitize_keys( $input, $clean );
+
+		return $clean;
+	}
+
+	/**
+	 * The store pair: a real ISO currency, and the product path with its
+	 * rewrite flush when it moves.
+	 *
+	 * @param array<string, mixed>  $input What options.php handed over.
+	 * @param array<string, string> $clean The cleaned settings so far.
+	 * @return array<string, string>
+	 */
+	private function sanitize_store( array $input, array $clean ): array {
+		$currency          = strtoupper( sanitize_text_field( (string) ( $input['currency'] ?? '' ) ) );
+		$clean['currency'] = \Symfony\Component\Intl\Currencies::exists( $currency ) ? $currency : 'GBP';
+
+		$previous_path         = (string) ( $clean['product_path'] ?? '' );
+		$path                  = sanitize_title( (string) ( $input['product_path'] ?? '' ) );
+		$clean['product_path'] = '' === $path ? 'access' : $path;
+
+		// The product rewrite rule is built from the path; a change only
+		// takes with a flush.
+		if ( $clean['product_path'] !== $previous_path ) {
+			add_action( 'shutdown', 'flush_rewrite_rules' );
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * The six Stripe keys: publishable in the clear, an empty secret keeps
+	 * what is stored.
+	 *
+	 * @param array<string, mixed>  $input What options.php handed over.
+	 * @param array<string, string> $clean The cleaned settings so far.
+	 * @return array<string, string>
+	 */
+	private function sanitize_keys( array $input, array $clean ): array {
 		foreach ( array( 'stripe_test_key', 'stripe_live_key' ) as $name ) {
 			$clean[ $name ] = sanitize_text_field( (string) ( $input[ $name ] ?? '' ) );
 		}

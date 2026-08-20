@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "gated-media-access/product-details",
+	"version": "0.1.0",
+	"title": "Product details",
+	"category": "widgets",
+	"icon": "products",
+	"description": "The product's form — price, duration, visibility, the items it grants and the email allow-list. Locked into every product; saves to meta, never to content.",
+	"textdomain": "gated-media-access",
+	"supports": {
+		"html": false,
+		"inserter": false,
+		"multiple": false,
+		"reusable": false,
+		"lock": false,
+		"interactivity": {
+			"clientNavigation": false
+		}
+	},
+	"editorScript": "file:./index.js"
+}

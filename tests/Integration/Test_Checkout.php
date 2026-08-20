@@ -15,7 +15,7 @@ use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
-use PinkCrab\Gated_Access\Admin\Product_Metabox;
+use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
@@ -57,7 +57,7 @@ class Test_Checkout extends WP_UnitTestCase {
 
 		// The framework's tear_down unregisters every meta key.
 		( new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() ) )->register_meta();
-		( new Product_Metabox( new Access_Taxonomy() ) )->register_meta();
+		( new Product_Meta( new Settings() ) )->register_meta();
 		( new Coupon_Metabox() )->register_meta();
 
 		$this->store     = new Payment_Store();
@@ -169,7 +169,7 @@ class Test_Checkout extends WP_UnitTestCase {
 
 	/** @testdox The allow-list blocks buyers off it, and the eligibility filter has the last word. */
 	public function test_eligibility(): void {
-		$product = $this->product( 1000, array( "post:{$this->post_item}" ), array( Product_Metabox::META_EMAILS => array( 'someone@else.com' ) ) );
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ), array( Product_Meta::META_EMAILS => array( 'someone@else.com' ) ) );
 		$gateway = $this->fake_gateway();
 
 		$blocked = $this->checkout( $gateway )->purchase( $product, $this->buyer_id );
@@ -220,11 +220,11 @@ class Test_Checkout extends WP_UnitTestCase {
 			)
 		);
 
-		update_post_meta( $product_id, Product_Metabox::META_PRICE, $price );
-		update_post_meta( $product_id, Product_Metabox::META_CURRENCY, 'GBP' );
+		update_post_meta( $product_id, Product_Meta::META_PRICE, $price );
+		update_post_meta( $product_id, Product_Meta::META_CURRENCY, 'GBP' );
 
 		foreach ( $items as $item ) {
-			add_post_meta( $product_id, Product_Metabox::META_ITEMS, $item );
+			add_post_meta( $product_id, Product_Meta::META_ITEMS, $item );
 		}
 
 		foreach ( $extra as $key => $rows ) {

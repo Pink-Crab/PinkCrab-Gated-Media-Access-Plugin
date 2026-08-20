@@ -16,7 +16,7 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Admin\Product_Metabox;
+use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
@@ -58,7 +58,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		// The framework's tear_down unregisters every meta key.
 		$writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$writer->register_meta();
-		( new Product_Metabox( new Access_Taxonomy() ) )->register_meta();
+		( new Product_Meta( new Settings() ) )->register_meta();
 
 		$this->store     = new Payment_Store();
 		$this->lookup    = new Access_Lookup();

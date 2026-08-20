@@ -15,7 +15,7 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Admin\Product_Metabox;
+use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Payments\Access_Grant_Route;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
@@ -40,7 +40,7 @@ class Test_Access_Grant_Route extends WP_UnitTestCase {
 		// The framework's tear_down unregisters every meta key.
 		$writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$writer->register_meta();
-		( new Product_Metabox( new Access_Taxonomy() ) )->register_meta();
+		( new Product_Meta( new \PinkCrab\Gated_Access\Settings\Settings() ) )->register_meta();
 
 		$this->lookup    = new Access_Lookup();
 		$this->post_item = self::factory()->post->create();
@@ -110,8 +110,8 @@ class Test_Access_Grant_Route extends WP_UnitTestCase {
 	public function test_product_target_expands(): void {
 		$second_post = self::factory()->post->create();
 		$product_id  = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
-		add_post_meta( $product_id, Product_Metabox::META_ITEMS, "post:{$this->post_item}" );
-		add_post_meta( $product_id, Product_Metabox::META_ITEMS, "post:{$second_post}" );
+		add_post_meta( $product_id, Product_Meta::META_ITEMS, "post:{$this->post_item}" );
+		add_post_meta( $product_id, Product_Meta::META_ITEMS, "post:{$second_post}" );
 
 		$response = $this->deliver(
 			$this->payload(

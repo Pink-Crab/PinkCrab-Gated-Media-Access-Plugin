@@ -31,6 +31,8 @@ use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Payments\Payment_Status_Route;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Payments\Stripe_Webhook;
+use PinkCrab\Gated_Access\Products\Product_Meta;
+use PinkCrab\Gated_Access\Products\Product_Route;
 use PinkCrab\Gated_Access\Account\View_Data;
 use PinkCrab\Gated_Access\Admin\Access_Filters;
 use PinkCrab\Gated_Access\Admin\Access_List;
@@ -40,7 +42,6 @@ use PinkCrab\Gated_Access\Admin\Item_Access_Metabox;
 use PinkCrab\Gated_Access\Admin\Picker_Search;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Admin\Payments_Page;
-use PinkCrab\Gated_Access\Admin\Product_Metabox;
 use PinkCrab\Gated_Access\Admin\Profile_Access_List;
 use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
@@ -78,6 +79,8 @@ class Plugin {
 		Post_Boundary::class,
 		Sweep::class,
 		Payments_Schema::class,
+		Product_Meta::class,
+		Product_Route::class,
 		Checkout_Action::class,
 		Payment_Status_Route::class,
 		Stripe_Webhook::class,
@@ -94,7 +97,6 @@ class Plugin {
 		Add_Access_Page::class,
 		Edit_Access_Page::class,
 		Item_Access_Metabox::class,
-		Product_Metabox::class,
 		Coupon_Metabox::class,
 		Picker_Search::class,
 		Quick_Edit_Grant::class,

@@ -17,7 +17,7 @@ use WP_User;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Admin\Product_Metabox;
+use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
@@ -269,7 +269,7 @@ class Access_Grant_Route implements Hookable {
 
 		$items = array();
 
-		foreach ( array_map( 'strval', (array) get_post_meta( $product_id, Product_Metabox::META_ITEMS, false ) ) as $item ) {
+		foreach ( array_map( 'strval', (array) get_post_meta( $product_id, Product_Meta::META_ITEMS, false ) ) as $item ) {
 			list( $item_type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
 
 			if ( '' !== $identifier ) {

@@ -14,7 +14,7 @@ use WP_Post;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
-use PinkCrab\Gated_Access\Admin\Product_Metabox;
+use PinkCrab\Gated_Access\Products\Product_Meta;
 
 /**
  * The order of operations is architecture §7's whole point: the payment row
@@ -72,7 +72,7 @@ class Checkout {
 			return new WP_Error( 'gatedmedia_not_eligible', __( 'This product is not available to you.', 'gated-media-access' ) );
 		}
 
-		$price = (int) get_post_meta( $product_id, Product_Metabox::META_PRICE, true );
+		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
 
 		if ( 0 === $price ) {
 			return $this->claim_free( $product, $user_id );
@@ -114,7 +114,7 @@ class Checkout {
 	 * @param int     $user_id The would-be buyer.
 	 */
 	public function eligible( WP_Post $product, int $user_id ): bool {
-		$allowed  = array_map( 'strval', (array) get_post_meta( $product->ID, Product_Metabox::META_EMAILS, false ) );
+		$allowed  = array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_EMAILS, false ) );
 		$eligible = true;
 
 		if ( array() !== $allowed ) {
@@ -166,10 +166,10 @@ class Checkout {
 	 * @return array{redirect: string}|WP_Error
 	 */
 	private function begin_payment( WP_Post $product, int $user_id, int $price, int $discount, int $coupon_id ): array|WP_Error {
-		$currency = (string) get_post_meta( $product->ID, Product_Metabox::META_CURRENCY, true );
+		$currency = (string) get_post_meta( $product->ID, Product_Meta::META_CURRENCY, true );
 		$currency = '' === $currency ? 'GBP' : $currency;
 		$total    = max( 0, $price - $discount );
-		$snapshot = array_map( 'strval', (array) get_post_meta( $product->ID, Product_Metabox::META_ITEMS, false ) );
+		$snapshot = array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_ITEMS, false ) );
 
 		$payment = $this->store->create_pending( $user_id, $product->ID, $total, $currency, $snapshot, $coupon_id, $discount );
 
@@ -217,7 +217,7 @@ class Checkout {
 	 * @param Payment $payment The completed payment.
 	 */
 	public function grant_snapshot( Payment $payment ): void {
-		$duration = (string) get_post_meta( $payment->product_id, Product_Metabox::META_DURATION, true );
+		$duration = (string) get_post_meta( $payment->product_id, Product_Meta::META_DURATION, true );
 		$days     = '' === $duration ? null : (int) $duration;
 
 		foreach ( $payment->contents_snapshot as $item ) {
@@ -241,10 +241,10 @@ class Checkout {
 	 * @param string  $reference The payment uuid, or the free claim's key.
 	 */
 	public function grant_items( WP_Post $product, int $user_id, string $source, string $reference ): void {
-		$duration = (string) get_post_meta( $product->ID, Product_Metabox::META_DURATION, true );
+		$duration = (string) get_post_meta( $product->ID, Product_Meta::META_DURATION, true );
 		$days     = '' === $duration ? null : (int) $duration;
 
-		foreach ( array_map( 'strval', (array) get_post_meta( $product->ID, Product_Metabox::META_ITEMS, false ) ) as $item ) {
+		foreach ( array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_ITEMS, false ) ) as $item ) {
 			list( $type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
 
 			if ( '' === $identifier ) {

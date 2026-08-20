@@ -58,6 +58,23 @@ class Test_Post_Types extends WP_UnitTestCase {
 		$this->assertFalse( user_can( $subscriber, $access->cap->edit_posts ) );
 	}
 
+	/** @testdox Products and coupons are gated on manage-products, so an administrator sees their menus. */
+	public function test_commerce_caps_gate_on_manage_products(): void {
+		foreach ( array( Post_Types::PRODUCT, Post_Types::COUPON ) as $type ) {
+			$object = get_post_type_object( $type );
+
+			$this->assertNotNull( $object );
+			$this->assertSame( 'gatedmedia_manage_products', $object->cap->edit_posts, "{$type} is not gated on manage-products" );
+			$this->assertSame( 'gatedmedia_manage_products', $object->cap->create_posts, "{$type} cannot be created by managers" );
+		}
+
+		$administrator = self::factory()->user->create_and_get( array( 'role' => 'administrator' ) );
+		$subscriber    = self::factory()->user->create_and_get( array( 'role' => 'subscriber' ) );
+
+		$this->assertTrue( user_can( $administrator, 'gatedmedia_manage_products' ) );
+		$this->assertFalse( user_can( $subscriber, 'gatedmedia_manage_products' ) );
+	}
+
 	/**
 	 * @testdox Access supports nothing at all.
 	 *
@@ -68,13 +85,23 @@ class Test_Post_Types extends WP_UnitTestCase {
 		$this->assertSame( array(), get_all_post_type_supports( Post_Types::ACCESS ) );
 	}
 
-	/** @testdox Product is public, with no archive. */
-	public function test_product_is_public_without_archive(): void {
+	/** @testdox Product renders publicly but is undiscoverable: no archive, no search, no sitemap; REST only for the guarded block editor. */
+	public function test_product_is_public_but_undiscoverable(): void {
 		$product = get_post_type_object( Post_Types::PRODUCT );
 
 		$this->assertNotNull( $product );
 		$this->assertTrue( $product->public );
 		$this->assertFalse( $product->has_archive );
+		$this->assertTrue( $product->exclude_from_search );
+		// In REST for the block editor; Product_Meta's guard 404s the
+		// surface for anyone without manage-products (Test_Product_Meta).
+		$this->assertTrue( $product->show_in_rest );
+
+		$sitemap_types = ( new Post_Types() )->hide_products_from_sitemaps(
+			array( Post_Types::PRODUCT => $product )
+		);
+
+		$this->assertArrayNotHasKey( Post_Types::PRODUCT, $sitemap_types );
 	}
 
 	/**

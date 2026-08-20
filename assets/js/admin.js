@@ -125,66 +125,6 @@ onReady( () => {
 		} );
 	}
 
-	// The product box's items: Add turns the current picker choice into a
-	// removable row over a gatedmedia_items[] hidden input, so the editor's
-	// own save carries the list.
-	const addItem = document.getElementById( 'gatedmedia_add_item' );
-	const itemList = document.getElementById( 'gatedmedia_product_items' );
-
-	if ( addItem && itemList ) {
-		addItem.addEventListener( 'click', () => {
-			const type = document.getElementById(
-				'gatedmedia_item_type'
-			)?.value;
-			const hidden = document.getElementById(
-				'gatedmedia_product_' + type
-			);
-			const search = document.getElementById(
-				'gatedmedia_product_' + type + '_search'
-			);
-
-			if ( ! type || ! hidden?.value ) {
-				return;
-			}
-
-			const row = document.createElement( 'li' );
-			row.append(
-				type.charAt( 0 ).toUpperCase() +
-					type.slice( 1 ) +
-					': ' +
-					( search?.value || hidden.value ) +
-					' '
-			);
-
-			const input = document.createElement( 'input' );
-			input.type = 'hidden';
-			input.name = 'gatedmedia_items[]';
-			input.value = type + ':' + hidden.value;
-			row.append( input );
-
-			const remove = document.createElement( 'button' );
-			remove.type = 'button';
-			remove.className = 'button-link gatedmedia-remove-item';
-			remove.textContent = '×';
-			row.append( remove );
-
-			itemList.append( row );
-
-			hidden.value = '';
-
-			if ( search ) {
-				search.value = '';
-			}
-		} );
-
-		itemList.addEventListener( 'click', ( event ) => {
-			event.target
-				.closest?.( '.gatedmedia-remove-item' )
-				?.closest( 'li' )
-				?.remove();
-		} );
-	}
-
 	// The item metabox's buttons: each turns its picker's choice into a
 	// navigation to the nonced admin-post URL — no form inside the
 	// editor's form.

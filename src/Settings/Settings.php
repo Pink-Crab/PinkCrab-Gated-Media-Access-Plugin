@@ -57,6 +57,44 @@ class Settings {
 	}
 
 	/**
+	 * The currency the shop sells in — every product is priced in it.
+	 * A real ISO code or the GBP default; filter `gatedmedia_currency`
+	 * has the last word.
+	 */
+	public function currency(): string {
+		$settings = get_option( self::OPTION );
+		$code     = is_array( $settings ) && isset( $settings['currency'] ) ? strtoupper( (string) $settings['currency'] ) : 'GBP';
+
+		/**
+		 * Filters the shop currency, over the stored setting.
+		 *
+		 * @param string $code ISO currency code.
+		 */
+		$code = strtoupper( (string) apply_filters( 'gatedmedia_currency', $code ) );
+
+		return \Symfony\Component\Intl\Currencies::exists( $code ) ? $code : 'GBP';
+	}
+
+	/**
+	 * The path segment a product's UUID URL lives under —
+	 * `/{segment}/{uuid}` is the only public way to a product. Default
+	 * `access`; filter `gatedmedia_product_path` has the last word.
+	 */
+	public function product_path(): string {
+		$settings = get_option( self::OPTION );
+		$path     = is_array( $settings ) && isset( $settings['product_path'] ) ? (string) $settings['product_path'] : 'access';
+
+		/**
+		 * Filters the product URL segment, over the stored setting.
+		 *
+		 * @param string $path The path segment.
+		 */
+		$path = sanitize_title( (string) apply_filters( 'gatedmedia_product_path', $path ) );
+
+		return '' === $path ? 'access' : $path;
+	}
+
+	/**
 	 * Which Stripe the site talks to: test unless live is stored, and never
 	 * anything else. Filter `gatedmedia_stripe_mode` has the last word.
 	 */

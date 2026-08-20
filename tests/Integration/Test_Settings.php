@@ -46,6 +46,23 @@ class Test_Settings extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/** @testdox The shop currency defaults to GBP, honours a real stored code, and refuses a fake one. */
+	public function test_currency(): void {
+		$this->assertSame( 'GBP', $this->settings->currency() );
+
+		update_option( Settings::OPTION, array( 'currency' => 'sek' ) );
+		$this->assertSame( 'SEK', $this->settings->currency() );
+
+		update_option( Settings::OPTION, array( 'currency' => 'XYZ' ) );
+		$this->assertSame( 'GBP', $this->settings->currency(), 'a code ISO does not know must not survive' );
+
+		$clean = $this->page->sanitize( array( 'currency' => 'jpy' ) );
+		$this->assertSame( 'JPY', $clean['currency'] );
+
+		$fake = $this->page->sanitize( array( 'currency' => 'FAKE' ) );
+		$this->assertSame( 'GBP', $fake['currency'] );
+	}
+
 	/** @testdox The mode defaults to test, honours the stored value, and clamps anything else. */
 	public function test_stripe_mode(): void {
 		$this->assertSame( 'test', $this->settings->stripe_mode() );
