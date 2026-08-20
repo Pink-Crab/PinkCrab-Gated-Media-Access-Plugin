@@ -21,6 +21,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Access\File_Boundary;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Account\View_Data;
 
@@ -62,6 +63,13 @@ class Plugin {
 	);
 
 	/**
+	 * The built container, kept so the file boundary can resolve lazily.
+	 *
+	 * @var Dice|null
+	 */
+	private ?Dice $container = null;
+
+	/**
 	 * Builds each service, lets the hookable ones register, then attaches
 	 * everything to WordPress in one pass.
 	 */
@@ -71,8 +79,9 @@ class Plugin {
 		// so a service holding state — the sprite knowing it has been asked
 		// for, the registry memoising the section list — would be answering
 		// about an object nobody else has.
-		$container = ( new Dice() )->addRule( '*', array( 'shared' => true ) );
-		$loader    = new Hook_Loader();
+		$container       = ( new Dice() )->addRule( '*', array( 'shared' => true ) );
+		$this->container = $container;
+		$loader          = new Hook_Loader();
 
 		foreach ( self::SERVICES as $service ) {
 			$instance = $container->create( $service );
@@ -83,6 +92,27 @@ class Plugin {
 		}
 
 		$loader->register_hooks();
+	}
+
+	/**
+	 * The file boundary, resolved through the shared container on first ask.
+	 *
+	 * The bootstrap attaches its two hooks at plugin load; nothing is built
+	 * until the first protected-file request actually arrives.
+	 */
+	public function file_boundary(): File_Boundary {
+		if ( null === $this->container ) {
+			$this->container = ( new Dice() )->addRule( '*', array( 'shared' => true ) );
+		}
+
+		/**
+		 * Dice builds the class it is named.
+		 *
+		 * @var File_Boundary $boundary
+		 */
+		$boundary = $this->container->create( File_Boundary::class );
+
+		return $boundary;
 	}
 
 	/**
