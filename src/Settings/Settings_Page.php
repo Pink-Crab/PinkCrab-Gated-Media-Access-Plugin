@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Settings;
 
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Notifications\Notification_Sender;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
@@ -307,7 +308,7 @@ class Settings_Page implements Hookable {
 	 * @return array<string, string>
 	 */
 	private function sanitize_templates( array $input, array $clean ): array {
-		foreach ( array_keys( \PinkCrab\Gated_Access\Notifications\Notification_Sender::types() ) as $type ) {
+		foreach ( array_keys( Notification_Sender::types() ) as $type ) {
 			if ( isset( $input[ "notify_{$type}" ] ) ) {
 				$clean[ "notify_{$type}" ] = '0' === (string) $input[ "notify_{$type}" ] ? '0' : '1';
 			}
