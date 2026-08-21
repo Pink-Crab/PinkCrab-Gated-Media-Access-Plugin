@@ -108,8 +108,16 @@ test.describe( 'account area', () => {
 	} );
 
 	test( 'the empty state appears when there is nothing to show', async ( { page } ) => {
-		// Orders: the fixture grants access but no orders exist until the
-		// payments table lands, so this is the section with nothing to show.
+		// Signed in as somebody who holds nothing and has bought nothing. This
+		// used to use the admin's Orders, on the grounds that no orders could
+		// exist yet — true only until the payments table landed and the shop
+		// fixture began creating one. An empty state needs an empty account,
+		// not a feature that has not been built.
+		await page.goto( '/wp-login.php?loggedout=true' );
+		await page.fill( '#user_login', 'e2e-empty' );
+		await page.fill( '#user_pass', 'e2e-empty-password' );
+		await page.click( '#wp-submit' );
+
 		await page.goto( '/account/orders/' );
 
 		// One box, at page level — never one per empty section.
