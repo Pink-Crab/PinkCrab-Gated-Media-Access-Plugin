@@ -15,6 +15,8 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Products\Product_Meta;
+use PinkCrab\Gated_Access\Account\Order_History;
+use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
  * The order of operations is architecture §7's whole point: the payment row
@@ -343,14 +345,22 @@ class Checkout {
 	}
 
 	/**
-	 * Where the buyer lands after Stripe — the page that polls
-	 * `/payment/{uuid}` and never writes. Filterable until round 6 ships
-	 * the real page.
+	 * Where the buyer lands after Stripe: their own order, marked as the one
+	 * just placed. Reads only — access is granted on the confirmation and
+	 * nowhere else. Filterable, so a site can send them somewhere of its own.
 	 *
 	 * @param Payment $payment The payment they will be asking about.
 	 */
 	private function return_url( Payment $payment ): string {
-		$url = add_query_arg( 'gatedmedia_payment', $payment->uuid, home_url( '/' ) );
+		// The order itself, flagged as just placed. §7.8's states are drawn on
+		// that page by the `payment-status` block, so there is no return page
+		// of its own — and the account area already sends a buyer whose session
+		// lapsed through wp-login and back, which a standalone page could not.
+		$url = add_query_arg(
+			Order_History::NEW_ORDER,
+			$payment->uuid,
+			Account_Url::detail( 'orders', $payment->uuid )
+		);
 
 		/**
 		 * Filters the checkout return URL.

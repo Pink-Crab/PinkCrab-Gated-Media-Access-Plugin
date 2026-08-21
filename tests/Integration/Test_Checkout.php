@@ -19,6 +19,7 @@ use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
+use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Payments\Stripe_Gateway;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
@@ -133,6 +134,42 @@ class Test_Checkout extends WP_UnitTestCase {
 		$this->assertSame( 1000, $payment->discount_amount );
 		$this->assertCount( 1, $this->access_ids() );
 		$this->assertSame( array( $payment->payment_id ), $fired );
+	}
+
+	/**
+	 * The decision that nearly shipped as nothing: §7.8 has no page of its own,
+	 * so the return URL has to be the order. Nothing asserted it, and the
+	 * whole round was built while Stripe still pointed at a query arg on the
+	 * front page that renders nothing at all.
+	 *
+	 * @testdox Stripe sends the buyer back to their own order, flagged as just placed.
+	 */
+	public function test_return_url_is_the_order(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$gateway = $this->fake_gateway();
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id );
+
+		$payment = $this->store->paged( 1, 1 )[0];
+
+		$this->assertIsString( $gateway->return_url );
+		$this->assertStringContainsString( "/orders/{$payment->uuid}/", $gateway->return_url );
+		$this->assertStringContainsString(
+			Order_History::NEW_ORDER . '=' . $payment->uuid,
+			$gateway->return_url
+		);
+	}
+
+	/** @testdox A site can send the buyer somewhere of its own. */
+	public function test_return_url_is_filterable(): void {
+		add_filter( 'gatedmedia_checkout_return_url', static fn (): string => 'https://example.test/thanks' );
+
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$gateway = $this->fake_gateway();
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id );
+
+		$this->assertSame( 'https://example.test/thanks', $gateway->return_url );
 	}
 
 	/** @testdox A percent coupon discounts the total that goes to Stripe; usage limits count completions. */
@@ -287,17 +324,25 @@ class Test_Checkout extends WP_UnitTestCase {
 			public ?Payment $asked = null;
 
 			/**
+			 * Where Stripe was told to send the buyer back to.
+			 *
+			 * @var string|null
+			 */
+			public ?string $return_url = null;
+
+			/**
 			 * Answers a canned session.
 			 *
 			 * @param Payment $payment      The pending row.
 			 * @param string  $product_name Ignored.
-			 * @param string  $success_url  Ignored.
+			 * @param string  $success_url  Where the buyer returns on success.
 			 * @param string  $cancel_url   Ignored.
 			 * @param string  $email        Ignored.
 			 * @return array{id: string, url: string}
 			 */
 			public function create_checkout_session( Payment $payment, string $product_name, string $success_url, string $cancel_url, string $email ): array|WP_Error {
-				$this->asked = $payment;
+				$this->asked      = $payment;
+				$this->return_url = $success_url;
 
 				return array(
 					'id'  => 'cs_fake_1',
