@@ -121,10 +121,10 @@
 // one — and it sits inside the theme's content area, which has already drawn
 // the product's title.
 //
-// The rhythm is §1's: 24px between the blocks that make up the page, 48px
-// around a section, because a section is a bigger break than a block. Without
-// this the notice, contents, price and buy form stack flush against each other
-// with no air at all.
+// The rhythm is 24px throughout, with the contents fenced by hairlines rather
+// than by a larger gap — the divider is what separates here, so a 48px section
+// break as well would leave the page floating apart. Without any of it the
+// notice, contents, price and buy form stack flush with no air at all.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-view--product {
@@ -132,11 +132,6 @@
 
 	> * + * {
 		margin-top: var(--gatedmedia-lg);
-	}
-
-	> .gatedmedia-section,
-	> .gatedmedia-section + * {
-		margin-top: var(--gatedmedia-xl);
 	}
 
 	> :first-child {

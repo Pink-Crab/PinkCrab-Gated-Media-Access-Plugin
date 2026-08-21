@@ -199,6 +199,49 @@ class Access_Taxonomy implements Hookable {
 	}
 
 	/**
+	 * What a group holds right now.
+	 *
+	 * Groups are live (architecture.md §1) — an administrator moves things in
+	 * and out, and everyone holding the group sees whatever is in it today. So
+	 * this is a query rather than anything stored.
+	 *
+	 * **Statuses are named explicitly.** The taxonomy covers attachments as
+	 * well as posts and pages, and an attachment's status is `inherit`, not
+	 * `publish`. Leaving the default would silently drop every file from a
+	 * group while the term's own count still included it — a group would say
+	 * twelve items and list five.
+	 *
+	 * @param string $uuid The group.
+	 * @return array<int, int> Post IDs, newest first.
+	 */
+	public function contents( string $uuid ): array {
+		$term = $this->find_group( $uuid );
+
+		if ( ! $term instanceof WP_Term ) {
+			return array();
+		}
+
+		$found = get_posts(
+			array(
+				'post_type'      => self::object_types(),
+				'post_status'    => array( 'publish', 'inherit' ),
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'tax_query'      => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- The term is the whole question.
+					array(
+						'taxonomy' => self::TAXONOMY,
+						'field'    => 'term_id',
+						'terms'    => $term->term_id,
+					),
+				),
+			)
+		);
+
+		return array_map( 'intval', $found );
+	}
+
+	/**
 	 * The group holding this UUID, if any.
 	 *
 	 * @param string $uuid The identity to look up.

@@ -82,11 +82,13 @@ if ( '' !== (string) ( $gatedmedia_data['error'] ?? '' ) ) {
 	);
 }
 
-// What you get (§6.12).
+// What you get (§6.12), fenced by hairlines as the design draws it — the
+// product's own description sits above the first one.
 $gatedmedia_items = is_array( $gatedmedia_data['items'] ?? null ) ? $gatedmedia_data['items'] : array();
 
 if ( array() !== $gatedmedia_items ) {
-	$gatedmedia_body .= '<section class="gatedmedia-section">'
+	$gatedmedia_body .= '<hr class="gatedmedia-rule" />'
+		. '<section class="gatedmedia-section">'
 		. Block::render(
 			'gated-media-access/section-heading',
 			array( 'text' => __( 'What you get', 'gated-media-access' ) )
@@ -95,7 +97,8 @@ if ( array() !== $gatedmedia_items ) {
 			'gated-media-access/contents',
 			array( 'items' => $gatedmedia_items )
 		)
-		. '</section>';
+		. '</section>'
+		. '<hr class="gatedmedia-rule" />';
 }
 
 // The price (§6.13). A held or lapsed page still shows what it costs.
