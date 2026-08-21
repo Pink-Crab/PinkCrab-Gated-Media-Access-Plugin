@@ -18,5 +18,7 @@
 			"clientNavigation": false
 		}
 	},
-	"editorScript": "file:./index.js"
+	"editorScript": "file:./index.js",
+	"style": "gatedmedia-front",
+	"render": "file:./render.php"
 }

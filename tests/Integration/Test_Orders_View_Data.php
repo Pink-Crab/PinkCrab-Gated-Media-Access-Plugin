@@ -20,6 +20,7 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
  * §7.3 is one person's own record and §7.4 is one row of it, so every test
@@ -58,7 +59,7 @@ class Test_Orders_View_Data extends WP_UnitTestCase {
 
 		$this->store  = new Payment_Store();
 		$this->writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
-		$this->data   = new Orders_View_Data( $this->store, new Access_Lookup(), new Access_Taxonomy() );
+		$this->data   = new Orders_View_Data( $this->store, new Access_Lookup(), new Item_Label( new Access_Taxonomy() ) );
 
 		$this->user_id    = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->product_id = self::factory()->post->create(

@@ -10,7 +10,6 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Account;
 
 use WP_Post;
-use WP_Term;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
@@ -18,8 +17,8 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
-use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Expiry;
+use PinkCrab\Gated_Access\Support\Item_Label;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
@@ -45,14 +44,14 @@ class Orders_View_Data implements Hookable {
 	/**
 	 * Reads, never writes.
 	 *
-	 * @param Payment_Store   $store    The payments table's owner.
-	 * @param Access_Lookup   $lookup   Finds the access an order created.
-	 * @param Access_Taxonomy $taxonomy Group identity, for naming snapshot entries.
+	 * @param Payment_Store $store  The payments table's owner.
+	 * @param Access_Lookup $lookup Finds the access an order created.
+	 * @param Item_Label    $labels Names the items an order contained.
 	 */
 	public function __construct(
 		private Payment_Store $store,
 		private Access_Lookup $lookup,
-		private Access_Taxonomy $taxonomy,
+		private Item_Label $labels,
 	) {
 	}
 
@@ -158,11 +157,7 @@ class Orders_View_Data implements Hookable {
 			$type       = sanitize_key( (string) get_post_meta( $access_id, Access_Writer::META_ITEM_TYPE, true ) );
 			$identifier = sanitize_text_field( (string) get_post_meta( $access_id, Access_Writer::META_ITEM_ID, true ) );
 
-			if ( '' === $type || '' === $identifier ) {
-				continue;
-			}
-
-			$title = $this->item_title( $type, $identifier );
+			$title = $this->labels->text( $type, $identifier );
 
 			if ( '' === $title ) {
 				continue;
@@ -239,13 +234,9 @@ class Orders_View_Data implements Hookable {
 		// product's raw `gatedmedia_items` meta, one `type:identifier` string
 		// per entry.
 		foreach ( $payment->contents_snapshot as $entry ) {
-			list( $type, $identifier ) = array_pad( explode( ':', (string) $entry, 2 ), 2, '' );
+			list( $type, $identifier ) = Item_Label::split( (string) $entry );
 
-			if ( '' === $identifier ) {
-				continue;
-			}
-
-			$text = $this->item_title( $type, $identifier );
+			$text = $this->labels->text( $type, $identifier );
 
 			if ( '' === $text ) {
 				continue;
@@ -253,54 +244,11 @@ class Orders_View_Data implements Hookable {
 
 			$items[] = array(
 				'text' => $text,
-				'icon' => $this->icon( $type ),
+				'icon' => $this->labels->icon( $type ),
 			);
 		}
 
 		return $items;
-	}
-
-	/**
-	 * What one snapshot entry was called.
-	 *
-	 * Named from the item as it is now, because the snapshot stores an
-	 * identifier rather than a title. An item deleted since keeps its kind so
-	 * the list still accounts for what was bought.
-	 *
-	 * @param string $type       group, post or file.
-	 * @param string $identifier A post id, or a group's uuid.
-	 */
-	private function item_title( string $type, string $identifier ): string {
-		if ( 'group' === $type ) {
-			$term = $this->taxonomy->find_group( $identifier );
-
-			return $term instanceof WP_Term ? $term->name : __( 'A group', 'gated-media-access' );
-		}
-
-		$title = (string) get_the_title( (int) $identifier );
-
-		if ( '' !== $title ) {
-			return $title;
-		}
-
-		return 'file' === $type
-			? __( 'A file', 'gated-media-access' )
-			: __( 'An item', 'gated-media-access' );
-	}
-
-	/**
-	 * The sprite symbol for a snapshot entry's type.
-	 *
-	 * @param string $type One of group, post, file — anything else draws none.
-	 */
-	private function icon( string $type ): string {
-		$icons = array(
-			'group' => 'i-groups',
-			'post'  => 'i-article',
-			'file'  => 'i-doc',
-		);
-
-		return $icons[ $type ] ?? '';
 	}
 
 	/**
