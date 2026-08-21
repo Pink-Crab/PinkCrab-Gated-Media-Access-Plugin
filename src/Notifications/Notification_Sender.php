@@ -9,7 +9,7 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Notifications;
 
-use PinkCrab\Gated_Access\Settings\Notification_Settings;
+use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
  * Every notification goes out through here (architecture §10, spec §5):
@@ -36,9 +36,9 @@ class Notification_Sender {
 	/**
 	 * The switches and template overrides live in settings.
 	 *
-	 * @param Notification_Settings $settings The notification settings reader.
+	 * @param Settings $settings The one settings reader.
 	 */
-	public function __construct( private Notification_Settings $settings ) {
+	public function __construct( private Settings $settings ) {
 	}
 
 	/**
