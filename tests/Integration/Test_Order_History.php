@@ -10,7 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
-use PinkCrab\Gated_Access\Account\Orders_View_Data;
+use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
@@ -34,7 +34,7 @@ use PinkCrab\Gated_Access\Support\Item_Label;
  *
  * @group integration
  */
-class Test_Orders_View_Data extends WP_UnitTestCase {
+class Test_Order_History extends WP_UnitTestCase {
 
 	private const DEFAULTS = array(
 		'orders' => array(),
@@ -45,7 +45,7 @@ class Test_Orders_View_Data extends WP_UnitTestCase {
 
 	private Access_Writer $writer;
 
-	private Orders_View_Data $data;
+	private Order_History $data;
 
 	private int $user_id;
 
@@ -59,7 +59,7 @@ class Test_Orders_View_Data extends WP_UnitTestCase {
 
 		$this->store  = new Payment_Store();
 		$this->writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
-		$this->data   = new Orders_View_Data( $this->store, new Access_Lookup(), new Item_Label( new Access_Taxonomy() ) );
+		$this->data   = new Order_History( $this->store, new Access_Lookup(), new Item_Label( new Access_Taxonomy() ) );
 
 		$this->user_id    = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->product_id = self::factory()->post->create(
@@ -196,12 +196,12 @@ class Test_Orders_View_Data extends WP_UnitTestCase {
 
 		$this->assertFalse( $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['is_new'] );
 
-		$_GET[ Orders_View_Data::NEW_ORDER ] = $payment->uuid;
+		$_GET[ Order_History::NEW_ORDER ] = $payment->uuid;
 		$this->assertTrue( $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['is_new'] );
 
 		// Naming a different order of your own does not congratulate you here.
 		$this->assertFalse( $this->data->orders( self::DEFAULTS, $another->uuid )['detail']['is_new'] );
 
-		unset( $_GET[ Orders_View_Data::NEW_ORDER ] );
+		unset( $_GET[ Order_History::NEW_ORDER ] );
 	}
 }

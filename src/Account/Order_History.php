@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
+use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Expiry;
 use PinkCrab\Gated_Access\Support\Item_Label;
 use PinkCrab\Gated_Access\Support\Money;
@@ -25,9 +26,9 @@ use PinkCrab\Gated_Access\Support\Money;
  * Turns payment rows into the shapes the orders block declares — §7.3 the
  * list, §7.4 one order.
  *
- * Separate from View_Data because that class turns the *resolver's* allowed
- * items into views; this one reads the payments table, and mixing the two
- * would put a payments dependency inside the access reader.
+ * Separate from `Held_Access` because that answers what a person was *given*;
+ * this reads the payments table. Mixing them would put a payments dependency
+ * inside the class that reads access records.
  *
  * The render file cannot reach container services, so the data arrives by
  * filter — `gatedmedia_orders_data` — exactly as My Access and Files do.
@@ -36,7 +37,7 @@ use PinkCrab\Gated_Access\Support\Money;
  * and one order is only returned when it belongs to the person asking. An
  * order that is not yours reads as an order that does not exist.
  */
-class Orders_View_Data implements Hookable {
+class Order_History implements Hookable {
 
 	/** The query arg Stripe returns under, naming the order just bought. */
 	public const NEW_ORDER = 'new_order';
@@ -292,16 +293,13 @@ class Orders_View_Data implements Hookable {
 	 * @param string $uuid The payment.
 	 */
 	private function url( string $uuid ): string {
-		return $this->section_url() . $uuid . '/';
+		return Account_Url::detail( 'orders', $uuid );
 	}
 
 	/**
 	 * The Orders section itself.
 	 */
 	private function section_url(): string {
-		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );
-		$slug = is_string( $slug ) && '' !== $slug ? $slug : 'account';
-
-		return home_url( sprintf( '/%s/orders/', $slug ) );
+		return Account_Url::section( 'orders' );
 	}
 }

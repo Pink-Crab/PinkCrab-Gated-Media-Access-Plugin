@@ -19,7 +19,7 @@ use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Stripe_Gateway;
 use PinkCrab\Gated_Access\Products\Product_Meta;
-use PinkCrab\Gated_Access\Products\Product_View_Data;
+use PinkCrab\Gated_Access\Products\Product_Offer;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -36,7 +36,7 @@ use PinkCrab\Gated_Access\Support\Item_Label;
  *
  * @group integration
  */
-class Test_Product_View_Data extends WP_UnitTestCase {
+class Test_Product_Offer extends WP_UnitTestCase {
 
 	private const DEFAULTS = array(
 		'product_id' => 0,
@@ -50,7 +50,7 @@ class Test_Product_View_Data extends WP_UnitTestCase {
 		'error'      => '',
 	);
 
-	private Product_View_Data $data;
+	private Product_Offer $data;
 
 	private Access_Writer $writer;
 
@@ -74,7 +74,7 @@ class Test_Product_View_Data extends WP_UnitTestCase {
 			new Stripe_Gateway( new Settings() )
 		);
 
-		$this->data = new Product_View_Data(
+		$this->data = new Product_Offer(
 			$checkout,
 			new Resolver( $taxonomy ),
 			$lookup,
@@ -115,26 +115,26 @@ class Test_Product_View_Data extends WP_UnitTestCase {
 	public function test_signed_out(): void {
 		wp_set_current_user( 0 );
 
-		$this->assertSame( Product_View_Data::STATE_SIGNED_OUT, $this->state() );
+		$this->assertSame( Product_Offer::STATE_SIGNED_OUT, $this->state() );
 	}
 
 	/** @testdox A priced product a signed-in stranger may buy is simply for sale. */
 	public function test_paid(): void {
-		$this->assertSame( Product_View_Data::STATE_PAID, $this->state() );
+		$this->assertSame( Product_Offer::STATE_PAID, $this->state() );
 	}
 
 	/** @testdox A product costing nothing is joined, not bought. */
 	public function test_free(): void {
 		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 0 );
 
-		$this->assertSame( Product_View_Data::STATE_FREE, $this->state() );
+		$this->assertSame( Product_Offer::STATE_FREE, $this->state() );
 	}
 
 	/** @testdox Holding everything it grants reads as held, not as a second sale. */
 	public function test_held(): void {
 		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, null, 'admin' );
 
-		$this->assertSame( Product_View_Data::STATE_HELD, $this->state() );
+		$this->assertSame( Product_Offer::STATE_HELD, $this->state() );
 	}
 
 	/** @testdox Holding only part of a bundle is not holding it. */
@@ -144,7 +144,7 @@ class Test_Product_View_Data extends WP_UnitTestCase {
 
 		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, null, 'admin' );
 
-		$this->assertSame( Product_View_Data::STATE_PAID, $this->state() );
+		$this->assertSame( Product_Offer::STATE_PAID, $this->state() );
 	}
 
 	/** @testdox Access that ran out says so, rather than reading as a first purchase. */
@@ -154,14 +154,14 @@ class Test_Product_View_Data extends WP_UnitTestCase {
 
 		$this->writer->expire( $access_id );
 
-		$this->assertSame( Product_View_Data::STATE_LAPSED, $this->state() );
+		$this->assertSame( Product_Offer::STATE_LAPSED, $this->state() );
 	}
 
 	/** @testdox An address off the allow-list cannot buy, and is told why. */
 	public function test_ineligible(): void {
 		add_post_meta( $this->product_id, Product_Meta::META_EMAILS, 'someone-else@example.com' );
 
-		$this->assertSame( Product_View_Data::STATE_INELIGIBLE, $this->state() );
+		$this->assertSame( Product_Offer::STATE_INELIGIBLE, $this->state() );
 	}
 
 	/** @testdox Already holding it outranks being off the allow-list. */
@@ -169,7 +169,7 @@ class Test_Product_View_Data extends WP_UnitTestCase {
 		add_post_meta( $this->product_id, Product_Meta::META_EMAILS, 'someone-else@example.com' );
 		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, null, 'admin' );
 
-		$this->assertSame( Product_View_Data::STATE_HELD, $this->state() );
+		$this->assertSame( Product_Offer::STATE_HELD, $this->state() );
 	}
 
 	/** @testdox The contents name the items, and the form carries what checkout demands. */

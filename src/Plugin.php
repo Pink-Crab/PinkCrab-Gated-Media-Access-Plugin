@@ -33,9 +33,11 @@ use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Payments\Stripe_Webhook;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Products\Product_Route;
-use PinkCrab\Gated_Access\Products\Product_View_Data;
-use PinkCrab\Gated_Access\Account\View_Data;
-use PinkCrab\Gated_Access\Account\Orders_View_Data;
+use PinkCrab\Gated_Access\Products\Product_Offer;
+use PinkCrab\Gated_Access\Account\Held_Access;
+use PinkCrab\Gated_Access\Account\Downloadable_Files;
+use PinkCrab\Gated_Access\Account\Group_Contents;
+use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Admin\Access_Filters;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Admin\Add_Access_Page;
@@ -83,7 +85,7 @@ class Plugin {
 		Payments_Schema::class,
 		Product_Meta::class,
 		Product_Route::class,
-		Product_View_Data::class,
+		Product_Offer::class,
 		Checkout_Action::class,
 		Payment_Status_Route::class,
 		Stripe_Webhook::class,
@@ -93,8 +95,10 @@ class Plugin {
 		Sprite::class,
 		Account_Route::class,
 		Profile_Writer::class,
-		View_Data::class,
-		Orders_View_Data::class,
+		Held_Access::class,
+		Downloadable_Files::class,
+		Group_Contents::class,
+		Order_History::class,
 		Settings_Page::class,
 		Access_Filters::class,
 		Access_List::class,

@@ -31,7 +31,7 @@ use PinkCrab\Gated_Access\Support\Item_Label;
  * asked again on submit. A page that offered a button it should not have still
  * could not buy anything.
  */
-class Product_View_Data implements Hookable {
+class Product_Offer implements Hookable {
 
 	/** Nobody is signed in: the page invites them to create an account. */
 	public const STATE_SIGNED_OUT = 'signed_out';

@@ -25,7 +25,7 @@
 
 declare( strict_types = 1 );
 
-use PinkCrab\Gated_Access\Products\Product_View_Data;
+use PinkCrab\Gated_Access\Products\Product_Offer;
 use PinkCrab\Gated_Access\Support\Block;
 
 defined( 'ABSPATH' ) || exit;
@@ -42,7 +42,7 @@ if ( false === $gatedmedia_product_id ) {
 }
 
 /**
- * Supplied by Product_View_Data; the defaults are what an unknown product
+ * Supplied by Product_Offer; the defaults are what an unknown product
  * renders, which is nothing at all.
  *
  * @var array<string, mixed> $gatedmedia_data
@@ -108,7 +108,7 @@ $gatedmedia_body .= Block::render(
 		'amount'        => (int) ( $gatedmedia_data['price'] ?? 0 ),
 		'currency'      => (string) ( $gatedmedia_data['currency'] ?? 'GBP' ),
 		'term'          => (string) ( $gatedmedia_data['term'] ?? '' ),
-		'notApplicable' => Product_View_Data::STATE_HELD === $gatedmedia_state,
+		'notApplicable' => Product_Offer::STATE_HELD === $gatedmedia_state,
 	)
 );
 
@@ -125,7 +125,7 @@ $gatedmedia_fields = sprintf(
 // The action, per state. Only `free` and `paid` offer a control that buys;
 // the rest explain why there is nothing to press.
 // -----------------------------------------------------------------------
-if ( Product_View_Data::STATE_HELD === $gatedmedia_state ) {
+if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 	$gatedmedia_body .= Block::render(
 		'gated-media-access/notice',
 		array(
@@ -140,7 +140,7 @@ if ( Product_View_Data::STATE_HELD === $gatedmedia_state ) {
 			'variant' => 'secondary',
 		)
 	);
-} elseif ( Product_View_Data::STATE_INELIGIBLE === $gatedmedia_state ) {
+} elseif ( Product_Offer::STATE_INELIGIBLE === $gatedmedia_state ) {
 	$gatedmedia_body .= Block::render(
 		'gated-media-access/notice',
 		array(
@@ -148,7 +148,7 @@ if ( Product_View_Data::STATE_HELD === $gatedmedia_state ) {
 			'text' => __( 'This is only available to invited email addresses. If you were sent an invitation, sign in with that address.', 'gated-media-access' ),
 		)
 	);
-} elseif ( Product_View_Data::STATE_SIGNED_OUT === $gatedmedia_state ) {
+} elseif ( Product_Offer::STATE_SIGNED_OUT === $gatedmedia_state ) {
 	// The buy form posts signed out too — Checkout_Action's nopriv mirror
 	// sends them through wp-login and back to finish. So the control is real
 	// rather than a link that loses the product on the way.
@@ -176,9 +176,9 @@ if ( Product_View_Data::STATE_HELD === $gatedmedia_state ) {
 		$gatedmedia_signed_out
 	);
 } else {
-	$gatedmedia_free = Product_View_Data::STATE_FREE === $gatedmedia_state;
+	$gatedmedia_free = Product_Offer::STATE_FREE === $gatedmedia_state;
 
-	$gatedmedia_lapsed_notice = Product_View_Data::STATE_LAPSED === $gatedmedia_state
+	$gatedmedia_lapsed_notice = Product_Offer::STATE_LAPSED === $gatedmedia_state
 		? Block::render(
 			'gated-media-access/notice',
 			array(

@@ -51,7 +51,7 @@ $gatedmedia_order_id = isset( $attributes['detail'] ) && is_string( $attributes[
 	: '';
 
 /**
- * Supplied by Orders_View_Data from the payments table; the empty defaults are
+ * Supplied by Order_History from the payments table; the empty defaults are
  * what someone who has bought nothing renders.
  *
  * @var array{orders: array<int, array<string, mixed>>, detail: array<string, mixed>|null} $gatedmedia_data

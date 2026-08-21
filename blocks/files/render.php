@@ -42,7 +42,7 @@ if ( 0 === $gatedmedia_user_id ) {
 }
 
 /**
- * Supplied by View_Data from the resolver's allowed items; the empty defaults
+ * Supplied by Downloadable_Files; the empty defaults
  * are what a user holding nothing renders. Downloading is a client-side state
  * and stays empty server-side.
  *
