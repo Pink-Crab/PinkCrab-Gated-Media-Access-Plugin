@@ -16,6 +16,7 @@ use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Support\Expiry;
 
 /**
  * Turns the resolver's allowed items into the shapes the view blocks declare.
@@ -336,34 +337,6 @@ class View_Data implements Hookable {
 	 * @return array{state: string, label: string}
 	 */
 	private function expiry( ?int $expires_at ): array {
-		if ( null === $expires_at ) {
-			return array(
-				'state' => 'lifetime',
-				'label' => __( 'Lifetime', 'gated-media-access' ),
-			);
-		}
-
-		$days_left = (int) ceil( ( $expires_at - time() ) / DAY_IN_SECONDS );
-
-		/**
-		 * How close an expiry has to be before it is flagged as soon.
-		 *
-		 * @param int $days Defaults to 7.
-		 */
-		$soon_days = (int) apply_filters( 'gatedmedia_expiry_soon_days', 7 );
-
-		if ( $days_left <= $soon_days ) {
-			return array(
-				'state' => 'soon',
-				/* translators: %d: days until the access expires. */
-				'label' => sprintf( _n( 'Expires in %d day', 'Expires in %d days', max( 1, $days_left ), 'gated-media-access' ), max( 1, $days_left ) ),
-			);
-		}
-
-		return array(
-			'state' => 'dated',
-			/* translators: %s: the date the access expires. */
-			'label' => sprintf( __( 'Expires %s', 'gated-media-access' ), wp_date( (string) get_option( 'date_format' ), $expires_at ) ),
-		);
+		return Expiry::describe( $expires_at );
 	}
 }

@@ -34,6 +34,7 @@ use PinkCrab\Gated_Access\Payments\Stripe_Webhook;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Products\Product_Route;
 use PinkCrab\Gated_Access\Account\View_Data;
+use PinkCrab\Gated_Access\Account\Orders_View_Data;
 use PinkCrab\Gated_Access\Admin\Access_Filters;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Admin\Add_Access_Page;
@@ -91,6 +92,7 @@ class Plugin {
 		Account_Route::class,
 		Profile_Writer::class,
 		View_Data::class,
+		Orders_View_Data::class,
 		Settings_Page::class,
 		Access_Filters::class,
 		Access_List::class,

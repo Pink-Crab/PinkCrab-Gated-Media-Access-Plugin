@@ -6,7 +6,7 @@
 	"title": "Status pill",
 	"category": "widgets",
 	"icon": "marker",
-	"description": "ui-spec.md §6.6. Five values: complete, refunded, active, expired, revoked.",
+	"description": "ui-spec.md §6.6. Seven values: complete, refunded, active, expired, revoked, and a payment's own pending and failed.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"value": {
@@ -17,7 +17,9 @@
 				"refunded",
 				"active",
 				"expired",
-				"revoked"
+				"revoked",
+				"pending",
+				"failed"
 			]
 		},
 		"label": {
@@ -107,6 +109,38 @@
 			"icon": "lock",
 			"attributes": {
 				"value": "revoked"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		},
+		{
+			"name": "pending",
+			"title": "Pending",
+			"description": "Payment started, confirmation not in yet.",
+			"icon": "clock",
+			"attributes": {
+				"value": "pending"
+			},
+			"scope": [
+				"block",
+				"transform"
+			],
+			"isActive": [
+				"value"
+			]
+		},
+		{
+			"name": "failed",
+			"title": "Failed",
+			"description": "The payment did not go through.",
+			"icon": "warning",
+			"attributes": {
+				"value": "failed"
 			},
 			"scope": [
 				"block",

@@ -18,6 +18,10 @@ namespace PinkCrab\Gated_Access\Payments;
  * deliveries, so each status mover is a single conditional update — move from
  * exactly one state, and let affected-rows answer who was first. One
  * statement, no gap between checking and writing, nothing else stored.
+ *
+ * @SuppressWarnings(PHPMD.TooManyPublicMethods) Eleven queries against one
+ * table. Splitting them would put two owners on `{prefix}gatedmedia_payments`
+ * to satisfy a counter, which is the rule this class exists to keep.
  */
 class Payment_Store {
 
@@ -204,6 +208,36 @@ class Payment_Store {
 				"SELECT * FROM {$table} ORDER BY id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Our own table; the name is not user input.
 				$per_page,
 				$offset
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( Payment::class, 'from_row' ), is_array( $rows ) ? $rows : array() );
+	}
+
+	/**
+	 * One person's payments, newest first — §7.3 Orders.
+	 *
+	 * Unpaged: an account holds few enough orders that the list is one flat
+	 * read, which is the same reason §7.3 has no filter.
+	 *
+	 * @param int $user_id Whose orders.
+	 * @return array<int, Payment>
+	 */
+	public function for_user( int $user_id ): array {
+		global $wpdb;
+
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		$table = Payments_Schema::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own table.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE user_id = %d ORDER BY id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Our own table; the name is not user input.
+				$user_id
 			),
 			ARRAY_A
 		);

@@ -29,6 +29,10 @@ $gatedmedia_values = array(
 	'active'   => array( 'i-active', __( 'Active', 'gated-media-access' ) ),
 	'expired'  => array( 'i-blocked', __( 'Expired', 'gated-media-access' ) ),
 	'revoked'  => array( 'i-revoked', __( 'Revoked', 'gated-media-access' ) ),
+	// A payment's own two states (Payment::STATUS_*), which §6.6's table
+	// predates: an order can be waiting on Stripe or have failed outright.
+	'pending'  => array( 'i-clock', __( 'Pending', 'gated-media-access' ) ),
+	'failed'   => array( 'i-error', __( 'Failed', 'gated-media-access' ) ),
 );
 
 if ( ! isset( $gatedmedia_values[ $gatedmedia_value ] ) ) {
