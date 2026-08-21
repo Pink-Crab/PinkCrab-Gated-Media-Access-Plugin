@@ -47,9 +47,10 @@ class Settings_Page implements Hookable {
 	/**
 	 * Reads back what the form displays.
 	 *
-	 * @param Settings $settings The one settings reader.
+	 * @param Settings            $settings      The one settings reader.
+	 * @param Notification_Fields $notifications The Notifications tab's fields.
 	 */
-	public function __construct( private Settings $settings ) {
+	public function __construct( private Settings $settings, private Notification_Fields $notifications ) {
 	}
 
 	/**
@@ -129,6 +130,8 @@ class Settings_Page implements Hookable {
 	public function render_settings(): void {
 		$mode      = $this->settings->stripe_mode();
 		$behaviour = $this->settings->revoke_behaviour();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Chooses which tab renders; the write handler carries the nonce.
+		$section = isset( $_GET['section'] ) ? sanitize_key( (string) $_GET['section'] ) : '';
 		?>
 		<div class="wrap">
 			<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>">
@@ -142,6 +145,14 @@ class Settings_Page implements Hookable {
 						<button type="submit" class="gatedmedia-admin-button"><?php esc_html_e( 'Save Changes', 'gated-media-access' ); ?></button>
 					</header>
 
+					<nav class="gatedmedia-admin-tabs">
+						<a class="<?php echo 'notifications' === $section ? '' : 'is-active'; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) ); ?>"><?php esc_html_e( 'General', 'gated-media-access' ); ?></a>
+						<a class="<?php echo 'notifications' === $section ? 'is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG . '&section=notifications' ) ); ?>"><?php esc_html_e( 'Notifications', 'gated-media-access' ); ?></a>
+					</nav>
+
+					<?php if ( 'notifications' === $section ) : ?>
+						<?php $this->notifications->render(); ?>
+					<?php else : ?>
 					<div class="gatedmedia-admin-section-head">
 						<h2><?php esc_html_e( 'Store', 'gated-media-access' ); ?></h2>
 						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Currency and address', 'gated-media-access' ); ?></span>
@@ -181,8 +192,8 @@ class Settings_Page implements Hookable {
 						<p class="gatedmedia-admin-help"><?php esc_html_e( 'Which set of keys checkout and the webhook use.', 'gated-media-access' ); ?></p>
 					</div>
 
-					<?php $this->render_key_rows( Settings::MODE_TEST, __( 'Test', 'gated-media-access' ) ); ?>
-					<?php $this->render_key_rows( Settings::MODE_LIVE, __( 'Live', 'gated-media-access' ) ); ?>
+						<?php $this->render_key_rows( Settings::MODE_TEST, __( 'Test', 'gated-media-access' ) ); ?>
+						<?php $this->render_key_rows( Settings::MODE_LIVE, __( 'Live', 'gated-media-access' ) ); ?>
 
 					<div class="gatedmedia-admin-section-head">
 						<h2><?php esc_html_e( 'Access', 'gated-media-access' ); ?></h2>
@@ -198,6 +209,7 @@ class Settings_Page implements Hookable {
 						</select>
 						<p class="gatedmedia-admin-help"><?php esc_html_e( 'What the Revoke action on the Access list does.', 'gated-media-access' ); ?></p>
 					</div>
+					<?php endif; ?>
 				</div>
 			</form>
 		</div>

@@ -31,7 +31,7 @@ class Test_Settings extends WP_UnitTestCase {
 		parent::set_up();
 
 		$this->settings = new Settings();
-		$this->page     = new Settings_Page( $this->settings );
+		$this->page     = new Settings_Page( $this->settings, new \PinkCrab\Gated_Access\Settings\Notification_Fields( $this->settings ) );
 	}
 
 	public function tear_down(): void {

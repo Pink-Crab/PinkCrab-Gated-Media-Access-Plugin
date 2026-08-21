@@ -201,7 +201,7 @@ Native wp-admin: core list tables, no admin framework. Every screen
 requires a capability rather than a role, and every capability is filtered
 (`gatedmedia_give_access_capability` and its three siblings), so a site
 decides who does what without touching us. Since round 6 the plugin's own
-pages (Settings, Notifications, the payment detail) speak the product
+pages (the tabbed Settings screen and the payment detail) speak the product
 editor's designed language — the `.gatedmedia-admin` classes in
 `assets/scss/admin.scss`, whose values mirror the block's `STYLES` map.
 
@@ -338,7 +338,8 @@ default) → placeholders (`{name}`, `{item}`, `{link}`, `{expires}`,
 through its own system listens on the action and empties the recipients —
 our send stops, theirs starts. Per-type switches, subject/body overrides,
 an admin-copy address and the warning lead time all live in the one
-`gatedmedia_settings` option, edited on the designed Notifications page.
+`gatedmedia_settings` option, edited on the Settings screen's
+Notifications tab (`&section=notifications`).
 
 **Access created** (`Access_Created_Mail`) listens on the writer's
 `gatedmedia_access_granted` — whichever route granted. Grants queue per

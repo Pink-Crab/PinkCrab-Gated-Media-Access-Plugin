@@ -1,6 +1,6 @@
 <?php
 /**
- * The Notifications settings screen.
+ * The notification fields of the Settings screen.
  *
  * @package PinkCrab\Gated_Access
  */
@@ -9,27 +9,19 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Settings;
 
-use PinkCrab\Loader\Hook_Loader;
-use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Notifications\Notification_Sender;
-use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * Every email the plugin sends, on one designed page (Stitch project
- * 17998674859270043397, "Artisanal Notifications Settings"): the delivery
- * settings — admin copies and the expiry warning lead time — and a
- * template panel per notification type with its switch, subject, body and
- * the token legend.
+ * The Notifications tab's body (Stitch project 17998674859270043397,
+ * "Artisanal Notifications Settings"): the delivery settings — admin copies
+ * and the expiry warning lead time — and a template panel per notification
+ * type with its switch, subject, body and the token legend.
  *
- * Writes through the same Settings API group as the Settings page — one
- * option, `Settings_Page::sanitize()` cleans both screens' submits. Each
- * switch renders a hidden '0' before its checkbox, so unticking actually
- * stores the off.
+ * `Settings_Page` owns the page, the form and the tabs; this renders the
+ * fields inside them. Each switch renders a hidden '0' before its checkbox,
+ * so unticking actually stores the off.
  */
-class Notifications_Page implements Hookable {
-
-	/** The page's `page` query arg. */
-	public const PAGE_SLUG = 'gatedmedia-notifications';
+class Notification_Fields {
 
 	/**
 	 * Reads back what the form displays.
@@ -40,64 +32,23 @@ class Notifications_Page implements Hookable {
 	}
 
 	/**
-	 * The menu entry, under the plugin menu beside Settings.
-	 *
-	 * @param Hook_Loader $loader The shared loader.
-	 */
-	public function register_hooks( Hook_Loader $loader ): void {
-		$loader->admin_action( 'admin_menu', array( $this, 'register_page' ) );
-	}
-
-	/**
-	 * Adds the page behind the manage-settings capability.
-	 */
-	public function register_page(): void {
-		add_submenu_page(
-			Settings_Page::MENU_SLUG,
-			__( 'Notifications', 'gated-media-access' ),
-			__( 'Notifications', 'gated-media-access' ),
-			Capabilities::manage_settings(),
-			self::PAGE_SLUG,
-			array( $this, 'render' )
-		);
-	}
-
-	/**
-	 * The whole page: header, delivery, one panel per notification type.
+	 * The whole tab: delivery, then one panel per notification type.
 	 */
 	public function render(): void {
+		$this->render_delivery();
 		?>
-		<div class="wrap">
-			<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>">
-				<?php settings_fields( Settings_Page::GROUP ); ?>
-				<div class="gatedmedia-admin">
-					<header class="gatedmedia-admin-header">
-						<div>
-							<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Notification settings', 'gated-media-access' ); ?></span>
-							<h1><?php esc_html_e( 'Notifications', 'gated-media-access' ); ?></h1>
-						</div>
-						<button type="submit" class="gatedmedia-admin-button"><?php esc_html_e( 'Save Changes', 'gated-media-access' ); ?></button>
-					</header>
-
-					<?php $this->render_delivery(); ?>
-
-					<div class="gatedmedia-admin-section-head">
-						<h2><?php esc_html_e( 'Templates', 'gated-media-access' ); ?></h2>
-						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Subject and body per email', 'gated-media-access' ); ?></span>
-					</div>
-
-					<?php
-					$first = true;
-
-					foreach ( Notification_Sender::types() as $type => $label ) {
-						$this->render_panel( $type, $label, $first );
-						$first = false;
-					}
-					?>
-				</div>
-			</form>
+		<div class="gatedmedia-admin-section-head">
+			<h2><?php esc_html_e( 'Templates', 'gated-media-access' ); ?></h2>
+			<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Subject and body per email', 'gated-media-access' ); ?></span>
 		</div>
 		<?php
+
+		$first = true;
+
+		foreach ( Notification_Sender::types() as $type => $label ) {
+			$this->render_panel( $type, $label, $first );
+			$first = false;
+		}
 	}
 
 	/**

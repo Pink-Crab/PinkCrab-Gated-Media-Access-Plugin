@@ -11,7 +11,6 @@ namespace PinkCrab\Gated_Access;
 
 use Dice\Dice;
 use PinkCrab\Loader\Hook_Loader;
-use PinkCrab\Gated_Access\Settings\Notifications_Page;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
 use PinkCrab\Gated_Access\Blocks\Block_Registrar;
@@ -100,7 +99,6 @@ class Plugin {
 		Profile_Writer::class,
 		View_Data::class,
 		Settings_Page::class,
-		Notifications_Page::class,
 		Access_Filters::class,
 		Access_List::class,
 		Add_Access_Page::class,
