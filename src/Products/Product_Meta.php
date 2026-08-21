@@ -38,6 +38,9 @@ class Product_Meta implements Hookable {
 	public const META_ITEMS      = 'gatedmedia_items';
 	public const META_EMAILS     = 'gatedmedia_allowed_email';
 
+	/** The per-product invite switch — '0' off, anything else on. */
+	public const META_SEND_INVITES = 'gatedmedia_send_invites';
+
 	/**
 	 * The currency stamp reads settings; stored item rows label through the
 	 * taxonomy's UUID identity.
@@ -117,6 +120,7 @@ class Product_Meta implements Hookable {
 					'digits'     => \Symfony\Component\Intl\Currencies::getFractionDigits( $currency ),
 					'nonce'      => wp_create_nonce( \PinkCrab\Gated_Access\Admin\Picker_Search::NONCE ),
 					'itemLabels' => $this->item_labels( (int) get_the_ID() ),
+					'invites'    => $this->invite_dates( (int) get_the_ID() ),
 				)
 			) . ';',
 			'before'
@@ -159,6 +163,32 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
+	 * When each allow-list address was invited, dated for a person — the
+	 * block's status column, keyed as the rows are.
+	 *
+	 * @param int $product_id The product being edited, 0 on Add New.
+	 * @return array<string, string> Address to display date.
+	 */
+	private function invite_dates( int $product_id ): array {
+		if ( 0 === $product_id ) {
+			return array();
+		}
+
+		$stored = json_decode( (string) get_post_meta( $product_id, Invites::META_INVITES, true ), true );
+		$dates  = array();
+
+		foreach ( ( is_array( $stored ) ? array_map( 'strval', $stored ) : array() ) as $address => $sent ) {
+			$timestamp = strtotime( $sent . ' +0000' );
+
+			if ( false !== $timestamp ) {
+				$dates[ $address ] = date_i18n( (string) get_option( 'date_format' ), $timestamp );
+			}
+		}
+
+		return $dates;
+	}
+
+	/**
 	 * One definition per key (spec §1a) — in REST for the block, every
 	 * write behind manage-products, rows validated by their sanitizers.
 	 *
@@ -176,35 +206,43 @@ class Product_Meta implements Hookable {
 		);
 
 		return array(
-			self::META_UUID       => $single_text,
-			self::META_PRICE      => array(
+			self::META_UUID         => $single_text,
+			self::META_PRICE        => array(
 				'type'              => 'integer',
 				'single'            => true,
 				'show_in_rest'      => true,
 				'sanitize_callback' => 'absint',
 				'auth_callback'     => $manager,
 			),
-			self::META_CURRENCY   => $single_text,
-			self::META_DURATION   => $single_text,
-			self::META_VISIBILITY => array(
+			self::META_CURRENCY     => $single_text,
+			self::META_DURATION     => $single_text,
+			self::META_VISIBILITY   => array(
 				'type'              => 'string',
 				'single'            => true,
 				'show_in_rest'      => true,
 				'sanitize_callback' => static fn ( $value ): string => 'unlisted' === $value ? 'unlisted' : 'listed',
 				'auth_callback'     => $manager,
 			),
-			self::META_ITEMS      => array(
+			self::META_ITEMS        => array(
 				'type'              => 'string',
 				'single'            => false,
 				'show_in_rest'      => true,
 				'sanitize_callback' => static fn ( $value ): string => is_string( $value ) && 1 === preg_match( '/^(file|post|group):.+$/', $value ) ? $value : '',
 				'auth_callback'     => $manager,
 			),
-			self::META_EMAILS     => array(
+			self::META_EMAILS       => array(
 				'type'              => 'string',
 				'single'            => false,
 				'show_in_rest'      => true,
 				'sanitize_callback' => 'sanitize_email',
+				'auth_callback'     => $manager,
+			),
+
+			self::META_SEND_INVITES => array(
+				'type'              => 'string',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'sanitize_callback' => static fn ( $value ): string => '0' === $value ? '0' : '1',
 				'auth_callback'     => $manager,
 			),
 		);

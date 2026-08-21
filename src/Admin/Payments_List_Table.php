@@ -189,12 +189,17 @@ class Payments_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * The public identifier — what support asks for and Stripe echoes back.
+	 * The public identifier — what support asks for and Stripe echoes back,
+	 * linked to the payment's own page.
 	 *
 	 * @param Payment $item The row.
 	 */
 	public function column_reference( Payment $item ): string {
-		return sprintf( '<code>%s</code>', esc_html( $item->uuid ) );
+		return sprintf(
+			'<a href="%s"><code>%s</code></a>',
+			esc_url( Payment_Detail_Page::url_for( $item->uuid ) ),
+			esc_html( $item->uuid )
+		);
 	}
 
 	/**

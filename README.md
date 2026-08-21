@@ -213,10 +213,13 @@ because short prefixes collide.
 
 ## The admin screens
 
-Native wp-admin: core list tables, core CSS, no admin framework. Every screen
+Native wp-admin: core list tables, no admin framework. Every screen
 requires a capability rather than a role, and every capability is filtered
 (`gatedmedia_give_access_capability` and its three siblings), so a site
-decides who does what without touching us.
+decides who does what without touching us. Since round 6 the plugin's own
+pages (the tabbed Settings screen and the payment detail) speak the product
+editor's designed language — the `.gatedmedia-admin` classes in
+`assets/scss/admin.scss`, whose values mirror the block's `STYLES` map.
 
 **The Access screen is core's list table, re-columned.** The `gatedmedia_access`
 post type turned `show_ui` on for exactly this — the list, the search and the
@@ -321,6 +324,12 @@ is minted by the shared `Support\Uuid` (the same key groups carry), and
 `get_permalink()` answers the UUID URL so every redirect points the one
 way. Products and coupons both sit behind `gatedmedia_manage_products`.
 
+**One payment, whole.** The Payments list's Reference column links each row
+to `Payment_Detail_Page` — hidden like the Edit Access page
+(`add_submenu_page( '', … )`), behind the same view capability, read-only:
+the row's facts as Stripe left them, and every access record the payment's
+reference wrote, each linked to its Edit Access view.
+
 **The shop face.** The product page is the product's own post: the rewrite maps
 `/{product_path}/{uuid}` to its single query, so the theme renders it like any
 other post and `product-details` draws §7.6 inside `the_content`. There is no
@@ -353,6 +362,48 @@ the revoke behaviour. `Support\Money` formats any ISO currency — ICU data
 through the intl extension where loaded, symfony/intl's bundled copy where
 not, and the browser's own `Intl` in the editor — with zero always the
 word "Free".
+
+## Notifications
+
+Round 6 gave the plugin a voice. Six emails, none load-bearing: if no mail
+ever left the site, access would still resolve exactly the same.
+
+**One sender owns the contract.** Every email goes through
+`Notification_Sender::send()`: the stored template override (or the shipped
+default) → placeholders (`{name}`, `{item}`, `{link}`, `{expires}`,
+`{site}`) → the `gatedmedia_notification_recipients` filter → the
+`gatedmedia_notification_content` filter → the
+`gatedmedia_notification_sending` action → `wp_mail()`. A site that mails
+through its own system listens on the action and empties the recipients —
+our send stops, theirs starts. Per-type switches, subject/body overrides,
+an admin-copy address and the warning lead time all live in the one
+`gatedmedia_settings` option, edited on the Settings screen's
+Notifications tab (`&section=notifications`).
+
+**Access created** (`Access_Created_Mail`) listens on the writer's
+`gatedmedia_access_granted` — whichever route granted. Grants queue per
+holder and flush once on shutdown, so a product purchase granting three
+items is one email with the items joined, `{expires}` the soonest date or
+never. Invite-sourced grants are skipped: their invite email is the
+announcement.
+
+**The expiry warning** (`Expiry_Warning`) is `Sweep`'s shape: a daily
+`gatedmedia_expiry_warnings` event scanning active records whose date falls
+inside the `expiry_warning_days` window (filtered by
+`gatedmedia_expiry_warning_days`). Lifetime records are never warned; each
+record warns once per date — the `gatedmedia_expiry_warned_at` meta is the
+bookkeeping, cleared when a record is rescheduled so a new date earns a new
+warning.
+
+**Invites** (`Products\Invites`) fire when an address joins a published
+product's allow-list, gated by the block's per-product switch and the
+per-type switches. Four variants by who they are and what it costs:
+an existing user on a free product is granted on the spot (through
+`Checkout::grant_items()`, source `invite`) and told; an existing user on a
+priced product is invited to buy; an address with no account is asked to
+create one, worded by price. Sent dates live in one JSON map on the product
+(`gatedmedia_invites`), shown in the block's allow-list rows — removing an
+address forgets its invite, so re-adding sends afresh.
 
 ## Tests
 
