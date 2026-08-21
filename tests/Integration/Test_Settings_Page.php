@@ -46,7 +46,7 @@ class Test_Settings_Page extends WP_UnitTestCase {
 
 	/** @testdox The menu is registered behind gatedmedia_manage_settings. */
 	public function test_menu_requires_the_settings_capability(): void {
-		( new Settings_Page( new \PinkCrab\Gated_Access\Settings\Settings() ) )->register_menu();
+		( new Settings_Page( new \PinkCrab\Gated_Access\Settings\Settings(), new \PinkCrab\Gated_Access\Settings\Notification_Fields( new \PinkCrab\Gated_Access\Settings\Settings() ) ) )->register_menu();
 
 		$entry = $this->menu_entry();
 
