@@ -81,7 +81,6 @@
 	$sans: inter, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, sans-serif;
 	$serif: georgia, "Iowan Old Style", "Times New Roman", serif;
 
-	max-width: 820px;
 	margin: 24px 24px 24px 4px;
 	background: #fff;
 	border: $panel-rule;
@@ -222,12 +221,14 @@
 	}
 
 	.gatedmedia-admin-button {
-		display: inline-block;
+		display: inline-flex;
+		align-items: center;
 		font-family: $sans;
 		font-size: 11px;
 		font-weight: 600;
 		letter-spacing: 2px;
 		text-transform: uppercase;
+		text-decoration: none;
 		border: none;
 		border-radius: 0;
 		cursor: pointer;
