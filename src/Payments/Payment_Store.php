@@ -19,9 +19,11 @@ namespace PinkCrab\Gated_Access\Payments;
  * exactly one state, and let affected-rows answer who was first. One
  * statement, no gap between checking and writing, nothing else stored.
  *
- * @SuppressWarnings(PHPMD.TooManyPublicMethods) Eleven queries against one
- * table. Splitting them would put two owners on `{prefix}gatedmedia_payments`
- * to satisfy a counter, which is the rule this class exists to keep.
+ * Eleven public methods, all queries against the one table. Splitting them
+ * would put two owners on `{prefix}gatedmedia_payments` to satisfy a counter,
+ * which is the rule this class exists to keep.
+ *
+ * @SuppressWarnings("PHPMD.TooManyPublicMethods")
  */
 class Payment_Store {
 

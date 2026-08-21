@@ -79,6 +79,10 @@ class Orders_View_Data implements Hookable {
 			return $data;
 		}
 
+		// Where "back to orders" goes, derived rather than chopped off an
+		// order's own URL.
+		$data['section_url'] = $this->section_url();
+
 		if ( '' !== $detail ) {
 			$data['detail'] = $this->detail( $detail, $user_id );
 
@@ -340,9 +344,16 @@ class Orders_View_Data implements Hookable {
 	 * @param string $uuid The payment.
 	 */
 	private function url( string $uuid ): string {
+		return $this->section_url() . $uuid . '/';
+	}
+
+	/**
+	 * The Orders section itself.
+	 */
+	private function section_url(): string {
 		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );
 		$slug = is_string( $slug ) && '' !== $slug ? $slug : 'account';
 
-		return home_url( sprintf( '/%s/orders/%s/', $slug, $uuid ) );
+		return home_url( sprintf( '/%s/orders/', $slug ) );
 	}
 }

@@ -87,11 +87,14 @@ if ( '' !== $gatedmedia_order_id ) {
 	} else {
 		$gatedmedia_status = (string) ( $gatedmedia_detail['status'] ?? 'complete' );
 
+		// Built from the section's own URL rather than by chopping the
+		// order's: an empty href would make dirname() answer '.' and the link
+		// would point at the page it is on.
 		$gatedmedia_back = Block::render(
 			'gated-media-access/button',
 			array(
 				'label'   => __( 'Back to orders', 'gated-media-access' ),
-				'href'    => remove_query_arg( 'new_order', trailingslashit( dirname( untrailingslashit( (string) ( $gatedmedia_detail['href'] ?? '' ) ) ) ) ),
+				'href'    => (string) ( $gatedmedia_data['section_url'] ?? '' ),
 				'variant' => 'link',
 				'icon'    => 'i-back',
 			)
