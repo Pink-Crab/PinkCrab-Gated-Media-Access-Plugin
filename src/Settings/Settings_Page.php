@@ -270,6 +270,57 @@ class Settings_Page implements Hookable {
 
 		$clean = $this->sanitize_keys( $input, $clean );
 
+		return $this->sanitize_notifications( $input, $clean );
+	}
+
+	/**
+	 * The notification keys: a switch and a subject/body override per type,
+	 * the admin-copy pair, and the warning lead time.
+	 *
+	 * @param array<string, mixed>  $input What options.php handed over.
+	 * @param array<string, string> $clean The cleaned settings so far.
+	 * @return array<string, string>
+	 */
+	private function sanitize_notifications( array $input, array $clean ): array {
+		$clean = $this->sanitize_templates( $input, $clean );
+
+		if ( isset( $input['admin_copy'] ) ) {
+			$clean['admin_copy'] = '1' === (string) $input['admin_copy'] ? '1' : '0';
+		}
+
+		if ( isset( $input['admin_copy_address'] ) ) {
+			$clean['admin_copy_address'] = sanitize_email( (string) $input['admin_copy_address'] );
+		}
+
+		if ( isset( $input['expiry_warning_days'] ) ) {
+			$clean['expiry_warning_days'] = (string) max( 1, absint( $input['expiry_warning_days'] ) );
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Each notification type's switch and subject/body override.
+	 *
+	 * @param array<string, mixed>  $input What options.php handed over.
+	 * @param array<string, string> $clean The cleaned settings so far.
+	 * @return array<string, string>
+	 */
+	private function sanitize_templates( array $input, array $clean ): array {
+		foreach ( array_keys( \PinkCrab\Gated_Access\Notifications\Notification_Sender::types() ) as $type ) {
+			if ( isset( $input[ "notify_{$type}" ] ) ) {
+				$clean[ "notify_{$type}" ] = '0' === (string) $input[ "notify_{$type}" ] ? '0' : '1';
+			}
+
+			if ( isset( $input[ "template_{$type}_subject" ] ) ) {
+				$clean[ "template_{$type}_subject" ] = sanitize_text_field( (string) $input[ "template_{$type}_subject" ] );
+			}
+
+			if ( isset( $input[ "template_{$type}_body" ] ) ) {
+				$clean[ "template_{$type}_body" ] = sanitize_textarea_field( (string) $input[ "template_{$type}_body" ] );
+			}
+		}
+
 		return $clean;
 	}
 

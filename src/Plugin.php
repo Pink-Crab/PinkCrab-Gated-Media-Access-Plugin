@@ -26,6 +26,7 @@ use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Access\Sweep;
+use PinkCrab\Gated_Access\Notifications\Access_Created_Mail;
 use PinkCrab\Gated_Access\Payments\Access_Grant_Route;
 use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Payments\Payment_Status_Route;
@@ -78,6 +79,7 @@ class Plugin {
 		Restriction::class,
 		Post_Boundary::class,
 		Sweep::class,
+		Access_Created_Mail::class,
 		Payments_Schema::class,
 		Product_Meta::class,
 		Product_Route::class,
