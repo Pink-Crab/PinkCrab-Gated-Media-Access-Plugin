@@ -165,4 +165,14 @@ onReady( () => {
 				encodeURIComponent( days?.value || '' );
 		}
 	} );
+
+	// The Notifications page's template panels: the enabled checkbox sits in
+	// the <summary>, and ticking it must not also fold the panel.
+	document
+		.querySelectorAll( '.gatedmedia-admin-panel summary label' )
+		.forEach( ( label ) => {
+			label.addEventListener( 'click', ( event ) =>
+				event.stopPropagation()
+			);
+		} );
 } );
