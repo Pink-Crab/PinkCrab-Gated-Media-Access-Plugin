@@ -22,7 +22,7 @@ import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { useBlockProps } from '@wordpress/block-editor';
 import { CheckboxControl } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 import { currencyDigits } from '../../assets/js/editor/controls';
 
@@ -33,6 +33,7 @@ const META = {
 	visibility: 'gatedmedia_visibility',
 	items: 'gatedmedia_items',
 	emails: 'gatedmedia_allowed_email',
+	sendInvites: 'gatedmedia_send_invites',
 };
 
 const ENDPOINTS = {
@@ -714,6 +715,31 @@ export default function Edit() {
 					</span>
 				</div>
 
+				<div style={ { ...STYLES.checkboxWrap, marginLeft: 0 } }>
+					<CheckboxControl
+						label={
+							<span
+								style={ {
+									...STYLES.caps,
+									display: 'inline-block',
+									marginLeft: '6px',
+									lineHeight: 1.7,
+								} }
+							>
+								{ __(
+									'Send invite emails to new addresses',
+									'gated-media-access'
+								) }
+							</span>
+						}
+						checked={ '0' !== ( meta[ META.sendInvites ] || '1' ) }
+						onChange={ ( send ) =>
+							set( META.sendInvites, send ? '1' : '0' )
+						}
+						__nextHasNoMarginBottom
+					/>
+				</div>
+
 				<div style={ STYLES.inviteBar }>
 					<div
 						style={ {
@@ -773,8 +799,18 @@ export default function Edit() {
 										gap: '16px',
 									} }
 								>
-									{ /* Round 6's invite status (INVITED /
-									     ACTIVE, resend) renders here. */ }
+									{ ( shop.invites || {} )[ address ] && (
+										<span style={ STYLES.caps }>
+											{ sprintf(
+												/* translators: %s: date the invite email went out. */
+												__(
+													'Invited %s',
+													'gated-media-access'
+												),
+												shop.invites[ address ]
+											) }
+										</span>
+									) }
 									<button
 										type="button"
 										style={ {

@@ -33,6 +33,7 @@ use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Payments\Payment_Status_Route;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Payments\Stripe_Webhook;
+use PinkCrab\Gated_Access\Products\Invites;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Products\Product_Route;
 use PinkCrab\Gated_Access\Account\View_Data;
@@ -85,6 +86,7 @@ class Plugin {
 		Payments_Schema::class,
 		Product_Meta::class,
 		Product_Route::class,
+		Invites::class,
 		Checkout_Action::class,
 		Payment_Status_Route::class,
 		Stripe_Webhook::class,
