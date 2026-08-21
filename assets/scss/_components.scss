@@ -757,3 +757,53 @@ textarea.gatedmedia-field__input {
 .gatedmedia-summary {
 	@include meta-secondary;
 }
+
+// -----------------------------------------------------------------------------
+// §7.8 Payment status.
+//
+// Centred, because it is the whole of what the page is saying — a buyer back
+// from Stripe is waiting for one answer, and everything else on the order
+// detail is beneath it.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-payment-status {
+	text-align: center;
+	padding: var(--gatedmedia-xl) var(--gatedmedia-lg);
+	border: var(--gatedmedia-hairline);
+	border-radius: var(--gatedmedia-radius);
+
+	> * + * {
+		margin-top: var(--gatedmedia-md);
+	}
+
+	&__icon {
+		width: 40px;
+		height: 40px;
+	}
+
+	&__action {
+		margin-top: var(--gatedmedia-lg);
+	}
+}
+
+// The confirming state's spinner. Reduced motion gets a still ring rather than
+// nothing, so the state still reads as "working".
+.gatedmedia-spinner {
+	width: 40px;
+	height: 40px;
+	margin: 0 auto;
+	border: 3px solid var(--gatedmedia-outline-variant);
+	border-top-color: var(--gatedmedia-on-surface);
+	border-radius: 50%;
+	animation: gatedmedia-spin 900ms linear infinite;
+
+	@media ( prefers-reduced-motion: reduce ) {
+		animation: none;
+	}
+}
+
+@keyframes gatedmedia-spin {
+	to {
+		transform: rotate( 360deg );
+	}
+}

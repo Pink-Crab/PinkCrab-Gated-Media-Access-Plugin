@@ -65,6 +65,23 @@ const VALUES = [
 		symbol: 'i-revoked',
 		help: __( 'Withdrawn by an administrator.', 'gated-media-access' ),
 	},
+	{
+		value: 'pending',
+		title: __( 'Pending', 'gated-media-access' ),
+		icon: 'clock',
+		symbol: 'i-clock',
+		help: __(
+			'Payment started, and Stripe has not confirmed it yet.',
+			'gated-media-access'
+		),
+	},
+	{
+		value: 'failed',
+		title: __( 'Failed', 'gated-media-access' ),
+		icon: 'warning',
+		symbol: 'i-error',
+		help: __( 'The payment did not go through.', 'gated-media-access' ),
+	},
 ];
 
 export default function Edit( { attributes, setAttributes } ) {

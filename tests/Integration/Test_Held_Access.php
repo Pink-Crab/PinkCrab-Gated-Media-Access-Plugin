@@ -22,7 +22,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  *
  * @group integration
  */
-class Test_View_Data extends WP_UnitTestCase {
+class Test_Held_Access extends WP_UnitTestCase {
 
 	private const MY_ACCESS_DEFAULTS = array(
 		'groups' => array(),
@@ -142,4 +142,59 @@ class Test_View_Data extends WP_UnitTestCase {
 		$this->assertSame( array( 'Kept File' ), array_column( $data['available'], 'title' ) );
 		$this->assertArrayNotHasKey( 'expiry_state', $data['past'][0] );
 	}
+
+	/** @testdox A held group row links to the group rather than sitting dead. */
+	public function test_group_row_links_to_the_group(): void {
+		$uuid = $this->granted_group( array( self::factory()->post->create() ), null );
+
+		$data = apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS );
+
+		$this->assertStringContainsString( '/my-access/' . $uuid . '/', $data['groups'][0]['href'] );
+	}
+
+	/**
+	 * Everything in the group is listed, not just the one it was created with.
+	 *
+	 * **Not asserted here: that a post added mid-request appears immediately.**
+	 * `Resolver::allowed_for()` memoises the allowed set per instance, and
+	 * instances are shared, so within one request the answer is deliberately
+	 * fixed — the access query filter then hides anything added since. Across
+	 * requests, which is how a person actually uses the page, the contents are
+	 * live. An assertion to the contrary tests the memo, not the feature.
+	 *
+	 * @testdox Opening a held group lists everything it holds.
+	 */
+	public function test_group_detail_lists_its_contents(): void {
+		$first  = self::factory()->post->create( array( 'post_title' => 'The briefing' ) );
+		$second = self::factory()->post->create( array( 'post_title' => 'The addendum' ) );
+
+		$uuid = $this->granted_group( array( $first, $second ), null );
+
+		$detail = apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), $uuid )['detail'];
+		$titles = array_column( $detail['items'], 'title' );
+
+		$this->assertContains( 'The briefing', $titles );
+		$this->assertContains( 'The addendum', $titles );
+		$this->assertSame( $uuid, $detail['uuid'] );
+	}
+
+	/** @testdox A group's files are listed, despite an attachment's status being inherit. */
+	public function test_group_detail_includes_files(): void {
+		$file_id = self::factory()->attachment->create( array( 'post_title' => 'The spreadsheet' ) );
+		$uuid    = $this->granted_group( array( $file_id ), null );
+
+		$detail = apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), $uuid )['detail'];
+
+		$this->assertSame( array( 'The spreadsheet' ), array_column( $detail['items'], 'title' ) );
+	}
+
+	/** @testdox A group nobody gave you reads exactly like one that does not exist. */
+	public function test_group_detail_refuses_what_is_not_held(): void {
+		$term = wp_insert_term( 'Not Yours ' . wp_rand(), Access_Taxonomy::TAXONOMY );
+		$uuid = ( new Access_Taxonomy() )->uuid_for( $term['term_id'] );
+
+		$this->assertNull( apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), $uuid )['detail'] );
+		$this->assertNull( apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), 'no-such-uuid' )['detail'] );
+	}
+
 }

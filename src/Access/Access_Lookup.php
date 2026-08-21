@@ -137,4 +137,43 @@ class Access_Lookup {
 
 		return array_map( 'intval', $ids );
 	}
+
+	/**
+	 * Access this person once had for an item and no longer does.
+	 *
+	 * The sibling of `records_for_item()`, looking the other way: expired and
+	 * revoked rather than active. §7.6's lapsed state is the whole reason —
+	 * a product page says "your access to this ended" rather than offering it
+	 * as though it had never been bought.
+	 *
+	 * @param int    $user_id   Whose access.
+	 * @param string $item_type group, post or file.
+	 * @param string $item_id   The item's identifier.
+	 * @return array<int, int>
+	 */
+	public function past_records_for_item( int $user_id, string $item_type, string $item_id ): array {
+		$ids = get_posts(
+			array(
+				'post_type'      => Post_Types::ACCESS,
+				'post_status'    => array( Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
+				'author'         => $user_id,
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One product page view; the item pair is the whole condition.
+				'meta_query'     => array(
+					array(
+						'key'   => Access_Writer::META_ITEM_TYPE,
+						'value' => $item_type,
+					),
+					array(
+						'key'   => Access_Writer::META_ITEM_ID,
+						'value' => $item_id,
+					),
+				),
+			)
+		);
+
+		return array_map( 'intval', $ids );
+	}
 }

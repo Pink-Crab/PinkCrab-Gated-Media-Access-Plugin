@@ -79,7 +79,11 @@ $gatedmedia_field = do_blocks(
 		'<!-- wp:gated-media-access/field %s /-->',
 		(string) wp_json_encode(
 			array(
-				'name'  => 'gatedmedia-coupon',
+				// The name Checkout_Action reads off the buy submit — an
+				// underscore, matching `$_POST['gatedmedia_coupon']`. A hyphen
+				// here would post a field nothing collects, and the purchase
+				// would go through at full price without saying so.
+				'name'  => 'gatedmedia_coupon',
 				'label' => $gatedmedia_label,
 				'value' => $gatedmedia_code,
 				'error' => isset( $attributes['error'] ) ? (string) $attributes['error'] : '',

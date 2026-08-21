@@ -115,6 +115,39 @@
 }
 
 // -----------------------------------------------------------------------------
+// §7.6 Product
+//
+// A single thing being read, so it takes the reading cap rather than the list
+// one — and it sits inside the theme's content area, which has already drawn
+// the product's title.
+//
+// The rhythm is 24px throughout, with the contents fenced by hairlines rather
+// than by a larger gap — the divider is what separates here, so a 48px section
+// break as well would leave the page floating apart. Without any of it the
+// notice, contents, price and buy form stack flush with no air at all.
+// -----------------------------------------------------------------------------
+
+.gatedmedia-view--product {
+	max-width: var(--gatedmedia-cap-read);
+
+	> * + * {
+		margin-top: var(--gatedmedia-lg);
+	}
+
+	> :first-child {
+		margin-top: 0;
+	}
+}
+
+// The buy control: the hidden fields carry no height, so this is the coupon
+// row above the button, and on the signed-out state the two stacked choices.
+.gatedmedia-buy {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gatedmedia-md);
+}
+
+// -----------------------------------------------------------------------------
 // §7.7, §7.8 — the two views with no shell.
 //
 // A centred column on the page background, inside a bordered card. Narrow: the

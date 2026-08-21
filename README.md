@@ -121,8 +121,24 @@ administrator can place on a page of their own, so the two routes cannot drift.
 **One rewrite rule, not one per section.** A rule per section would mean a
 third party adding one has no URL until rewrites are flushed. The rule captures
 any segment and the section list decides at runtime what is valid, so adding a
-section needs no flush, ever. A second segment is captured too, which is what
-`/account/orders/{id}` will use.
+section needs no flush, ever. A second segment is captured too, and two
+sections use it: `/account/orders/{payment-uuid}` opens one order, and
+`/account/my-access/{group-uuid}` opens one group.
+
+**A block answers its own question by filter.** A block's `render.php` cannot
+reach the container, so each raises a filter and a class answers it — the block
+stays a renderer and the query stays in a service:
+
+| block | filter | answered by |
+|---|---|---|
+| `my-access` | `gatedmedia_my_access_data` | `Held_Access`, and `Group_Contents` when a group is open |
+| `files` | `gatedmedia_files_data` | `Downloadable_Files` |
+| `orders` | `gatedmedia_orders_data` | `Order_History` |
+| `product-details` | `gatedmedia_product_data` | `Product_Offer` |
+
+Each is named for the question it answers. They were one class called
+`View_Data` until it had accumulated three unrelated jobs and a name that
+resisted none of them.
 
 An unknown section, or one the user may not see, is a **real 404** — status
 code and all, not a "not found" page served with 200.
@@ -314,6 +330,29 @@ to `Payment_Detail_Page` — hidden like the Edit Access page
 the row's facts as Stripe left them, and every access record the payment's
 reference wrote, each linked to its Edit Access view.
 
+**The shop face.** The product page is the product's own post: the rewrite maps
+`/{product_path}/{uuid}` to its single query, so the theme renders it like any
+other post and `product-details` draws §7.6 inside `the_content`. There is no
+separate product route or template. Six states decide what is offered —
+signed out, already held, lapsed, not eligible, free, for sale — and holding it
+outranks every other message. `Product_Offer` chooses the state; `Checkout`
+decides what may actually happen and is asked again on submit, so a page that
+offered a control it should not have still could not buy anything. The buy
+control is a form to `admin-post.php`, coupon riding along in the same submit.
+
+**There is no payment return page.** Stripe returns the buyer to the order
+itself — `/account/orders/{uuid}?new_order={uuid}` — and the `payment-status`
+block draws confirming, done or failed from the row's own status. The thank-you
+shows only when the query arg names that very payment *and* the payment belongs
+to whoever is looking; anyone pasting somebody else's uuid gets the ordinary
+page. One screen, server-rendered: `Payment_Status_Route` exists for the live
+version and is deliberately not wired yet.
+
+**A held group opens.** `/account/my-access/{group-uuid}` lists what the group
+holds now — groups are live, so it is a query, not the set as it was when access
+was granted. Holding the group is the whole permission: a group nobody gave you
+and a uuid that never existed answer the same nothing.
+
 **Settings** gained its own submenu entry and the round's fields: the shop
 currency (a real ISO list — every product is priced and stamped in it),
 the product URL path, the Stripe mode with test and live key sets (secrets
@@ -398,9 +437,22 @@ These cover what the PHP suites cannot see: that the theme still renders around
 us, that a refused URL answers 404 rather than a soft one, that the sidebar and
 the tab strip never both show, and that nothing overflows the viewport.
 
-**The component fixture builds itself.** `tests/e2e/global-setup.js` runs
-`tests/e2e/fixtures/kitchen-sink.php` before the suite, which creates a page
+**The fixtures build themselves.** `tests/e2e/global-setup.js` runs each file in
+`tests/e2e/fixtures/` before the suite. `kitchen-sink.php` creates a page
 holding every component in the states §6 documents, plus the four section views.
+`shop.php` creates the products, the held group and the completed order the shop
+specs walk, and prints their URLs for the specs to read — a product's URL
+carries a uuid minted when the fixture ran, so it cannot be written down.
+
+Two things that fixture had to learn, both of which made specs pass on a clean
+database and fail on a developer's. A product created by a fixture has never
+been opened in the editor, so `Product_Route::ensure_block()` has never put the
+block delimiter in its content and the page renders nothing — the fixture writes
+the delimiter itself. And a grant for an item the person already holds on a live
+dated record is *stacked onto that record* rather than written as a new one
+(`Access_Writer::stack_onto_live()`), so the order grants an item nothing else
+does, or it would create no record carrying its reference and §7.4's "Access
+this created" would be empty.
 It used to exist only because it had been made by hand on one machine, which
 meant those specs passed there and nowhere else — a test that only passes where
 it was written reads as coverage while providing none.

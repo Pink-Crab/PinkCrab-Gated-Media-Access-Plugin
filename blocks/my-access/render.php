@@ -40,18 +40,26 @@ if ( 0 === $gatedmedia_user_id ) {
 }
 
 /**
- * Supplied by View_Data from the resolver's allowed items; the empty defaults
+ * Supplied by Held_Access, and by Group_Contents when a group is open; the
+ * empty defaults
  * are what a user holding nothing renders.
  *
  * @var array{groups: array<int, array<string, mixed>>, posts: array<int, array<string, mixed>>, files: array<int, array<string, mixed>>} $gatedmedia_data
  */
+// The second URL segment: a group's uuid, opening it rather than the list.
+$gatedmedia_group = isset( $attributes['detail'] ) && is_string( $attributes['detail'] )
+	? $attributes['detail']
+	: '';
+
 $gatedmedia_data = apply_filters(
 	'gatedmedia_my_access_data',
 	array(
 		'groups' => array(),
 		'posts'  => array(),
 		'files'  => array(),
-	)
+		'detail' => null,
+	),
+	$gatedmedia_group
 );
 
 $gatedmedia_groups = $gatedmedia_data['groups'];
@@ -136,19 +144,73 @@ $gatedmedia_file = static function ( array $item ): string {
 	);
 };
 
-$gatedmedia_body = $gatedmedia_section( __( 'Groups', 'gated-media-access' ), $gatedmedia_groups, $gatedmedia_held )
-	. $gatedmedia_section( __( 'Posts', 'gated-media-access' ), $gatedmedia_posts, $gatedmedia_held )
-	. $gatedmedia_section( __( 'Files', 'gated-media-access' ), $gatedmedia_files, $gatedmedia_file );
+if ( '' !== $gatedmedia_group ) {
+	// One group, opened. A group nobody gave you reads exactly like one that
+	// does not exist — the detail is null either way.
+	$gatedmedia_detail = is_array( $gatedmedia_data['detail'] ?? null ) ? $gatedmedia_data['detail'] : null;
 
-if ( '' === $gatedmedia_body ) {
-	$gatedmedia_body = Block::render(
-		'gated-media-access/empty-state',
-		array(
-			'icon'    => 'i-empty',
-			'title'   => __( 'Nothing here yet', 'gated-media-access' ),
-			'message' => __( 'Anything you are given access to will appear here, with the date it runs out.', 'gated-media-access' ),
+	if ( null === $gatedmedia_detail ) {
+		$gatedmedia_body = Block::render(
+			'gated-media-access/empty-state',
+			array(
+				'icon'    => 'i-empty',
+				'title'   => __( 'Group not found', 'gated-media-access' ),
+				'message' => __( 'We could not find that group on your account.', 'gated-media-access' ),
+			)
+		);
+	} else {
+		$gatedmedia_rows = '';
+
+		foreach ( (array) ( $gatedmedia_detail['items'] ?? array() ) as $gatedmedia_item ) {
+			$gatedmedia_rows .= Block::render(
+				'gated-media-access/row',
+				array(
+					'title' => (string) ( $gatedmedia_item['title'] ?? '' ),
+					'meta'  => (string) ( $gatedmedia_item['meta'] ?? '' ),
+					'href'  => (string) ( $gatedmedia_item['href'] ?? '' ),
+				)
+			);
+		}
+
+		if ( '' === $gatedmedia_rows ) {
+			$gatedmedia_rows = Block::render(
+				'gated-media-access/empty-state',
+				array(
+					'icon'    => 'i-empty',
+					'title'   => __( 'This group is empty', 'gated-media-access' ),
+					'message' => __( 'Nothing has been put in it yet. Anything added will appear here.', 'gated-media-access' ),
+				)
+			);
+		}
+
+		$gatedmedia_body = Block::render(
+			'gated-media-access/button',
+			array(
+				'label'   => __( 'Back to my access', 'gated-media-access' ),
+				'href'    => (string) ( $gatedmedia_data['section_url'] ?? '' ),
+				'variant' => 'link',
+				'icon'    => 'i-back',
+			)
 		)
-	);
+			. '<h2 class="gatedmedia-heading gatedmedia-heading--page">' . esc_html( (string) ( $gatedmedia_detail['title'] ?? '' ) ) . '</h2>'
+			. '<hr class="gatedmedia-rule" />'
+			. $gatedmedia_rows;
+	}
+} else {
+	$gatedmedia_body = $gatedmedia_section( __( 'Groups', 'gated-media-access' ), $gatedmedia_groups, $gatedmedia_held )
+		. $gatedmedia_section( __( 'Posts', 'gated-media-access' ), $gatedmedia_posts, $gatedmedia_held )
+		. $gatedmedia_section( __( 'Files', 'gated-media-access' ), $gatedmedia_files, $gatedmedia_file );
+
+	if ( '' === $gatedmedia_body ) {
+		$gatedmedia_body = Block::render(
+			'gated-media-access/empty-state',
+			array(
+				'icon'    => 'i-empty',
+				'title'   => __( 'Nothing here yet', 'gated-media-access' ),
+				'message' => __( 'Anything you are given access to will appear here, with the date it runs out.', 'gated-media-access' ),
+			)
+		);
+	}
 }
 ?>
 <div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-view gatedmedia-view--my-access' ) ) ); ?>>
