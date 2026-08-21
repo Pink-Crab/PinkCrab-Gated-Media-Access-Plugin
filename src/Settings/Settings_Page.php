@@ -131,62 +131,74 @@ class Settings_Page implements Hookable {
 		$behaviour = $this->settings->revoke_behaviour();
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Gated Media Access — Settings', 'gated-media-access' ); ?></h1>
 			<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>">
 				<?php settings_fields( self::GROUP ); ?>
-				<h2><?php esc_html_e( 'Store', 'gated-media-access' ); ?></h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th scope="row"><label for="gatedmedia_currency"><?php esc_html_e( 'Currency', 'gated-media-access' ); ?></label></th>
-						<td>
-							<select name="<?php echo esc_attr( Settings::OPTION ); ?>[currency]" id="gatedmedia_currency">
-								<?php foreach ( \Symfony\Component\Intl\Currencies::getNames() as $code => $name ) : ?>
-									<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $code, $this->settings->currency() ); ?>><?php echo esc_html( "{$code} — {$name}" ); ?></option>
-								<?php endforeach; ?>
-							</select>
-							<p class="description"><?php esc_html_e( 'Every product is priced and sold in this currency.', 'gated-media-access' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row"><label for="gatedmedia_product_path"><?php esc_html_e( 'Product URL path', 'gated-media-access' ); ?></label></th>
-						<td>
+				<div class="gatedmedia-admin">
+					<header class="gatedmedia-admin-header">
+						<div>
+							<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Gated Media Access', 'gated-media-access' ); ?></span>
+							<h1><?php esc_html_e( 'Settings', 'gated-media-access' ); ?></h1>
+						</div>
+						<button type="submit" class="gatedmedia-admin-button"><?php esc_html_e( 'Save Changes', 'gated-media-access' ); ?></button>
+					</header>
+
+					<div class="gatedmedia-admin-section-head">
+						<h2><?php esc_html_e( 'Store', 'gated-media-access' ); ?></h2>
+						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Currency and address', 'gated-media-access' ); ?></span>
+					</div>
+
+					<div class="gatedmedia-admin-field">
+						<label class="gatedmedia-admin-caps" for="gatedmedia_currency"><?php esc_html_e( 'Currency', 'gated-media-access' ); ?></label>
+						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[currency]" id="gatedmedia_currency">
+							<?php foreach ( \Symfony\Component\Intl\Currencies::getNames() as $code => $name ) : ?>
+								<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $code, $this->settings->currency() ); ?>><?php echo esc_html( "{$code} — {$name}" ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="gatedmedia-admin-help"><?php esc_html_e( 'Every product is priced and sold in this currency.', 'gated-media-access' ); ?></p>
+					</div>
+
+					<div class="gatedmedia-admin-field">
+						<label class="gatedmedia-admin-caps" for="gatedmedia_product_path"><?php esc_html_e( 'Product URL path', 'gated-media-access' ); ?></label>
+						<span class="gatedmedia-admin-inline">
 							<code><?php echo esc_html( home_url( '/' ) ); ?></code>
 							<input type="text" class="regular-text code" name="<?php echo esc_attr( Settings::OPTION ); ?>[product_path]" id="gatedmedia_product_path" value="<?php echo esc_attr( $this->settings->product_path() ); ?>" />
 							<code>/&lt;uuid&gt;</code>
-							<p class="description"><?php esc_html_e( 'The only public way to a product is this path plus its UUID — never a slug or an ID.', 'gated-media-access' ); ?></p>
-						</td>
-					</tr>
-				</table>
-				<h2><?php esc_html_e( 'Stripe', 'gated-media-access' ); ?></h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th scope="row"><label for="gatedmedia_stripe_mode"><?php esc_html_e( 'Mode', 'gated-media-access' ); ?></label></th>
-						<td>
-							<select name="<?php echo esc_attr( Settings::OPTION ); ?>[stripe_mode]" id="gatedmedia_stripe_mode">
-								<option value="test" <?php selected( Settings::MODE_TEST, $mode ); ?>><?php esc_html_e( 'Test', 'gated-media-access' ); ?></option>
-								<option value="live" <?php selected( Settings::MODE_LIVE, $mode ); ?>><?php esc_html_e( 'Live', 'gated-media-access' ); ?></option>
-							</select>
-							<p class="description"><?php esc_html_e( 'Which set of keys checkout and the webhook use.', 'gated-media-access' ); ?></p>
-						</td>
-					</tr>
+						</span>
+						<p class="gatedmedia-admin-help"><?php esc_html_e( 'The only public way to a product is this path plus its UUID — never a slug or an ID.', 'gated-media-access' ); ?></p>
+					</div>
+
+					<div class="gatedmedia-admin-section-head">
+						<h2><?php esc_html_e( 'Stripe', 'gated-media-access' ); ?></h2>
+						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Mode and keys', 'gated-media-access' ); ?></span>
+					</div>
+
+					<div class="gatedmedia-admin-field">
+						<label class="gatedmedia-admin-caps" for="gatedmedia_stripe_mode"><?php esc_html_e( 'Mode', 'gated-media-access' ); ?></label>
+						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[stripe_mode]" id="gatedmedia_stripe_mode">
+							<option value="test" <?php selected( Settings::MODE_TEST, $mode ); ?>><?php esc_html_e( 'Test', 'gated-media-access' ); ?></option>
+							<option value="live" <?php selected( Settings::MODE_LIVE, $mode ); ?>><?php esc_html_e( 'Live', 'gated-media-access' ); ?></option>
+						</select>
+						<p class="gatedmedia-admin-help"><?php esc_html_e( 'Which set of keys checkout and the webhook use.', 'gated-media-access' ); ?></p>
+					</div>
+
 					<?php $this->render_key_rows( Settings::MODE_TEST, __( 'Test', 'gated-media-access' ) ); ?>
 					<?php $this->render_key_rows( Settings::MODE_LIVE, __( 'Live', 'gated-media-access' ) ); ?>
-				</table>
-				<h2><?php esc_html_e( 'Access', 'gated-media-access' ); ?></h2>
-				<table class="form-table" role="presentation">
-					<tr>
-						<th scope="row"><label for="gatedmedia_revoke_behaviour"><?php esc_html_e( 'Revoking access', 'gated-media-access' ); ?></label></th>
-						<td>
-							<select name="<?php echo esc_attr( Settings::OPTION ); ?>[revoke_behaviour]" id="gatedmedia_revoke_behaviour">
-								<option value="revoke" <?php selected( Settings::REVOKE_BEHAVIOUR_REVOKE, $behaviour ); ?>><?php esc_html_e( 'Mark revoked — the record is kept as history', 'gated-media-access' ); ?></option>
-								<option value="expire" <?php selected( Settings::REVOKE_BEHAVIOUR_EXPIRE, $behaviour ); ?>><?php esc_html_e( 'Expire — the record’s date is pulled to now', 'gated-media-access' ); ?></option>
-								<option value="delete" <?php selected( Settings::REVOKE_BEHAVIOUR_DELETE, $behaviour ); ?>><?php esc_html_e( 'Delete — the record is removed outright', 'gated-media-access' ); ?></option>
-							</select>
-							<p class="description"><?php esc_html_e( 'What the Revoke action on the Access list does.', 'gated-media-access' ); ?></p>
-						</td>
-					</tr>
-				</table>
-				<?php submit_button(); ?>
+
+					<div class="gatedmedia-admin-section-head">
+						<h2><?php esc_html_e( 'Access', 'gated-media-access' ); ?></h2>
+						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Revoke behaviour', 'gated-media-access' ); ?></span>
+					</div>
+
+					<div class="gatedmedia-admin-field">
+						<label class="gatedmedia-admin-caps" for="gatedmedia_revoke_behaviour"><?php esc_html_e( 'Revoking access', 'gated-media-access' ); ?></label>
+						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[revoke_behaviour]" id="gatedmedia_revoke_behaviour">
+							<option value="revoke" <?php selected( Settings::REVOKE_BEHAVIOUR_REVOKE, $behaviour ); ?>><?php esc_html_e( 'Mark revoked — the record is kept as history', 'gated-media-access' ); ?></option>
+							<option value="expire" <?php selected( Settings::REVOKE_BEHAVIOUR_EXPIRE, $behaviour ); ?>><?php esc_html_e( 'Expire — the record’s date is pulled to now', 'gated-media-access' ); ?></option>
+							<option value="delete" <?php selected( Settings::REVOKE_BEHAVIOUR_DELETE, $behaviour ); ?>><?php esc_html_e( 'Delete — the record is removed outright', 'gated-media-access' ); ?></option>
+						</select>
+						<p class="gatedmedia-admin-help"><?php esc_html_e( 'What the Revoke action on the Access list does.', 'gated-media-access' ); ?></p>
+					</div>
+				</div>
 			</form>
 		</div>
 		<?php
@@ -222,7 +234,7 @@ class Settings_Page implements Hookable {
 	 */
 	private function text_row( string $label, string $name, string $value ): void {
 		printf(
-			'<tr><th scope="row"><label for="gatedmedia_%2$s">%1$s</label></th><td><input type="text" class="regular-text code" name="%3$s[%2$s]" id="gatedmedia_%2$s" value="%4$s" autocomplete="off" /></td></tr>',
+			'<div class="gatedmedia-admin-field"><label class="gatedmedia-admin-caps" for="gatedmedia_%2$s">%1$s</label><input type="text" class="large-text code" name="%3$s[%2$s]" id="gatedmedia_%2$s" value="%4$s" autocomplete="off" /></div>',
 			esc_html( $label ),
 			esc_attr( $name ),
 			esc_attr( Settings::OPTION ),
@@ -240,7 +252,7 @@ class Settings_Page implements Hookable {
 	 */
 	private function secret_row( string $label, string $name, bool $has_value ): void {
 		printf(
-			'<tr><th scope="row"><label for="gatedmedia_%2$s">%1$s</label></th><td><input type="password" class="regular-text code" name="%3$s[%2$s]" id="gatedmedia_%2$s" value="" autocomplete="new-password" placeholder="%4$s" /><p class="description">%5$s</p></td></tr>',
+			'<div class="gatedmedia-admin-field"><label class="gatedmedia-admin-caps" for="gatedmedia_%2$s">%1$s</label><input type="password" class="large-text code" name="%3$s[%2$s]" id="gatedmedia_%2$s" value="" autocomplete="new-password" placeholder="%4$s" /><p class="gatedmedia-admin-help">%5$s</p></div>',
 			esc_html( $label ),
 			esc_attr( $name ),
 			esc_attr( Settings::OPTION ),
