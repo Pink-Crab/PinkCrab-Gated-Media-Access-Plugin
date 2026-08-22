@@ -96,6 +96,32 @@ class Test_Order_History extends WP_UnitTestCase {
 		return $found;
 	}
 
+	/**
+	 * A completed payment carrying a discount, for the struck-through price.
+	 *
+	 * @param int $total    What was actually charged, minor units.
+	 * @param int $discount What the coupon took off, minor units.
+	 */
+	private function discounted_payment( int $total, int $discount ): Payment {
+		$payment = $this->store->create_pending(
+			$this->user_id,
+			$this->product_id,
+			$total,
+			'GBP',
+			array(),
+			0,
+			$discount
+		);
+
+		$this->assertInstanceOf( Payment::class, $payment );
+		$this->store->mark_complete( $payment->uuid );
+
+		$found = $this->store->find_by_uuid( $payment->uuid );
+		$this->assertInstanceOf( Payment::class, $found );
+
+		return $found;
+	}
+
 	/** @testdox Signed out, the filter returns its defaults untouched. */
 	public function test_signed_out_gets_the_defaults(): void {
 		wp_set_current_user( 0 );
@@ -203,5 +229,88 @@ class Test_Order_History extends WP_UnitTestCase {
 		$this->assertFalse( $this->data->orders( self::DEFAULTS, $another->uuid )['detail']['is_new'] );
 
 		unset( $_GET[ Order_History::NEW_ORDER ] );
+	}
+
+	/**
+	 * An order outlives what it bought. Deleting a product must not blank the
+	 * row it was sold on — a nameless line in a purchase history is worse than
+	 * a vague one, because it reads as a fault rather than as a removed item.
+	 *
+	 * @testdox An order for a deleted product still has a name.
+	 */
+	public function test_deleted_product_still_names_its_order(): void {
+		$payment = $this->completed_payment();
+
+		wp_delete_post( $this->product_id, true );
+
+		$this->assertSame( 'Access', $this->data->orders( self::DEFAULTS )['orders'][0]['title'] );
+		$this->assertSame( $payment->uuid, $this->data->orders( self::DEFAULTS )['orders'][0]['uuid'] );
+	}
+
+	/**
+	 * The price block draws `original` struck through beside `amount`. Nothing
+	 * had ever produced a row where the two differ, so the struck-through price
+	 * — the only visible evidence a coupon was applied — was unasserted.
+	 *
+	 * @testdox A discounted order carries what was paid and what it was before.
+	 */
+	public function test_a_discounted_order_keeps_the_original_price(): void {
+		$this->discounted_payment( 2000, 500 );
+
+		$row = $this->data->orders( self::DEFAULTS )['orders'][0];
+
+		$this->assertSame( 2000, $row['amount'], 'what they were charged' );
+		$this->assertSame( 2500, $row['original'], 'amount plus the discount' );
+	}
+
+	/** @testdox An order with no discount shows the same figure twice, so nothing is struck through. */
+	public function test_an_undiscounted_order_has_no_original(): void {
+		$this->completed_payment();
+
+		$row = $this->data->orders( self::DEFAULTS )['orders'][0];
+
+		$this->assertSame( $row['amount'], $row['original'] );
+	}
+
+	/** @testdox A refunded order opens, and says it was refunded rather than reading as complete. */
+	public function test_a_refunded_order_opens(): void {
+		$payment = $this->completed_payment();
+		$this->store->mark_refunded( $payment->uuid );
+
+		$detail = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail'];
+
+		$this->assertNotNull( $detail );
+		$this->assertSame( Payment::STATUS_REFUNDED, $detail['status'] );
+	}
+
+	/** @testdox An order still waiting on Stripe opens and says pending. */
+	public function test_a_pending_order_opens(): void {
+		$payment = $this->store->create_pending( $this->user_id, $this->product_id, 2500, 'GBP', array() );
+		$this->assertInstanceOf( Payment::class, $payment );
+
+		$detail = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail'];
+
+		$this->assertNotNull( $detail );
+		$this->assertSame( Payment::STATUS_PENDING, $detail['status'] );
+	}
+
+	/** @testdox An order's amount is formatted in its own currency, not the shop's. */
+	public function test_the_amount_label_follows_the_row(): void {
+		$payment = $this->completed_payment();
+
+		$detail = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail'];
+
+		$this->assertStringContainsString( '25.00', $detail['amount_label'] );
+	}
+
+	/** @testdox A snapshot entry naming nothing is dropped rather than drawn as a blank line. */
+	public function test_an_unreadable_snapshot_entry_is_dropped(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'The real one' ) );
+		$payment = $this->completed_payment( array( 'post:' . $post_id, 'nonsense', ':', '' ) );
+
+		$contents = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['contents'];
+
+		$this->assertCount( 1, $contents );
+		$this->assertSame( 'The real one', $contents[0]['text'] );
 	}
 }

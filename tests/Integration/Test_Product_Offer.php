@@ -209,4 +209,46 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		unset( $_GET[ Checkout_Action::ERROR_FLAG ] );
 		$this->assertSame( '', $this->data->product( self::DEFAULTS, $this->product_id )['error'] );
 	}
+
+	/**
+	 * `holds_everything()` is guarded on the product having items at all,
+	 * because "every item is held" is vacuously true of a product granting
+	 * nothing — and a product that granted nothing would otherwise read as
+	 * already held by everyone, refusing the sale to every visitor.
+	 *
+	 * @testdox A product granting nothing is still for sale, not already held by everybody.
+	 */
+	public function test_a_product_with_no_items_is_not_held(): void {
+		delete_post_meta( $this->product_id, Product_Meta::META_ITEMS );
+
+		$this->assertSame( Product_Offer::STATE_PAID, $this->state() );
+		$this->assertSame( array(), $this->data->product( self::DEFAULTS, $this->product_id )['items'] );
+	}
+
+	/** @testdox A duration stored as a plain zero is lifetime, not "access for 0 days". */
+	public function test_a_zero_duration_is_lifetime(): void {
+		update_post_meta( $this->product_id, Product_Meta::META_DURATION, '0' );
+
+		$this->assertSame( 'Lifetime access', $this->data->product( self::DEFAULTS, $this->product_id )['term'] );
+	}
+
+	/** @testdox An item the product names but that no longer exists still accounts for itself. */
+	public function test_a_deleted_item_keeps_its_line(): void {
+		delete_post_meta( $this->product_id, Product_Meta::META_ITEMS );
+		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'file:999999' );
+
+		$items = $this->data->product( self::DEFAULTS, $this->product_id )['items'];
+
+		$this->assertCount( 1, $items );
+		$this->assertSame( 'A file', $items[0]['text'] );
+	}
+
+	/** @testdox A malformed item entry is dropped rather than drawn as an empty row. */
+	public function test_a_malformed_item_is_dropped(): void {
+		delete_post_meta( $this->product_id, Product_Meta::META_ITEMS );
+		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'post:' . $this->post_id );
+		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'nonsense' );
+
+		$this->assertCount( 1, $this->data->product( self::DEFAULTS, $this->product_id )['items'] );
+	}
 }

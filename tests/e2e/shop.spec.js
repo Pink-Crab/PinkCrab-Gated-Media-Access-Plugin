@@ -223,6 +223,32 @@ test.describe( 'orders', () => {
 		await expect( page.getByText( "You're in" ) ).toBeVisible();
 	} );
 
+	test( 'an order still waiting on Stripe says so, and claims nothing', async ( {
+		page,
+	} ) => {
+		const uuid = process.env.GATEDMEDIA_PENDING_UUID;
+
+		test.skip( ! uuid, 'The shop fixture did not run.' );
+
+		// The state §7.8 exists for: Stripe has returned the buyer, its webhook
+		// has not landed. Every other order in the suite is complete, so this
+		// panel had never been drawn on a real page.
+		await page.goto( `/account/orders/${ uuid }/?new_order=${ uuid }` );
+
+		await expect(
+			page.locator( '.gatedmedia-payment-status--pending' )
+		).toBeVisible();
+		await expect(
+			page.getByText( 'Confirming your payment' )
+		).toBeVisible();
+
+		// It must not tell them they are in, and must not offer the way on.
+		await expect( page.getByText( "You're in" ) ).toHaveCount( 0 );
+		await expect(
+			page.getByRole( 'link', { name: 'Go to my access' } )
+		).toHaveCount( 0 );
+	} );
+
 	test( "somebody else's order reads as one that never existed", async ( {
 		page,
 	} ) => {
