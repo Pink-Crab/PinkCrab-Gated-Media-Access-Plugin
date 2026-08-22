@@ -172,4 +172,152 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertContains( $response->get_status(), array( 403, 404 ) );
 		$this->assertSame( array(), get_terms( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'hide_empty' => false, 'name' => 'Sneaky REST Group' ) ) );
 	}
+
+	/**
+	 * Asks contents() from the Groups screen's side of the fence.
+	 *
+	 * Putting anything in a group restricts it, and `Post_Boundary` then drops
+	 * every restricted post into `post__not_in` on all front-of-site queries —
+	 * contents()' own `get_posts()` included. On the front that is correct: a
+	 * logged-out visitor sees nothing. These tests ask the administrator's
+	 * question, "what does this group hold", so they ask it from an admin
+	 * screen, where the boundary stands aside.
+	 *
+	 * @param int $term_id The group.
+	 * @return array<int, int>
+	 */
+	private function group_contents( int $term_id ): array {
+		set_current_screen( 'edit-tags.php' );
+
+		$taxonomy = new Access_Taxonomy();
+
+		return $taxonomy->contents( $taxonomy->uuid_for( $term_id ) );
+	}
+
+	/**
+	 * Makes a group and hands back its UUID.
+	 *
+	 * @param string $name The group's name.
+	 */
+	private function make_group( string $name ): string {
+		$term = wp_insert_term( $name, Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		return ( new Access_Taxonomy() )->uuid_for( $term['term_id'] );
+	}
+
+	/**
+	 * Puts an object in a group.
+	 *
+	 * @param int $object_id The post, page or attachment.
+	 * @param int $term_id   The group.
+	 */
+	private function add_to_group( int $object_id, int $term_id ): void {
+		wp_set_object_terms( $object_id, array( $term_id ), Access_Taxonomy::TAXONOMY, true );
+	}
+
+	/** @testdox contents() lists a published post held by the group. */
+	public function test_contents_lists_a_published_post(): void {
+		$term = wp_insert_term( 'Holds A Post', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		$post_id = self::factory()->post->create();
+		$this->add_to_group( $post_id, $term['term_id'] );
+
+		$this->assertSame( array( $post_id ), $this->group_contents( $term['term_id'] ) );
+	}
+
+	/**
+	 * @testdox contents() lists an attachment held by the group — a file's status is inherit, not publish, and it must not fall out of the list.
+	 *
+	 * The regression guard for the named statuses. With the query left on
+	 * its default `publish`, every file in a group disappears here while the
+	 * term's own count still counts it.
+	 */
+	public function test_contents_lists_an_attachment(): void {
+		$term = wp_insert_term( 'Holds A File', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		$attachment_id = self::factory()->attachment->create();
+		$this->add_to_group( $attachment_id, $term['term_id'] );
+
+		// The whole reason the statuses are named. Read the stored column, not
+		// get_post_status() — that resolves an unattached file to `publish`.
+		$this->assertSame( 'inherit', get_post( $attachment_id )->post_status );
+
+		$this->assertSame(
+			array( $attachment_id ),
+			$this->group_contents( $term['term_id'] ),
+			'an attachment in the group was dropped from contents()'
+		);
+	}
+
+	/** @testdox contents() lists a page held by the group. */
+	public function test_contents_lists_a_page(): void {
+		$term = wp_insert_term( 'Holds A Page', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		$page_id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$this->add_to_group( $page_id, $term['term_id'] );
+
+		$this->assertSame( array( $page_id ), $this->group_contents( $term['term_id'] ) );
+	}
+
+	/** @testdox contents() lists a post, a page and an attachment together when a group holds all three. */
+	public function test_contents_lists_a_mixed_group(): void {
+		$term = wp_insert_term( 'Holds Everything', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		$post_id       = self::factory()->post->create();
+		$page_id       = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$attachment_id = self::factory()->attachment->create();
+
+		foreach ( array( $post_id, $page_id, $attachment_id ) as $object_id ) {
+			$this->add_to_group( $object_id, $term['term_id'] );
+		}
+
+		$contents = $this->group_contents( $term['term_id'] );
+
+		$this->assertCount( 3, $contents );
+		$this->assertEqualsCanonicalizing( array( $post_id, $page_id, $attachment_id ), $contents );
+	}
+
+	/** @testdox contents() returns nothing for a UUID no group holds. */
+	public function test_contents_of_an_unknown_uuid_is_empty(): void {
+		set_current_screen( 'edit-tags.php' );
+
+		self::factory()->post->create();
+
+		$this->assertSame( array(), ( new Access_Taxonomy() )->contents( wp_generate_uuid4() ) );
+	}
+
+	/** @testdox contents() returns nothing for a group holding nothing. */
+	public function test_contents_of_an_empty_group_is_empty(): void {
+		set_current_screen( 'edit-tags.php' );
+
+		$uuid = $this->make_group( 'Holds Nothing' );
+
+		// Content exists, it is just not in this group.
+		self::factory()->post->create();
+		self::factory()->attachment->create();
+
+		$this->assertSame( array(), ( new Access_Taxonomy() )->contents( $uuid ) );
+	}
+
+	/** @testdox contents() leaves out a draft in the group — only publish and inherit are named. */
+	public function test_contents_excludes_a_draft(): void {
+		$term = wp_insert_term( 'Holds A Draft', Access_Taxonomy::TAXONOMY );
+		$this->assertIsArray( $term );
+
+		$draft_id     = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$published_id = self::factory()->post->create();
+
+		$this->add_to_group( $draft_id, $term['term_id'] );
+		$this->add_to_group( $published_id, $term['term_id'] );
+
+		$contents = $this->group_contents( $term['term_id'] );
+
+		$this->assertSame( array( $published_id ), $contents );
+		$this->assertNotContains( $draft_id, $contents );
+	}
 }

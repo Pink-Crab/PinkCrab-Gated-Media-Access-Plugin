@@ -197,4 +197,43 @@ class Test_Held_Access extends WP_UnitTestCase {
 		$this->assertNull( apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), 'no-such-uuid' )['detail'] );
 	}
 
+	/**
+	 * The rows carry a kind as their meta line. Nothing asserted it, so a group
+	 * of mixed contents could have called every one of them the same thing and
+	 * every test would still have passed.
+	 *
+	 * @testdox An opened group says which of its rows are files and which are posts.
+	 */
+	public function test_group_detail_labels_each_kind(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'The briefing' ) );
+		$file_id = self::factory()->attachment->create( array( 'post_title' => 'The spreadsheet' ) );
+
+		$uuid = $this->granted_group( array( $post_id, $file_id ), null );
+
+		$items = apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), $uuid )['detail']['items'];
+		$kinds = array_combine( array_column( $items, 'title' ), array_column( $items, 'meta' ) );
+
+		$this->assertSame( 'Post', $kinds['The briefing'] );
+		$this->assertSame( 'File', $kinds['The spreadsheet'] );
+	}
+
+	/** @testdox Every row in an opened group links to the thing itself. */
+	public function test_group_detail_rows_link_to_their_item(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'The briefing' ) );
+		$uuid    = $this->granted_group( array( $post_id ), null );
+
+		$items = apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), $uuid )['detail']['items'];
+
+		$this->assertSame( get_permalink( $post_id ), $items[0]['href'] );
+	}
+
+	/** @testdox A held group holding nothing opens and says so, rather than failing to open. */
+	public function test_an_empty_group_still_opens(): void {
+		$uuid = $this->granted_group( array(), null );
+
+		$detail = apply_filters( 'gatedmedia_my_access_data', self::MY_ACCESS_DEFAULTS + array( 'detail' => null ), $uuid )['detail'];
+
+		$this->assertNotNull( $detail, 'the group is held, so it opens' );
+		$this->assertSame( array(), $detail['items'] );
+	}
 }

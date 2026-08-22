@@ -150,4 +150,74 @@ class Test_Payment_Store extends WP_UnitTestCase {
 		$this->assertSame( 1, $this->store->coupon_completions( 7, 1 ) );
 		$this->assertSame( 0, $this->store->coupon_completions( 99 ) );
 	}
+
+	/** @testdox One person's orders are only ever their own — another account's payments never appear. */
+	public function test_for_user_returns_only_that_users_payments(): void {
+		$mine   = $this->store->create_pending( 11, 2, 500, 'GBP', array( 'post:7' ) );
+		$theirs = $this->store->create_pending( 12, 2, 500, 'GBP', array( 'post:7' ) );
+
+		$orders = $this->store->for_user( 11 );
+
+		$this->assertCount( 1, $orders );
+		$this->assertSame( $mine->uuid, $orders[0]->uuid );
+		$this->assertNotSame( $theirs->uuid, $orders[0]->uuid );
+		$this->assertSame( 11, $orders[0]->user_id );
+	}
+
+	/** @testdox An account's orders arrive newest first, the most recent purchase at the top. */
+	public function test_for_user_returns_newest_first(): void {
+		$first  = $this->store->create_pending( 21, 1, 100, 'GBP', array() );
+		$second = $this->store->create_pending( 21, 2, 200, 'GBP', array() );
+		$third  = $this->store->create_pending( 21, 3, 300, 'GBP', array() );
+
+		$orders = $this->store->for_user( 21 );
+
+		$this->assertCount( 3, $orders );
+		$this->assertSame(
+			array( $third->uuid, $second->uuid, $first->uuid ),
+			array_column( $orders, 'uuid' )
+		);
+	}
+
+	/** @testdox A signed-out visitor has no user id, so no order history is ever read for them. */
+	public function test_for_user_never_queries_without_a_user(): void {
+		global $wpdb;
+
+		$this->store->create_pending( 31, 2, 500, 'GBP', array( 'post:7' ) );
+
+		$before = $wpdb->num_queries;
+
+		$this->assertSame( array(), $this->store->for_user( 0 ) );
+		$this->assertSame( array(), $this->store->for_user( -1 ) );
+		$this->assertSame( $before, $wpdb->num_queries, 'the guard returns before the table is touched' );
+	}
+
+	/** @testdox An account that has never bought anything gets an empty list, not a failure. */
+	public function test_for_user_with_no_payments_is_empty(): void {
+		$this->store->create_pending( 41, 2, 500, 'GBP', array( 'post:7' ) );
+
+		$this->assertSame( array(), $this->store->for_user( 42 ) );
+	}
+
+	/** @testdox Each order comes back as a Payment carrying the row's own values, not a raw row. */
+	public function test_for_user_hydrates_each_row(): void {
+		$payment = $this->store->create_pending( 51, 9, 1250, 'gbp', array( 'file:42', 'group:abc' ), 3, 250 );
+		$this->store->mark_complete( $payment->uuid, 'pi_orders' );
+
+		$orders = $this->store->for_user( 51 );
+
+		$this->assertCount( 1, $orders );
+		$this->assertInstanceOf( Payment::class, $orders[0] );
+		$this->assertSame( $payment->uuid, $orders[0]->uuid );
+		$this->assertSame( 51, $orders[0]->user_id );
+		$this->assertSame( 9, $orders[0]->product_id );
+		$this->assertSame( 1250, $orders[0]->amount_total );
+		$this->assertSame( 'GBP', $orders[0]->currency );
+		$this->assertSame( 3, $orders[0]->coupon_id );
+		$this->assertSame( 250, $orders[0]->discount_amount );
+		$this->assertSame( Payment::STATUS_COMPLETE, $orders[0]->status );
+		$this->assertSame( 'pi_orders', $orders[0]->stripe_payment_intent_id );
+		$this->assertSame( array( 'file:42', 'group:abc' ), $orders[0]->contents_snapshot );
+		$this->assertNotNull( $orders[0]->completed_at );
+	}
 }
