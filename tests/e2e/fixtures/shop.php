@@ -214,6 +214,18 @@ if ( $payment instanceof Payment ) {
 	}
 }
 
+// An order left pending, which is what a buyer sees for the seconds between
+// Stripe returning them and its webhook landing. Nothing else in the suite is
+// ever in that state, and it is the state §7.8 exists for.
+$pending = array_filter(
+	$store->for_user( $admin->ID ),
+	static fn ( Payment $row ): bool => $row->product_id === $buy_id
+);
+
+$pending_payment = array() === $pending
+	? $store->create_pending( $admin->ID, $buy_id, 1500, 'GBP', array( 'post:' . $unheld_post_id ) )
+	: array_values( $pending )[0];
+
 // The specs read these off stdout rather than hardcoding a uuid that changes
 // every time the fixture is rebuilt.
 echo 'Fixture ready: ' . get_permalink( $paid_id ) . "\n";
@@ -222,3 +234,7 @@ echo 'GATEDMEDIA_FREE_URL=' . get_permalink( $free_id ) . "\n";
 echo 'GATEDMEDIA_PAID_ID=' . $paid_id . "\n";
 echo 'GATEDMEDIA_BUY_URL=' . get_permalink( $buy_id ) . "\n";
 echo 'GATEDMEDIA_BUY_ID=' . $buy_id . "\n";
+
+if ( $pending_payment instanceof Payment ) {
+	echo 'GATEDMEDIA_PENDING_UUID=' . $pending_payment->uuid . "\n";
+}
