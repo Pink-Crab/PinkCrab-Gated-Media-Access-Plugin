@@ -137,6 +137,10 @@ if ( '' !== $gatedmedia_order_id ) {
 				array(
 					'status'      => $gatedmedia_status,
 					'reference'   => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
+					// The same value as the reference today, passed separately
+					// because the poll matches on the uuid and must not depend
+					// on what the reference is chosen to show.
+					'uuid'        => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
 					'actionLabel' => 'complete' === $gatedmedia_status ? __( 'Go to my access', 'gated-media-access' ) : '',
 					'actionHref'  => 'complete' === $gatedmedia_status ? home_url( '/account/my-access/' ) : '',
 				)

@@ -151,4 +151,141 @@ class Test_Payment_Status_Block extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'gatedmedia-payment-status__action', $html );
 	}
+
+	// -------------------------------------------------------------------------
+	// The poll. PHP decides whether it happens at all — the script reads the
+	// attributes and nothing else, so every "must not poll" case is here.
+	// -------------------------------------------------------------------------
+
+	private const UUID = 'a2df0729-fdfa-4143-bf09-42b0a423e633';
+
+	/** @testdox A pending payment carries everything the poll needs, and nothing it does not. */
+	public function test_pending_carries_the_poll(): void {
+		wp_set_current_user( self::factory()->user->create() );
+
+		$html = Block::render(
+			self::BLOCK,
+			array(
+				'status' => Payment::STATUS_PENDING,
+				'uuid'   => self::UUID,
+			)
+		);
+
+		$this->assertStringContainsString( 'data-gatedmedia-poll="' . self::UUID . '"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-nonce="', $html );
+		$this->assertStringContainsString( '/gated-media-access/v1/payment/' . self::UUID, $html );
+		$this->assertStringContainsString( 'data-gatedmedia-interval="3000"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-attempts="20"', $html );
+
+		// The wording it stands down with travels with it, so the script never
+		// invents a sentence and translation stays in PHP.
+		$this->assertStringContainsString( 'data-gatedmedia-waiting="', $html );
+		$this->assertStringContainsString( 'Your payment is safe', $html );
+
+		// And the paragraph it swaps is findable.
+		$this->assertStringContainsString( 'data-gatedmedia-message', $html );
+	}
+
+	/** @testdox A settled payment never polls, whatever it settled as. */
+	public function test_settled_never_polls(): void {
+		wp_set_current_user( self::factory()->user->create() );
+
+		foreach ( array( Payment::STATUS_COMPLETE, Payment::STATUS_FAILED, Payment::STATUS_REFUNDED ) as $status ) {
+			$html = Block::render(
+				self::BLOCK,
+				array(
+					'status' => $status,
+					'uuid'   => self::UUID,
+				)
+			);
+
+			$this->assertStringNotContainsString( 'data-gatedmedia-poll', $html, $status . ' polled' );
+		}
+	}
+
+	/**
+	 * `Payment_Status_Route`'s permission callback is `is_user_logged_in`, so a
+	 * signed-out poll could only ever be a 401. Printing a `wp_rest` nonce for
+	 * a logged-out visitor would also hand out the one every signed-out user
+	 * shares, on a page that has no use for it.
+	 *
+	 * @testdox Signed out, nothing polls and no nonce is printed.
+	 */
+	public function test_signed_out_never_polls(): void {
+		wp_set_current_user( 0 );
+
+		$html = Block::render(
+			self::BLOCK,
+			array(
+				'status' => Payment::STATUS_PENDING,
+				'uuid'   => self::UUID,
+			)
+		);
+
+		$this->assertStringNotContainsString( 'data-gatedmedia-poll', $html );
+		$this->assertStringNotContainsString( 'data-gatedmedia-nonce', $html );
+	}
+
+	/** @testdox Without a uuid there is nothing to ask about, so it does not ask. */
+	public function test_no_uuid_no_poll(): void {
+		wp_set_current_user( self::factory()->user->create() );
+
+		$html = Block::render( self::BLOCK, array( 'status' => Payment::STATUS_PENDING ) );
+
+		$this->assertStringNotContainsString( 'data-gatedmedia-poll', $html );
+	}
+
+	/** @testdox The timing is filterable, and a nonsense filter cannot make it hammer the route. */
+	public function test_timing_is_filterable(): void {
+		wp_set_current_user( self::factory()->user->create() );
+
+		$filter = static fn (): array => array(
+			'interval' => 250,
+			'attempts' => 0,
+		);
+
+		add_filter( 'gatedmedia_payment_poll', $filter );
+
+		$html = Block::render(
+			self::BLOCK,
+			array(
+				'status' => Payment::STATUS_PENDING,
+				'uuid'   => self::UUID,
+			)
+		);
+
+		remove_filter( 'gatedmedia_payment_poll', $filter );
+
+		// Clamped: a quarter-second interval and zero attempts are floored at
+		// one second and one try rather than taken at their word.
+		$this->assertStringContainsString( 'data-gatedmedia-interval="1000"', $html );
+		$this->assertStringContainsString( 'data-gatedmedia-attempts="1"', $html );
+	}
+
+	/** @testdox The filter is given the uuid it is being asked about. */
+	public function test_filter_receives_the_uuid(): void {
+		wp_set_current_user( self::factory()->user->create() );
+
+		$seen = '';
+
+		$filter = static function ( array $poll, string $uuid ) use ( &$seen ): array {
+			$seen = $uuid;
+
+			return $poll;
+		};
+
+		add_filter( 'gatedmedia_payment_poll', $filter, 10, 2 );
+
+		Block::render(
+			self::BLOCK,
+			array(
+				'status' => Payment::STATUS_PENDING,
+				'uuid'   => self::UUID,
+			)
+		);
+
+		remove_filter( 'gatedmedia_payment_poll', $filter, 10 );
+
+		$this->assertSame( self::UUID, $seen );
+	}
 }

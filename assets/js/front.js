@@ -10,7 +10,9 @@
 
 import { onReady } from './shared/dom';
 import initNotices from './modules/notices';
+import initPaymentStatus from './modules/payment-status';
 
 onReady( () => {
 	initNotices( document );
+	initPaymentStatus( document );
 } );
