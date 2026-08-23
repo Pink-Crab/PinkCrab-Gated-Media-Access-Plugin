@@ -32,15 +32,21 @@ if ( '' === $gatedmedia_label ) {
 	return;
 }
 
+// The bar sits outside whatever it acts on, so it is either a link or a
+// submit naming the form by id — never a button that needs script to work.
+$gatedmedia_form = isset( $attributes['form'] ) ? (string) $attributes['form'] : '';
+
 $gatedmedia_button = do_blocks(
 	sprintf(
 		'<!-- wp:gated-media-access/button %s /-->',
 		(string) wp_json_encode(
 			array(
 				'label'   => $gatedmedia_label,
-				'href'    => isset( $attributes['href'] ) ? (string) $attributes['href'] : '',
+				'href'    => '' === $gatedmedia_form && isset( $attributes['href'] ) ? (string) $attributes['href'] : '',
 				'variant' => 'primary',
 				'full'    => true,
+				'type'    => '' === $gatedmedia_form ? 'button' : 'submit',
+				'form'    => $gatedmedia_form,
 			)
 		)
 	)

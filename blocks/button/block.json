@@ -45,6 +45,10 @@
 		"value": {
 			"type": "string",
 			"default": ""
+		},
+		"form": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"supports": {

@@ -139,12 +139,20 @@
 	}
 }
 
-// The buy control: the hidden fields carry no height, so this is the coupon
-// row above the button, and on the signed-out state the two stacked choices.
+// The buy control: the hidden fields carry no height, so this is the button
+// alone, and on the signed-out state the two stacked choices.
 .gatedmedia-buy {
 	display: flex;
 	flex-direction: column;
 	gap: var(--gatedmedia-md);
+}
+
+// §6.14 applies by reloading the page with the code on it, so the coupon is a
+// GET form of its own and cannot sit inside the buy form — a form does not nest
+// inside a form. It reads as one control with the button below it, so the pair
+// keep the buy form's own gap rather than taking the 24px section step.
+.gatedmedia-coupon-form + .gatedmedia-buy {
+	margin-top: var(--gatedmedia-md);
 }
 
 // -----------------------------------------------------------------------------

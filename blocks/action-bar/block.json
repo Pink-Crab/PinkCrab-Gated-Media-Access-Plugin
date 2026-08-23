@@ -16,6 +16,10 @@
 		"href": {
 			"type": "string",
 			"default": ""
+		},
+		"form": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"supports": {
