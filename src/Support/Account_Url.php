@@ -41,8 +41,11 @@ class Account_Url {
 
 	/**
 	 * The account area's own segment.
+	 *
+	 * Public because `Account_Route` needs the bare segment to build its
+	 * rewrite rules, where there is no whole URL to return.
 	 */
-	private static function slug(): string {
+	public static function slug(): string {
 		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );
 
 		return is_string( $slug ) && '' !== $slug ? $slug : 'account';

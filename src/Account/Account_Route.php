@@ -15,6 +15,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
 use PinkCrab\Gated_Access\Blocks\Sprite;
+use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
  * Puts the account area on a URL of its own.
@@ -113,12 +114,11 @@ class Account_Route implements Hookable {
 	 *
 	 * A filter rather than a setting, per the brief — this is the sort of thing
 	 * a site changes in code, and making it a setting invites someone to change
-	 * it in a way that breaks their own links.
+	 * it in a way that breaks their own links. `Account_Url` resolves it; this
+	 * stays as the route's own way of asking.
 	 */
 	public function slug(): string {
-		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );
-
-		return is_string( $slug ) && '' !== $slug ? $slug : 'account';
+		return Account_Url::slug();
 	}
 
 	/**
