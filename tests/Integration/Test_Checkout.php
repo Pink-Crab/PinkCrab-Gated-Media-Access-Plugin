@@ -192,6 +192,68 @@ class Test_Checkout extends WP_UnitTestCase {
 		$this->assertSame( 'gatedmedia_bad_coupon', $again->get_error_code() );
 	}
 
+	/**
+	 * §6.14 shows the buyer a price before they commit and `Checkout` then
+	 * charges them. Two answers to the same question, and if they disagree the
+	 * product page is lying about what a purchase will cost.
+	 *
+	 * @testdox The price previewed is the price charged.
+	 */
+	public function test_preview_agrees_with_what_is_charged(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'save20', 'percent', 20 );
+
+		$checkout = $this->checkout( $this->fake_gateway() );
+		$preview  = $checkout->preview( $product, $this->buyer_id, 'save20' );
+
+		$this->assertTrue( $preview['applied'] );
+		$this->assertSame( 200, $preview['discount'] );
+		$this->assertSame( 800, $preview['total'] );
+
+		$checkout->purchase( $product, $this->buyer_id, 'save20' );
+
+		$this->assertSame( $preview['total'], $this->store->paged( 1, 1 )[0]->amount_total );
+	}
+
+	/** @testdox Previewing a coupon spends nothing, so looking at a price twice cannot use it up. */
+	public function test_preview_spends_nothing(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'once', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
+
+		$checkout = $this->checkout( $this->fake_gateway() );
+
+		$checkout->preview( $product, $this->buyer_id, 'once' );
+		$checkout->preview( $product, $this->buyer_id, 'once' );
+
+		$this->assertCount( 0, $this->store->paged( 1, 10 ), 'preview must create no payment row' );
+		$this->assertTrue( $checkout->preview( $product, $this->buyer_id, 'once' )['applied'] );
+	}
+
+	/**
+	 * The apply step is not the thing that is trusted: a coupon that runs out
+	 * between the page being priced and the button being pressed is refused at
+	 * purchase, whatever the page said a moment earlier.
+	 *
+	 * @testdox A coupon spent after the page was priced is still refused at purchase.
+	 */
+	public function test_a_coupon_spent_after_preview_is_refused(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'last', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
+
+		$checkout = $this->checkout( $this->fake_gateway() );
+
+		$this->assertTrue( $checkout->preview( $product, $this->buyer_id, 'last' )['applied'] );
+
+		// Somebody else takes the last one between the two.
+		$checkout->purchase( $product, $this->buyer_id, 'last' );
+		$this->store->mark_complete( $this->store->paged( 1, 1 )[0]->uuid, 'pi_1' );
+
+		$late = $checkout->purchase( $product, $this->buyer_id, 'last' );
+
+		$this->assertInstanceOf( WP_Error::class, $late );
+		$this->assertSame( 'gatedmedia_bad_coupon', $late->get_error_code() );
+	}
+
 	/** @testdox An abandoned checkout spends nothing — the pending row does not count against limits. */
 	public function test_pending_payment_spends_no_coupon(): void {
 		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );

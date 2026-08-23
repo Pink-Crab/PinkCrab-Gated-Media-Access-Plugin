@@ -31,6 +31,13 @@ class Checkout_Action implements Hookable {
 	public const ERROR_FLAG = 'gatedmedia_checkout_error';
 
 	/**
+	 * The coupon's field name — posted with the buy form, and the query arg
+	 * Apply reloads the product page with. One name for both, so the applied
+	 * code and the typed code are never two different things.
+	 */
+	public const COUPON_FIELD = 'gatedmedia_coupon';
+
+	/**
 	 * The flow lives in Checkout; this class only fronts it.
 	 *
 	 * @param Checkout $checkout The purchase flow.
@@ -77,7 +84,7 @@ class Checkout_Action implements Hookable {
 		}
 
 		$product_id = isset( $_POST['gatedmedia_product'] ) ? absint( wp_unslash( $_POST['gatedmedia_product'] ) ) : 0;
-		$coupon     = isset( $_POST['gatedmedia_coupon'] ) ? sanitize_text_field( wp_unslash( $_POST['gatedmedia_coupon'] ) ) : '';
+		$coupon     = isset( $_POST[ self::COUPON_FIELD ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::COUPON_FIELD ] ) ) : '';
 
 		$outcome = $this->checkout->purchase( $product_id, get_current_user_id(), $coupon );
 
