@@ -27,6 +27,9 @@ const PAID_ID = process.env.GATEDMEDIA_PAID_ID;
 const BUY_URL = process.env.GATEDMEDIA_BUY_URL;
 const BUY_ID = process.env.GATEDMEDIA_BUY_ID;
 
+// An unlimited 20% coupon, so §6.14's apply step can be walked repeatedly.
+const COUPON = process.env.GATEDMEDIA_COUPON_CODE;
+
 // Rows are reached by their link text: the row block draws a div with the link
 // inside its title, not an anchor wrapping the row (§6.2), so clicking the row
 // itself navigates nowhere.
@@ -101,11 +104,165 @@ test.describe( 'the product page', () => {
 			form.locator( 'input[name="_wpnonce"]' )
 		).not.toHaveValue( '' );
 
-		// The coupon rides along on the same submit, under the name
-		// Checkout_Action reads. A hyphen here and the code never arrives.
+		// The coupon is no longer typed inside this form. Apply used to be a
+		// submit on it, so pressing Apply went straight to Stripe at full
+		// price; §6.14's flow is apply, see the discount, then buy. The typed
+		// field now lives in its own GET form, and only a code that actually
+		// priced the page rides the buy submit — as a hidden input, under the
+		// name Checkout_Action reads. A hyphen there and the code never
+		// arrives.
 		await expect(
 			form.locator( 'input[name="gatedmedia_coupon"]' )
+		).toHaveCount( 0 );
+
+		await expect(
+			page.locator(
+				'form.gatedmedia-coupon-form input[name="gatedmedia_coupon"]'
+			)
 		).toHaveCount( 1 );
+	} );
+
+	test( 'applying a coupon shows what it saves before anything is bought', async ( {
+		page,
+	} ) => {
+		test.skip( ! BUY_URL || ! COUPON, 'The shop fixture did not run.' );
+
+		await signIn( page );
+		await page.goto( BUY_URL );
+
+		const before = await page
+			.locator( '.gatedmedia-price-block' )
+			.innerText();
+
+		await page.fill(
+			'form.gatedmedia-coupon-form input[name="gatedmedia_coupon"]',
+			COUPON
+		);
+		await page.getByRole( 'button', { name: 'Apply' } ).click();
+
+		// Apply reloads this page with the code on it rather than buying
+		// anything — the buyer is still here, and still on the product.
+		await expect( page ).toHaveURL(
+			new RegExp( `gatedmedia_coupon=${ COUPON }` )
+		);
+
+		// §6.14: the input and its button are replaced by a confirmation, not
+		// decorated with one.
+		await expect(
+			page.locator( '.gatedmedia-coupon__applied' )
+		).toContainText( COUPON );
+		await expect(
+			page.locator(
+				'form.gatedmedia-coupon-form input[name="gatedmedia_coupon"]'
+			)
+		).toHaveCount( 0 );
+
+		// The price moved, and the old one is still shown struck through.
+		const after = await page
+			.locator( '.gatedmedia-price-block' )
+			.innerText();
+
+		expect( after ).not.toBe( before );
+
+		// And the code now travels with the purchase.
+		await expect(
+			page.locator(
+				'form.gatedmedia-buy input[name="gatedmedia_coupon"]'
+			)
+		).toHaveValue( COUPON );
+
+		// Nothing was bought by looking at a price.
+		await expect( page.locator( '.gatedmedia-view--product' ) ).toBeVisible();
+
+		// Remove puts it back.
+		await page.getByRole( 'link', { name: 'Remove' } ).click();
+
+		await expect(
+			page.locator(
+				'form.gatedmedia-coupon-form input[name="gatedmedia_coupon"]'
+			)
+		).toHaveCount( 1 );
+	} );
+
+	test( 'a coupon that is not one says so and leaves the price alone', async ( {
+		page,
+	} ) => {
+		test.skip( ! BUY_URL, 'The shop fixture did not run.' );
+
+		await signIn( page );
+		await page.goto( `${ BUY_URL }?gatedmedia_coupon=not-a-coupon` );
+
+		// §6.8's invalid treatment: the error replaces the helper line rather
+		// than joining it, so it is the field's own message element.
+		await expect(
+			page.locator( '.gatedmedia-field__message' )
+		).toContainText( 'That coupon cannot be used.' );
+
+		await expect(
+			page.locator( 'form.gatedmedia-coupon-form [aria-invalid="true"]' )
+		).toHaveCount( 1 );
+
+		// Refused, so nothing is carried to checkout.
+		await expect(
+			page.locator(
+				'form.gatedmedia-buy input[name="gatedmedia_coupon"]'
+			)
+		).toHaveCount( 0 );
+	} );
+
+	/**
+	 * §6.15 — the one pinned element in the design, and the one thing round 7
+	 * shipped without: the browser pass only looked at the wide viewport, so a
+	 * narrow-only component that was never composed went unnoticed. It is
+	 * asserted at both viewports here for exactly that reason.
+	 */
+	test( 'a priced product pins its buy action on narrow, and only there', async ( {
+		page,
+	}, testInfo ) => {
+		test.skip( ! BUY_URL, 'The shop fixture did not run.' );
+
+		await signIn( page );
+		await page.goto( BUY_URL );
+
+		const bar = page.locator( '.gatedmedia-action-bar' );
+
+		if ( testInfo.project.name === 'wide' ) {
+			await expect( bar ).toBeHidden();
+			return;
+		}
+
+		await expect( bar ).toBeVisible();
+
+		// The price is in the button's own label — one control, not a price
+		// sitting beside a button.
+		await expect( bar ).toContainText( 'Get access' );
+
+		// It submits the buy form it is not inside, by naming it. Without the
+		// form attribute this is a button that does nothing without script.
+		const id = await page
+			.locator( 'form.gatedmedia-buy' )
+			.getAttribute( 'id' );
+
+		await expect( bar.locator( 'button' ) ).toHaveAttribute( 'form', id );
+		await expect( bar.locator( 'button' ) ).toHaveAttribute(
+			'type',
+			'submit'
+		);
+
+		// And the page reserves room for it rather than hiding its own foot.
+		await expect(
+			page.locator( '.gatedmedia-view--product.has-action-bar' )
+		).toHaveCount( 1 );
+	} );
+
+	test( 'the pinned bar never appears on an account view', async ( {
+		page,
+	} ) => {
+		await signIn( page );
+		await page.goto( '/account/orders/' );
+
+		// §6.15 is explicit, and nothing but the composer can enforce it.
+		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount( 0 );
 	} );
 
 	test( 'a refused checkout comes back saying why', async ( { page } ) => {
@@ -246,6 +403,52 @@ test.describe( 'orders', () => {
 		await expect( page.getByText( "You're in" ) ).toHaveCount( 0 );
 		await expect(
 			page.getByRole( 'link', { name: 'Go to my access' } )
+		).toHaveCount( 0 );
+
+		// And it is watching rather than sitting there. The panel carries what
+		// the poll needs; without these attributes the buyer has to reload by
+		// hand, which is what round 7 shipped.
+		const panel = page.locator( '.gatedmedia-payment-status--pending' );
+
+		await expect( panel ).toHaveAttribute( 'data-gatedmedia-poll', uuid );
+		await expect( panel ).toHaveAttribute(
+			'data-gatedmedia-url',
+			new RegExp( `/gated-media-access/v1/payment/${ uuid }` )
+		);
+		await expect( panel ).not.toHaveAttribute( 'data-gatedmedia-nonce', '' );
+	} );
+
+	test( 'the poll asks the route, and a payment that stays pending is never called a failure', async ( {
+		page,
+	} ) => {
+		const uuid = process.env.GATEDMEDIA_PENDING_UUID;
+
+		test.skip( ! uuid, 'The shop fixture did not run.' );
+
+		const asked = [];
+
+		page.on( 'request', ( request ) => {
+			if ( request.url().includes( `/payment/${ uuid }` ) ) {
+				asked.push( request.url() );
+			}
+		} );
+
+		await page.goto( `/account/orders/${ uuid }/?new_order=${ uuid }` );
+
+		// It polls without being touched.
+		await expect
+			.poll( () => asked.length, { timeout: 15_000 } )
+			.toBeGreaterThan( 0 );
+
+		// The row never moves, so the page must still be confirming — never an
+		// error, and never a claim that access arrived. They have paid either
+		// way.
+		await expect(
+			page.locator( '.gatedmedia-payment-status--pending' )
+		).toBeVisible();
+		await expect( page.getByText( "You're in" ) ).toHaveCount( 0 );
+		await expect(
+			page.locator( '.gatedmedia-payment-status--failed' )
 		).toHaveCount( 0 );
 	} );
 

@@ -226,9 +226,29 @@ $pending_payment = array() === $pending
 	? $store->create_pending( $admin->ID, $buy_id, 1500, 'GBP', array( 'post:' . $unheld_post_id ) )
 	: array_values( $pending )[0];
 
+// A coupon with no limits, so §6.14's apply step can be walked as often as the
+// suite likes. Applying spends nothing — only a completed payment does — but a
+// limit here would still be a trap for whoever adds the next spec.
+$coupon = get_page_by_path( 'e2e-save20', OBJECT, Post_Types::COUPON );
+
+$coupon_id = $coupon instanceof WP_Post
+	? $coupon->ID
+	: (int) wp_insert_post(
+		array(
+			'post_type'   => Post_Types::COUPON,
+			'post_status' => 'publish',
+			'post_name'   => 'e2e-save20',
+			'post_title'  => 'e2e-save20',
+		)
+	);
+
+update_post_meta( $coupon_id, 'gatedmedia_discount_type', 'percent' );
+update_post_meta( $coupon_id, 'gatedmedia_discount_value', 20 );
+
 // The specs read these off stdout rather than hardcoding a uuid that changes
 // every time the fixture is rebuilt.
 echo 'Fixture ready: ' . get_permalink( $paid_id ) . "\n";
+echo 'GATEDMEDIA_COUPON_CODE=e2e-save20' . "\n";
 echo 'GATEDMEDIA_PAID_URL=' . get_permalink( $paid_id ) . "\n";
 echo 'GATEDMEDIA_FREE_URL=' . get_permalink( $free_id ) . "\n";
 echo 'GATEDMEDIA_PAID_ID=' . $paid_id . "\n";

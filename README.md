@@ -111,6 +111,10 @@ request. There is a note on `Plugin::SERVICES` saying so.
 
 Lives at `/account/`, and at `/account/{section}/` for each section. The slug
 comes from `gatedmedia_account_slug` — a filter, not a setting, per the brief.
+`Support\Account_Url` is the one place that resolves it: `section()` and
+`detail()` build every link in, and `Account_Route::slug()` asks it for the
+bare segment its rewrite rules need. Renaming the account area renames every
+link into it at once.
 
 **It is a virtual page, not a takeover.** The route answers with a page the
 theme renders: its header, its navigation, its footer. This is the WooCommerce
@@ -338,15 +342,51 @@ signed out, already held, lapsed, not eligible, free, for sale — and holding i
 outranks every other message. `Product_Offer` chooses the state; `Checkout`
 decides what may actually happen and is asked again on submit, so a page that
 offered a control it should not have still could not buy anything. The buy
-control is a form to `admin-post.php`, coupon riding along in the same submit.
+control is a form to `admin-post.php`.
+
+**A coupon says what it saves before you commit.** Apply is not part of the
+buy form — it is a GET form of its own, because a form cannot nest inside a
+form and because pressing Apply must not be pressing Get access. It reloads
+the product at `?gatedmedia_coupon=CODE`; `Product_Offer` asks
+`Checkout::preview()` what that code is worth, and the page comes back with
+the discount named, the full price struck through, and Remove as a link to
+the bare permalink. `Coupon_Pricing` answers both questions — what a code is
+worth, and whether it still holds — so the price shown and the price charged
+cannot drift. Previewing writes nothing and spends nothing: usage counts
+completed payments only, and a coupon that runs out between the page being
+priced and the button being pressed is refused at purchase, whatever the page
+said. Only a code that actually priced the page rides the submit, as a hidden
+`gatedmedia_coupon` field.
+
+**On a phone the buy action is pinned.** `action-bar` (§6.15) is the one
+fixed-to-the-bottom element in the design, narrow only, and composed by
+`product-details` alone — §6.15 forbids it on account views and nothing but
+the composer can enforce that. It carries the price in the button's own
+label, so it appears only where there is a price to pay; signed out and free
+have no bar, because a second control under the same name is noise rather
+than help. It is a `<button form="…">` naming the buy form by id, so it
+submits a form it is not inside without a line of script.
 
 **There is no payment return page.** Stripe returns the buyer to the order
 itself — `/account/orders/{uuid}?new_order={uuid}` — and the `payment-status`
 block draws confirming, done or failed from the row's own status. The thank-you
 shows only when the query arg names that very payment *and* the payment belongs
 to whoever is looking; anyone pasting somebody else's uuid gets the ordinary
-page. One screen, server-rendered: `Payment_Status_Route` exists for the live
-version and is deliberately not wired yet.
+page.
+
+**And it confirms itself.** Stripe returns the buyer before its webhook has
+necessarily landed, so a pending panel now watches rather than telling them to
+reload. `assets/js/modules/payment-status.js` polls `Payment_Status_Route`
+every three seconds, twenty times, and **reloads the page** when the status
+moves — the pill, the panel and the "Access this created" section all change
+together, so redrawing the panel alone would put "You're in" above a pending
+pill. Run out of attempts and the wording softens to say it is taking longer;
+it is never an error, because the buyer has paid either way. The timing comes
+from the `gatedmedia_payment_poll` filter. Everything the script needs — uuid,
+a `wp_rest` nonce, the timing, the stand-down sentence — is printed on the
+panel by `render.php`, and only for a pending payment belonging to somebody
+signed in, so a page with nothing to watch carries no nonce and no attributes.
+Without JavaScript the panel reads exactly as it did before.
 
 **A held group opens.** `/account/my-access/{group-uuid}` lists what the group
 holds now — groups are live, so it is a query, not the set as it was when access
