@@ -13,6 +13,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Notifications\Notification_Sender;
 use PinkCrab\Gated_Access\Registration\Capabilities;
+use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
  * The plugin's top-level menu, and the Settings page under it — the Stripe
@@ -49,8 +50,9 @@ class Settings_Page implements Hookable {
 	 *
 	 * @param Settings            $settings      The one settings reader.
 	 * @param Notification_Fields $notifications The Notifications tab's fields.
+	 * @param Account_Fields      $accounts      The Accounts section's fields.
 	 */
-	public function __construct( private Settings $settings, private Notification_Fields $notifications ) {
+	public function __construct( private Settings $settings, private Notification_Fields $notifications, private Account_Fields $accounts ) {
 	}
 
 	/**
@@ -153,6 +155,8 @@ class Settings_Page implements Hookable {
 					<?php if ( 'notifications' === $section ) : ?>
 						<?php $this->notifications->render(); ?>
 					<?php else : ?>
+						<?php $this->accounts->render(); ?>
+
 					<div class="gatedmedia-admin-section-head">
 						<h2><?php esc_html_e( 'Store', 'gated-media-access' ); ?></h2>
 						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Currency and address', 'gated-media-access' ); ?></span>
@@ -294,6 +298,7 @@ class Settings_Page implements Hookable {
 		$clean['revoke_behaviour'] = in_array( $behaviour, $known, true ) ? $behaviour : Settings::REVOKE_BEHAVIOUR_REVOKE;
 
 		$clean = $this->sanitize_keys( $input, $clean );
+		$clean = $this->accounts->sanitize( $input, $clean );
 
 		return $this->sanitize_notifications( $input, $clean );
 	}
