@@ -114,6 +114,14 @@
 	margin-top: var(--gatedmedia-xl);
 }
 
+// §7.8's panel is not a section, so the rule above never fired for whatever
+// follows it — on an order still confirming, "What this included at the time"
+// sat flush against the panel's bottom border with a measured gap of 0px. It
+// is a bordered box like a section's contents, so it takes the same step.
+.gatedmedia-payment-status + .gatedmedia-section {
+	margin-top: var(--gatedmedia-xl);
+}
+
 // -----------------------------------------------------------------------------
 // §7.6 Product
 //
