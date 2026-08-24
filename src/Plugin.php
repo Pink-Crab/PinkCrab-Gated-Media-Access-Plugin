@@ -25,6 +25,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\File_Boundary;
+use PinkCrab\Gated_Access\Access\Gated_Post_Route;
 use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
@@ -88,6 +89,7 @@ class Plugin {
 		Resolver::class,
 		Restriction::class,
 		Post_Boundary::class,
+		Gated_Post_Route::class,
 		Sweep::class,
 		Access_Created_Mail::class,
 		Expiry_Warning::class,
