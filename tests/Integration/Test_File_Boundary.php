@@ -14,6 +14,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
  * The dependency's protect-file decision goes through the resolver, and its
@@ -76,6 +77,96 @@ class Test_File_Boundary extends WP_UnitTestCase {
 
 		// The dependency's own default would serve this: signed in, incoming
 		// decision false. The resolver turns it away.
+		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
+	}
+
+	/**
+	 * @testdox An expired grant stops serving the file, with no sweep having run.
+	 *
+	 * The resolver proves expiry answers false; this proves the file boundary
+	 * asks it. Without this the two are only joined by reasoning — the boundary
+	 * delegating to the resolver — and reasoning is not a test.
+	 *
+	 * No sweep is run on purpose: the record is still `active` and only its
+	 * date has passed, which is the state a real site spends most of its time
+	 * in between sweeps.
+	 */
+	public function test_an_expired_grant_is_refused(): void {
+		[ $attachment_id, $hash ] = $this->make_protected_attachment();
+
+		$access_id = $this->writer->grant( $this->user_id, 'file', (string) $attachment_id, 30, 'admin' );
+
+		// META_EXPIRES_AT is a UTC MySQL datetime, not a timestamp.
+		update_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) );
+
+		wp_set_current_user( $this->user_id );
+
+		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
+	}
+
+	/** @testdox A revoked grant stops serving the file. */
+	public function test_a_revoked_grant_is_refused(): void {
+		[ $attachment_id, $hash ] = $this->make_protected_attachment();
+
+		$access_id = $this->writer->grant( $this->user_id, 'file', (string) $attachment_id, null, 'admin' );
+
+		wp_set_current_user( $this->user_id );
+
+		// Held first, so the refusal below is the revocation and not a grant
+		// that never worked.
+		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
+
+		$this->writer->revoke( $access_id );
+
+		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
+	}
+
+	/**
+	 * @testdox A file held only through a group is served at the boundary.
+	 *
+	 * Every earlier test here grants `file` directly. A real site mostly grants
+	 * groups, so this is the path most files are actually reached by.
+	 *
+	 * It does not also assert the file leaving the group, because it could not
+	 * honestly: `Resolver` forgets a holder on grant, revoke, expire and
+	 * reschedule, and on nothing else — so a group's contents changing
+	 * mid-request is invisible to anything that has already asked.
+	 * `Test_Resolver` covers that with a fresh instance either side.
+	 */
+	public function test_a_group_grant_reaches_the_file(): void {
+		[ $attachment_id, $hash ] = $this->make_protected_attachment();
+
+		$term_id = self::factory()->term->create( array( 'taxonomy' => Access_Taxonomy::TAXONOMY ) );
+
+		// A group is granted by its UUID, never its term id — Resolver::can_see()
+		// documents `item_id` as the group UUID, and group_contents() looks it
+		// up with find_group().
+		$uuid = Uuid::ensure( 'term', (int) $term_id );
+
+		wp_set_object_terms( $attachment_id, array( (int) $term_id ), Access_Taxonomy::TAXONOMY );
+
+		$this->writer->grant( $this->user_id, 'group', $uuid, null, 'admin' );
+
+		wp_set_current_user( $this->user_id );
+
+		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
+	}
+
+	/** @testdox One person's grant is no use to anybody else, on the same file and the same URL. */
+	public function test_a_holders_url_is_no_use_to_a_stranger(): void {
+		[ $attachment_id, $hash ] = $this->make_protected_attachment();
+
+		$this->writer->grant( $this->user_id, 'file', (string) $attachment_id, null, 'admin' );
+
+		$stranger = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+
+		wp_set_current_user( $this->user_id );
+		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
+
+		// The same hash — the URL a holder could paste anywhere. The decision
+		// is made per request against whoever is asking, so passing it on
+		// hands over nothing.
+		wp_set_current_user( $stranger );
 		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
 	}
 
