@@ -56,7 +56,7 @@ class Test_Access_Created_Mail extends WP_UnitTestCase {
 		$this->mail = new Access_Created_Mail(
 			new Notification_Sender( new Settings() ),
 			new Access_Taxonomy(),
-			new Account_Route( new Section_Registry(), new Account_Renderer(), new Asset_Loader(), new Sprite() ),
+			new Account_Route( new Section_Registry(), new Account_Renderer(), new Asset_Loader(), new Sprite(), new Settings() ),
 			new My_Access_Section()
 		);
 

@@ -34,6 +34,7 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Block;
 
 defined( 'ABSPATH' ) || exit;
@@ -142,7 +143,7 @@ if ( '' !== $gatedmedia_order_id ) {
 					// on what the reference is chosen to show.
 					'uuid'        => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
 					'actionLabel' => 'complete' === $gatedmedia_status ? __( 'Go to my access', 'gated-media-access' ) : '',
-					'actionHref'  => 'complete' === $gatedmedia_status ? home_url( '/account/my-access/' ) : '',
+					'actionHref'  => 'complete' === $gatedmedia_status ? Account_Url::section( 'my-access' ) : '',
 				)
 			);
 		}

@@ -26,6 +26,8 @@
 declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Products\Product_Offer;
+use PinkCrab\Gated_Access\Support\Account_Url;
+use PinkCrab\Gated_Access\Support\Auth_Url;
 use PinkCrab\Gated_Access\Support\Block;
 use PinkCrab\Gated_Access\Support\Money;
 
@@ -154,7 +156,7 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		'gated-media-access/button',
 		array(
 			'label'   => __( 'View your access', 'gated-media-access' ),
-			'href'    => home_url( '/account/my-access/' ),
+			'href'    => Account_Url::section( 'my-access' ),
 			'variant' => 'secondary',
 		)
 	);
@@ -167,25 +169,39 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		)
 	);
 } elseif ( Product_Offer::STATE_SIGNED_OUT === $gatedmedia_state ) {
-	// The buy form posts signed out too — Checkout_Action's nopriv mirror
-	// sends them through wp-login and back to finish. So the control is real
-	// rather than a link that loses the product on the way.
+	// Two controls, two destinations. Before round 9 both of these resolved to
+	// the same `wp_login_url()` — one button said "create an account" and did
+	// the same thing as the one beside it, on a site whose account route did
+	// not exist at all.
+	//
+	// The submit still posts the buy form, so the product and the typed coupon
+	// travel with it and `Checkout_Action::require_login()` decides which state
+	// of §7.7 to open. Where this site does not create accounts on the front
+	// end, it does not offer to.
+	$gatedmedia_signup_offered = true === ( $gatedmedia_data['signup_offered'] ?? false );
+
 	$gatedmedia_signed_out = Block::render(
 		'gated-media-access/button',
 		array(
-			'label' => __( 'Create an account to continue', 'gated-media-access' ),
+			'label' => $gatedmedia_signup_offered
+				? __( 'Create an account to continue', 'gated-media-access' )
+				: __( 'Sign in to continue', 'gated-media-access' ),
 			'type'  => 'submit',
 			'full'  => true,
 		)
-	) . Block::render(
-		'gated-media-access/button',
-		array(
-			'label'   => __( 'Already have an account? Sign in', 'gated-media-access' ),
-			'href'    => wp_login_url( (string) get_permalink( $gatedmedia_product_id ) ),
-			'variant' => 'secondary',
-			'full'    => true,
-		)
 	);
+
+	if ( $gatedmedia_signup_offered ) {
+		$gatedmedia_signed_out .= Block::render(
+			'gated-media-access/button',
+			array(
+				'label'   => __( 'Already have an account? Sign in', 'gated-media-access' ),
+				'href'    => Auth_Url::signin( (string) ( $gatedmedia_data['page_url'] ?? '' ) ),
+				'variant' => 'secondary',
+				'full'    => true,
+			)
+		);
+	}
 
 	$gatedmedia_body .= sprintf(
 		'<form id="%s" class="gatedmedia-buy" method="post" action="%s">%s%s</form>',

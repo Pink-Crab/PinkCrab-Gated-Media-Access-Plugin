@@ -81,7 +81,8 @@ class Test_Product_Offer extends WP_UnitTestCase {
 			$checkout,
 			new Resolver( $taxonomy ),
 			$lookup,
-			new Item_Label( $taxonomy )
+			new Item_Label( $taxonomy ),
+			new Settings()
 		);
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
