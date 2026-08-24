@@ -13,7 +13,6 @@ use WP_Error;
 use WP_Post;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
-use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Support\Account_Url;
@@ -52,7 +51,17 @@ class Checkout {
 	 * @param Stripe_Gateway $gateway The one class that talks to Stripe.
 	 */
 	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway ) {
+		// Built here rather than injected: it is a calculation over the same
+		// store, with no lifecycle of its own and nobody else resolving it.
+		$this->coupons = new Coupon_Pricing( $store );
 	}
+
+	/**
+	 * The coupon rules, asked to price a page and again to charge for it.
+	 *
+	 * @var Coupon_Pricing
+	 */
+	private Coupon_Pricing $coupons;
 
 	/**
 	 * Takes one person buying one product to the right place: straight to
@@ -84,6 +93,55 @@ class Checkout {
 	}
 
 	/**
+	 * What a coupon would take off, without committing to anything.
+	 *
+	 * §6.14's flow is apply, *see the discount*, then buy. This answers the
+	 * middle step and writes nothing: no payment row, no coupon spent, no
+	 * Stripe. The same `valid_coupon()` runs again inside `purchase()`, so a
+	 * coupon that expires or hits its limit between the two is refused there —
+	 * what this returns is never what a price is charged on.
+	 *
+	 * @param int    $product_id The product being looked at.
+	 * @param int    $user_id    Who is looking, 0 signed out.
+	 * @param string $code       The typed code.
+	 * @return array{applied: bool, discount: int, total: int, error: string}
+	 */
+	public function preview( int $product_id, int $user_id, string $code ): array {
+		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$none  = array(
+			'applied'  => false,
+			'discount' => 0,
+			'total'    => $price,
+			'error'    => '',
+		);
+
+		$product = get_post( $product_id );
+
+		// A free product has nothing to discount, and a coupon cannot be
+		// judged for somebody who is not signed in — per-user limits need a
+		// user. Both answer "no coupon" rather than an error.
+		if ( '' === $code || 0 === $price || 0 === $user_id
+			|| ! $product instanceof WP_Post || Post_Types::PRODUCT !== $product->post_type ) {
+			return $none;
+		}
+
+		$coupon = $this->coupons->valid_coupon( $code, $user_id );
+
+		if ( $coupon instanceof WP_Error ) {
+			return array( 'error' => $coupon->get_error_message() ) + $none;
+		}
+
+		$discount = $this->coupons->discount( $coupon, $price );
+
+		return array(
+			'applied'  => true,
+			'discount' => $discount,
+			'total'    => $price - $discount,
+			'error'    => '',
+		);
+	}
+
+	/**
 	 * A priced product: resolve the coupon, then start the payment.
 	 *
 	 * @param WP_Post $product     The product.
@@ -96,14 +154,14 @@ class Checkout {
 		$coupon = null;
 
 		if ( '' !== $coupon_code ) {
-			$coupon = $this->valid_coupon( $coupon_code, $user_id );
+			$coupon = $this->coupons->valid_coupon( $coupon_code, $user_id );
 
 			if ( $coupon instanceof WP_Error ) {
 				return $coupon;
 			}
 		}
 
-		$discount = null === $coupon ? 0 : $this->discount( $coupon, $price );
+		$discount = null === $coupon ? 0 : $this->coupons->discount( $coupon, $price );
 
 		return $this->begin_payment( $product, $user_id, $price, $discount, null === $coupon ? 0 : $coupon->ID );
 	}
@@ -257,92 +315,6 @@ class Checkout {
 		}
 	}
 
-	/**
-	 * A typed code to its valid coupon, or the reason it is not.
-	 *
-	 * Usage is counted from completed payments, never stored — so an
-	 * abandoned checkout consumes nothing (spec §1b).
-	 *
-	 * @param string $code    The code as typed.
-	 * @param int    $user_id The buyer.
-	 */
-	private function valid_coupon( string $code, int $user_id ): WP_Post|WP_Error {
-		$found  = get_page_by_path( sanitize_title( $code ), OBJECT, Post_Types::COUPON );
-		$coupon = $found instanceof WP_Post && 'publish' === $found->post_status ? $found : null;
-		$valid  = null !== $coupon && $this->coupon_not_expired( $coupon ) && $this->coupon_within_limits( $coupon, $user_id );
-
-		/**
-		 * Filters whether a coupon applies for this buyer.
-		 *
-		 * @param bool          $valid   The checks' answer so far.
-		 * @param WP_Post|null  $coupon  The coupon, when the code matched one.
-		 * @param int           $user_id The buyer.
-		 */
-		$valid = (bool) apply_filters( 'gatedmedia_coupon_valid', $valid, $coupon, $user_id );
-
-		return $valid && null !== $coupon
-			? $coupon
-			: new WP_Error( 'gatedmedia_bad_coupon', __( 'That coupon cannot be used.', 'gated-media-access' ) );
-	}
-
-	/**
-	 * Whether the coupon's day has not passed. Empty is never.
-	 *
-	 * @param WP_Post $coupon The coupon.
-	 */
-	private function coupon_not_expired( WP_Post $coupon ): bool {
-		$expires = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_EXPIRES_AT, true );
-
-		if ( '' === $expires ) {
-			return true;
-		}
-
-		$timestamp = strtotime( $expires . ' +0000' );
-
-		return false !== $timestamp && $timestamp >= time();
-	}
-
-	/**
-	 * Whether both usage limits have room, counted from completed payments.
-	 *
-	 * @param WP_Post $coupon  The coupon.
-	 * @param int     $user_id The buyer.
-	 */
-	private function coupon_within_limits( WP_Post $coupon, int $user_id ): bool {
-		$usage_limit = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_USAGE_LIMIT, true );
-
-		if ( '' !== $usage_limit && $this->store->coupon_completions( $coupon->ID ) >= (int) $usage_limit ) {
-			return false;
-		}
-
-		$per_user = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_PER_USER_LIMIT, true );
-
-		return '' === $per_user || $this->store->coupon_completions( $coupon->ID, $user_id ) < (int) $per_user;
-	}
-
-	/**
-	 * What the coupon takes off a subtotal, clamped to it. Filterable last.
-	 *
-	 * @param WP_Post $coupon   The valid coupon.
-	 * @param int     $subtotal The price before it, minor units.
-	 */
-	private function discount( WP_Post $coupon, int $subtotal ): int {
-		$value  = (int) get_post_meta( $coupon->ID, Coupon_Metabox::META_VALUE, true );
-		$amount = 'fixed' === (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_TYPE, true )
-			? $value
-			: (int) round( $subtotal * min( 100, $value ) / 100 );
-
-		/**
-		 * Filters what a coupon takes off.
-		 *
-		 * @param int     $amount   The computed discount, minor units.
-		 * @param WP_Post $coupon   The coupon.
-		 * @param int     $subtotal The price before it, minor units.
-		 */
-		$amount = (int) apply_filters( 'gatedmedia_coupon_discount', $amount, $coupon, $subtotal );
-
-		return max( 0, min( $subtotal, $amount ) );
-	}
 
 	/**
 	 * Where the buyer lands after Stripe: their own order, marked as the one

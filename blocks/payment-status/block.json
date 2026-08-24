@@ -31,6 +31,10 @@
 			"type": "string",
 			"default": ""
 		},
+		"uuid": {
+			"type": "string",
+			"default": ""
+		},
 		"actionLabel": {
 			"type": "string",
 			"default": ""

@@ -14,6 +14,7 @@ use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Resolver;
+use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
@@ -48,6 +49,8 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		'nonce'      => '',
 		'action_url' => '',
 		'error'      => '',
+		'coupon'     => array(),
+		'page_url'   => '',
 	);
 
 	private Product_Offer $data;
@@ -78,7 +81,8 @@ class Test_Product_Offer extends WP_UnitTestCase {
 			$checkout,
 			new Resolver( $taxonomy ),
 			$lookup,
-			new Item_Label( $taxonomy )
+			new Item_Label( $taxonomy ),
+			new Settings()
 		);
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
@@ -95,7 +99,16 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'post:' . $this->post_id );
 		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 2500 );
 
+		// The framework's tear_down unregisters every meta key.
+		( new Coupon_Metabox() )->register_meta();
+
 		wp_set_current_user( $this->user_id );
+	}
+
+	public function tear_down(): void {
+		unset( $_GET[ Checkout_Action::COUPON_FIELD ], $_GET[ Checkout_Action::ERROR_FLAG ] );
+
+		parent::tear_down();
 	}
 
 	/**
@@ -250,5 +263,145 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'nonsense' );
 
 		$this->assertCount( 1, $this->data->product( self::DEFAULTS, $this->product_id )['items'] );
+	}
+
+	// -------------------------------------------------------------------------
+	// §6.14 — the coupon, applied by a code in the query string.
+	//
+	// Pressing Apply used to submit the buy form, so it went to Stripe at full
+	// price. It now reloads the product page with the code on it and this is
+	// what prices that page. Nothing here spends a coupon or writes anything:
+	// `Checkout` judges the code again when the purchase is actually made.
+	// -------------------------------------------------------------------------
+
+	/** @testdox With no code in the query there is no coupon and the price stands. */
+	public function test_no_code_no_coupon(): void {
+		wp_set_current_user( $this->user_id );
+		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 4900 );
+
+		$coupon = $this->data->product( self::DEFAULTS, $this->product_id )['coupon'];
+
+		$this->assertSame( '', $coupon['code'] );
+		$this->assertFalse( $coupon['applied'] );
+		$this->assertSame( 0, $coupon['discount'] );
+		$this->assertSame( 4900, $coupon['total'] );
+		$this->assertSame( '', $coupon['error'] );
+	}
+
+	/** @testdox A valid code in the query says what it takes off and what is left. */
+	public function test_a_valid_code_prices_the_page(): void {
+		wp_set_current_user( $this->user_id );
+		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 4900 );
+		$this->coupon( 'save20', 'percent', 20 );
+
+		$_GET[ Checkout_Action::COUPON_FIELD ] = 'save20';
+
+		$coupon = $this->data->product( self::DEFAULTS, $this->product_id )['coupon'];
+
+		$this->assertSame( 'save20', $coupon['code'] );
+		$this->assertTrue( $coupon['applied'] );
+		$this->assertSame( 980, $coupon['discount'] );
+		$this->assertSame( 3920, $coupon['total'] );
+		$this->assertSame( '', $coupon['error'] );
+	}
+
+	/** @testdox A code that is not a coupon says so and leaves the price alone. */
+	public function test_a_rejected_code_keeps_the_full_price(): void {
+		wp_set_current_user( $this->user_id );
+		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 4900 );
+
+		$_GET[ Checkout_Action::COUPON_FIELD ] = 'invented';
+
+		$coupon = $this->data->product( self::DEFAULTS, $this->product_id )['coupon'];
+
+		$this->assertSame( 'invented', $coupon['code'] );
+		$this->assertFalse( $coupon['applied'] );
+		$this->assertSame( 4900, $coupon['total'] );
+		$this->assertSame( 'That coupon cannot be used.', $coupon['error'] );
+	}
+
+	/**
+	 * Per-user limits need a user, so a coupon cannot be judged for a visitor
+	 * who is not signed in — and §7.6 offers them an account rather than a
+	 * price. It answers "no coupon" rather than an error, because they have not
+	 * done anything wrong.
+	 *
+	 * @testdox Signed out, a valid code is neither applied nor called invalid.
+	 */
+	public function test_signed_out_applies_nothing(): void {
+		wp_set_current_user( 0 );
+		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 4900 );
+		$this->coupon( 'save20', 'percent', 20 );
+
+		$_GET[ Checkout_Action::COUPON_FIELD ] = 'save20';
+
+		$coupon = $this->data->product( self::DEFAULTS, $this->product_id )['coupon'];
+
+		$this->assertFalse( $coupon['applied'] );
+		$this->assertSame( '', $coupon['error'] );
+		$this->assertSame( 4900, $coupon['total'] );
+	}
+
+	/** @testdox A free product has nothing for a coupon to take off. */
+	public function test_a_free_product_ignores_a_coupon(): void {
+		wp_set_current_user( $this->user_id );
+		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 0 );
+		$this->coupon( 'save20', 'percent', 20 );
+
+		$_GET[ Checkout_Action::COUPON_FIELD ] = 'save20';
+
+		$coupon = $this->data->product( self::DEFAULTS, $this->product_id )['coupon'];
+
+		$this->assertFalse( $coupon['applied'] );
+		$this->assertSame( 0, $coupon['total'] );
+		$this->assertSame( '', $coupon['error'] );
+	}
+
+	/** @testdox A discount larger than the price clamps to the price, never past zero. */
+	public function test_a_discount_cannot_go_below_zero(): void {
+		wp_set_current_user( $this->user_id );
+		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 1000 );
+		$this->coupon( 'huge', 'fixed', 999999 );
+
+		$_GET[ Checkout_Action::COUPON_FIELD ] = 'huge';
+
+		$coupon = $this->data->product( self::DEFAULTS, $this->product_id )['coupon'];
+
+		$this->assertTrue( $coupon['applied'] );
+		$this->assertSame( 1000, $coupon['discount'] );
+		$this->assertSame( 0, $coupon['total'] );
+	}
+
+	/** @testdox The page url is the product's own permalink, for Apply to come back to. */
+	public function test_page_url_is_the_permalink(): void {
+		wp_set_current_user( $this->user_id );
+
+		$this->assertSame(
+			get_permalink( $this->product_id ),
+			$this->data->product( self::DEFAULTS, $this->product_id )['page_url']
+		);
+	}
+
+	/**
+	 * A published coupon with a code, a type and a value.
+	 *
+	 * @param string $code  The code (becomes post_name).
+	 * @param string $type  percent or fixed.
+	 * @param int    $value Whole percent, or minor units.
+	 */
+	private function coupon( string $code, string $type, int $value ): int {
+		$coupon_id = self::factory()->post->create(
+			array(
+				'post_type'   => Post_Types::COUPON,
+				'post_title'  => $code,
+				'post_name'   => $code,
+				'post_status' => 'publish',
+			)
+		);
+
+		update_post_meta( $coupon_id, Coupon_Metabox::META_TYPE, $type );
+		update_post_meta( $coupon_id, Coupon_Metabox::META_VALUE, $value );
+
+		return $coupon_id;
 	}
 }

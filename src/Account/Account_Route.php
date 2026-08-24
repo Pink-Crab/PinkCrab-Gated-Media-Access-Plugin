@@ -15,6 +15,9 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
 use PinkCrab\Gated_Access\Blocks\Sprite;
+use PinkCrab\Gated_Access\Settings\Settings;
+use PinkCrab\Gated_Access\Support\Account_Url;
+use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
  * Puts the account area on a URL of its own.
@@ -85,21 +88,32 @@ class Account_Route implements Hookable {
 	 * @param Account_Renderer $renderer Draws the shell.
 	 * @param Asset_Loader     $assets   Supplies the front bundle.
 	 * @param Sprite           $sprite   Prints the icon symbols.
+	 * @param Settings         $settings Says whether this route runs at all.
 	 */
 	public function __construct(
 		private Section_Registry $registry,
 		private Account_Renderer $renderer,
 		private Asset_Loader $assets,
 		private Sprite $sprite,
+		private Settings $settings,
 	) {
 	}
 
 	/**
 	 * Registers the rewrites, the query vars and the virtual page.
 	 *
+	 * Nothing is attached when the `account_route` setting is off: the brief
+	 * gives an administrator two ways to have an account area, this route or
+	 * their own pages holding the same blocks, and a site that has chosen the
+	 * second should not also answer on `/account/`.
+	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
+		if ( ! $this->settings->account_route() ) {
+			return;
+		}
+
 		$loader->action( 'init', array( $this, 'register_rewrites' ) );
 		$loader->filter( 'query_vars', array( $this, 'register_query_vars' ) );
 		$loader->filter( 'the_posts', array( $this, 'supply_virtual_page' ), 2, 10 );
@@ -113,12 +127,11 @@ class Account_Route implements Hookable {
 	 *
 	 * A filter rather than a setting, per the brief — this is the sort of thing
 	 * a site changes in code, and making it a setting invites someone to change
-	 * it in a way that breaks their own links.
+	 * it in a way that breaks their own links. `Account_Url` resolves it; this
+	 * stays as the route's own way of asking.
 	 */
 	public function slug(): string {
-		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );
-
-		return is_string( $slug ) && '' !== $slug ? $slug : 'account';
+		return Account_Url::slug();
 	}
 
 	/**
@@ -261,10 +274,14 @@ class Account_Route implements Hookable {
 	}
 
 	/**
-	 * Sends a signed-out visitor to log in, and back here afterwards.
+	 * Sends a signed-out visitor to sign in, and back here afterwards.
 	 *
 	 * The account area is a person's own record, so there is no signed-out view
 	 * of it to render.
+	 *
+	 * Round 9 moved this off `wp_login_url()` and onto the plugin's own view.
+	 * wp-login.php still works and is still where core's reset link lands; it
+	 * is simply not where our own pages send people any more.
 	 */
 	public function require_login(): void {
 		if ( '1' !== (string) get_query_var( self::QUERY_FLAG ) ) {
@@ -275,7 +292,7 @@ class Account_Route implements Hookable {
 			return;
 		}
 
-		wp_safe_redirect( wp_login_url( $this->current_url() ) );
+		wp_safe_redirect( Auth_Url::signin( $this->current_url() ) );
 		exit;
 	}
 
@@ -375,7 +392,7 @@ class Account_Route implements Hookable {
 	}
 
 	/**
-	 * The URL being requested, for the round trip through wp-login.
+	 * The URL being requested, for the round trip through the auth view.
 	 */
 	private function current_url(): string {
 		$path = isset( $_SERVER['REQUEST_URI'] )

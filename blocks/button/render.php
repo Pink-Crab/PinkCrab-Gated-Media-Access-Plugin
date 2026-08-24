@@ -66,6 +66,10 @@ $gatedmedia_class = implode( ' ', $gatedmedia_classes );
 		name="<?php echo esc_attr( (string) $attributes['name'] ); ?>"
 		value="<?php echo esc_attr( isset( $attributes['value'] ) ? (string) $attributes['value'] : '' ); ?>"
 		<?php endif; ?>
+		<?php // A button may submit a form it is not inside, by naming its id. ?>
+		<?php if ( '' !== (string) ( $attributes['form'] ?? '' ) ) : ?>
+		form="<?php echo esc_attr( (string) $attributes['form'] ); ?>"
+		<?php endif; ?>
 	>
 		<?php if ( '' !== $gatedmedia_icon ) : ?>
 		<svg class="gatedmedia-icon gatedmedia-icon--small" aria-hidden="true" focusable="false"><use href="#<?php echo esc_attr( $gatedmedia_icon ); ?>"></use></svg>

@@ -10,9 +10,11 @@
  * Stripe's confirmation and nowhere else (`Stripe_Webhook`), so nothing here
  * writes, grants or asks Stripe anything — it renders the row as found.
  *
- * Server-rendered: the panel shows the status at page load, and a reload moves
- * it on. The poll route (`Payment_Status_Route`) exists for the live version
- * and is deliberately not wired yet.
+ * Server-rendered first: the panel shows the status at page load. A pending one
+ * then carries what `assets/js/modules/payment-status.js` needs to watch
+ * `Payment_Status_Route` — uuid, REST nonce, timing — and the page reloads when
+ * the status moves, because the pill and the access section change with it.
+ * Without JavaScript the wording still tells the buyer to reload.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -93,8 +95,43 @@ if ( '' !== $gatedmedia_action_label && '' !== $gatedmedia_action_href ) {
 }
 
 $gatedmedia_classes = 'gatedmedia-payment-status gatedmedia-payment-status--' . $gatedmedia_state['kind'];
+
+// -----------------------------------------------------------------------------
+// The poll, on a pending payment only. Everything the script needs rides on the
+// element it is already looking for: the uuid, a REST nonce, and the wording to
+// stand down with. A page without these attributes simply never polls.
+// -----------------------------------------------------------------------------
+$gatedmedia_uuid = isset( $attributes['uuid'] ) ? (string) $attributes['uuid'] : '';
+$gatedmedia_poll = '';
+
+if ( 'pending' === $gatedmedia_status && '' !== $gatedmedia_uuid && is_user_logged_in() ) {
+	/**
+	 * Filters how the return page waits for Stripe's webhook.
+	 *
+	 * @param array{interval: int, attempts: int} $poll Milliseconds between polls, and how many.
+	 * @param string                              $uuid The payment being watched.
+	 */
+	$gatedmedia_timing = (array) apply_filters(
+		'gatedmedia_payment_poll',
+		array(
+			'interval' => 3000,
+			'attempts' => 20,
+		),
+		$gatedmedia_uuid
+	);
+
+	$gatedmedia_poll = sprintf(
+		' data-gatedmedia-poll="%s" data-gatedmedia-nonce="%s" data-gatedmedia-url="%s" data-gatedmedia-interval="%d" data-gatedmedia-attempts="%d" data-gatedmedia-waiting="%s"',
+		esc_attr( $gatedmedia_uuid ),
+		esc_attr( wp_create_nonce( 'wp_rest' ) ),
+		esc_url( rest_url( 'gated-media-access/v1/payment/' . $gatedmedia_uuid ) ),
+		max( 1000, (int) ( $gatedmedia_timing['interval'] ?? 3000 ) ),
+		max( 1, (int) ( $gatedmedia_timing['attempts'] ?? 20 ) ),
+		esc_attr__( 'This is taking longer than usual. Your payment is safe and your access will appear here shortly — you can close this page.', 'gated-media-access' )
+	);
+}
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => $gatedmedia_classes ) ) ); ?>>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => $gatedmedia_classes ) ) ) . $gatedmedia_poll; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each attribute escaped above. ?>>
 	<?php if ( 'pending' === $gatedmedia_status ) : ?>
 	<div class="gatedmedia-spinner" aria-hidden="true"></div>
 	<?php elseif ( '' !== $gatedmedia_state['icon'] ) : ?>
@@ -103,7 +140,7 @@ $gatedmedia_classes = 'gatedmedia-payment-status gatedmedia-payment-status--' . 
 
 	<h2 class="gatedmedia-heading gatedmedia-heading--page"><?php echo esc_html( $gatedmedia_heading ); ?></h2>
 
-	<p class="gatedmedia-text"><?php echo esc_html( $gatedmedia_message ); ?></p>
+	<p class="gatedmedia-text" data-gatedmedia-message><?php echo esc_html( $gatedmedia_message ); ?></p>
 
 	<?php if ( '' !== $gatedmedia_action ) : ?>
 	<div class="gatedmedia-payment-status__action">

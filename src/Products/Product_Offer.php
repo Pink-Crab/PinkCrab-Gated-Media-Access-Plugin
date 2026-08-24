@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
@@ -58,12 +59,14 @@ class Product_Offer implements Hookable {
 	 * @param Resolver      $resolver What this person can already see.
 	 * @param Access_Lookup $lookup   Access they used to have.
 	 * @param Item_Label    $labels   Names the items a product grants.
+	 * @param Settings      $settings Decides whether signing up is offered.
 	 */
 	public function __construct(
 		private Checkout $checkout,
 		private Resolver $resolver,
 		private Access_Lookup $lookup,
 		private Item_Label $labels,
+		private Settings $settings,
 	) {
 	}
 
@@ -106,8 +109,49 @@ class Product_Offer implements Hookable {
 		$data['nonce']      = wp_create_nonce( Checkout_Action::ACTION );
 		$data['action_url'] = admin_url( 'admin-post.php' );
 		$data['error']      = $this->error();
+		$data['coupon']     = $this->coupon( $product_id, $user_id, $price );
+		$data['page_url']   = (string) get_permalink( $product_id );
+
+		// Whether a stranger looking at this page can make themselves an
+		// account. Under `admin` and `purchase` they cannot, and the signed-out
+		// controls must not say otherwise.
+		$data['signup_offered'] = Settings::ACCOUNT_CREATION_REGISTRATION === $this->settings->account_creation();
 
 		return $data;
+	}
+
+	/**
+	 * §6.14 — the coupon as the page should draw it.
+	 *
+	 * Apply reloads the product page with the code in the query, so the state
+	 * shown is whatever the URL asks for, priced by `Checkout::preview()`. That
+	 * writes nothing and spends nothing; the code rides the buy submit and
+	 * `Checkout` judges it again there.
+	 *
+	 * @param int $product_id The product.
+	 * @param int $user_id    Who is looking, 0 signed out.
+	 * @param int $price      Full price, minor units.
+	 * @return array{code: string, applied: bool, discount: int, total: int, error: string}
+	 */
+	private function coupon( int $product_id, int $user_id, int $price ): array {
+		// A code in the query prices a page and buys nothing. Nothing is
+		// written and no form is processed, so there is nothing for a nonce to
+		// protect — as with the error flag above.
+		$raw = $_GET[ Checkout_Action::COUPON_FIELD ] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; see above.
+
+		$code = sanitize_text_field( wp_unslash( (string) $raw ) );
+
+		if ( '' === $code ) {
+			return array(
+				'code'     => '',
+				'applied'  => false,
+				'discount' => 0,
+				'total'    => $price,
+				'error'    => '',
+			);
+		}
+
+		return array( 'code' => $code ) + $this->checkout->preview( $product_id, $user_id, $code );
 	}
 
 	/**

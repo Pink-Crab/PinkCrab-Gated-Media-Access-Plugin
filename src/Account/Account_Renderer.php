@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Account;
 
+use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Block;
 
 /**
@@ -228,9 +229,6 @@ class Account_Renderer {
 	 * @param Account_Section $section The section to link to.
 	 */
 	private function url( Account_Section $section ): string {
-		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );
-		$slug = is_string( $slug ) && '' !== $slug ? $slug : 'account';
-
-		return home_url( sprintf( '/%s/%s/', $slug, $section->slug() ) );
+		return Account_Url::section( $section->slug() );
 	}
 }
