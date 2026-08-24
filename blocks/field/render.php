@@ -32,8 +32,13 @@ if ( '' === $gatedmedia_name ) {
 $gatedmedia_label     = isset( $attributes['label'] ) ? (string) $attributes['label'] : '';
 $gatedmedia_error     = isset( $attributes['error'] ) ? (string) $attributes['error'] : '';
 $gatedmedia_help      = isset( $attributes['message'] ) ? (string) $attributes['message'] : '';
-$gatedmedia_invalid   = '' !== $gatedmedia_error;
 $gatedmedia_multiline = true === ( $attributes['multiline'] ?? false );
+
+// Invalid with no message of its own: §7.7's failed sign-in marks both fields
+// while the notice above them carries the one explanation. Without this the
+// only way to a red border is an error string, and the page would say the same
+// thing three times.
+$gatedmedia_invalid = '' !== $gatedmedia_error || true === ( $attributes['invalid'] ?? false );
 
 // An error replaces the helper line rather than joining it.
 $gatedmedia_message = $gatedmedia_invalid ? $gatedmedia_error : $gatedmedia_help;

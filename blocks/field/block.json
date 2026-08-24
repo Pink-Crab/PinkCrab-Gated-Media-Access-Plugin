@@ -33,6 +33,10 @@
 			"type": "string",
 			"default": ""
 		},
+		"invalid": {
+			"type": "boolean",
+			"default": false
+		},
 		"placeholder": {
 			"type": "string",
 			"default": ""
