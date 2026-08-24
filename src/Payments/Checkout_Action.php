@@ -12,6 +12,8 @@ namespace PinkCrab\Gated_Access\Payments;
 use WP_Error;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Settings\Settings;
+use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
  * The admin-post action a product page's buy form submits to. Thin on
@@ -41,8 +43,9 @@ class Checkout_Action implements Hookable {
 	 * The flow lives in Checkout; this class only fronts it.
 	 *
 	 * @param Checkout $checkout The purchase flow.
+	 * @param Settings $settings Decides whether signing up is offered.
 	 */
-	public function __construct( private Checkout $checkout ) {
+	public function __construct( private Checkout $checkout, private Settings $settings ) {
 	}
 
 	/**
@@ -98,13 +101,31 @@ class Checkout_Action implements Hookable {
 	}
 
 	/**
-	 * Signed out: through wp-login and back to the product to try again.
+	 * Signed out: to the plugin's own way in, and back to the product after.
+	 *
+	 * The control that reaches here says "Create an account to continue", so it
+	 * goes to sign-up when this site creates accounts that way and to sign-in
+	 * when it does not — a page must never offer a route that does not exist.
+	 *
+	 * The coupon rides along on the destination. Before round 9 it was dropped
+	 * on the way through, so a buyer who had applied one came back to the
+	 * product at full price with no sign of what had happened.
 	 */
 	public function require_login(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nothing changes; the field only shapes the post-login destination.
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nothing changes; the fields only shape the post-login destination.
 		$product_id = isset( $_POST['gatedmedia_product'] ) ? absint( wp_unslash( $_POST['gatedmedia_product'] ) ) : 0;
+		$coupon     = isset( $_POST[ self::COUPON_FIELD ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::COUPON_FIELD ] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		wp_safe_redirect( wp_login_url( (string) get_permalink( $product_id ) ) );
+		$product = (string) get_permalink( $product_id );
+
+		if ( '' !== $coupon && '' !== $product ) {
+			$product = add_query_arg( self::COUPON_FIELD, $coupon, $product );
+		}
+
+		$signup = Settings::ACCOUNT_CREATION_REGISTRATION === $this->settings->account_creation();
+
+		wp_safe_redirect( $signup ? Auth_Url::signup( $product ) : Auth_Url::signin( $product ) );
 		exit;
 	}
 }

@@ -173,8 +173,14 @@ test.describe( 'signed out', () => {
 		await page.context().clearCookies();
 		await page.goto( '/account/' );
 
-		// Sent to log in, and brought back here afterwards.
-		await expect( page ).toHaveURL( /wp-login\.php/ );
+		// Sent to sign in, and brought back here afterwards. Round 9 moved
+		// this off wp-login.php and onto the plugin's own view — wp-login.php
+		// still works, it is simply not where our own pages send people.
+		await expect( page ).toHaveURL( /\/sign-in\// );
+		await expect( page ).not.toHaveURL( /wp-login/ );
+
+		// The return trip this test's comment always claimed and never checked.
+		await expect( page ).toHaveURL( /redirect_to=.*account/ );
 	} );
 } );
 

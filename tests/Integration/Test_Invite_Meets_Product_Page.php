@@ -129,7 +129,8 @@ class Test_Invite_Meets_Product_Page extends WP_UnitTestCase {
 			new Checkout( new Payment_Store(), new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() ), new Stripe_Gateway( new Settings() ) ),
 			new Resolver( $taxonomy ),
 			new Access_Lookup(),
-			new Item_Label( $taxonomy )
+			new Item_Label( $taxonomy ),
+			new Settings()
 		);
 
 		return $offer->product( self::DEFAULTS, $product_id )['state'];

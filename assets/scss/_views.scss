@@ -114,6 +114,14 @@
 	margin-top: var(--gatedmedia-xl);
 }
 
+// §7.8's panel is not a section, so the rule above never fired for whatever
+// follows it — on an order still confirming, "What this included at the time"
+// sat flush against the panel's bottom border with a measured gap of 0px. It
+// is a bordered box like a section's contents, so it takes the same step.
+.gatedmedia-payment-status + .gatedmedia-section {
+	margin-top: var(--gatedmedia-xl);
+}
+
 // -----------------------------------------------------------------------------
 // §7.6 Product
 //
@@ -189,6 +197,59 @@
 		max-width: none;
 		padding: 32px var(--gatedmedia-md);
 	}
+}
+
+// -----------------------------------------------------------------------------
+// §7.7 Sign in / sign up / reset
+//
+// Blocks 3 and 4 are one form: the fields stacked, then the full-width button.
+// The hidden fields carry no height, so this is the visible controls alone.
+//
+// Block 5's alternate routes sit beneath the button, left-aligned, one per
+// line — never side by side, and never centred, which is what distinguishes
+// this view from §7.8's centred success state.
+// -----------------------------------------------------------------------------
+
+// Scoped to this view's own card rather than to `.gatedmedia-card`, which §7.5's
+// forced-completion state also wears — a rule on the shared class would land
+// there too.
+.gatedmedia-auth-card {
+	> * + * {
+		margin-top: var(--gatedmedia-lg);
+	}
+
+	// The sub-line carries a 48px bottom margin for the account views, where it
+	// separates a page header from a whole section. Inside this card it is one
+	// step in a short stack, so the rhythm above is the only one that applies.
+	> .gatedmedia-page-intro {
+		margin-bottom: 0;
+
+		// This is the one view whose h1 is ours rather than the theme's, so it
+		// is also the one place the title and its sub-line need spacing of
+		// their own — they read as a single header, not two blocks.
+		> * + * {
+			margin-top: var(--gatedmedia-sm);
+		}
+	}
+}
+
+.gatedmedia-auth {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gatedmedia-md);
+
+	// The button wants more air above it than the gap between two fields, so
+	// the three do not read as one undifferentiated stack.
+	> :last-child {
+		margin-top: var(--gatedmedia-sm);
+	}
+}
+
+// One per line, left-aligned — never side by side, and never centred, which is
+// what tells this view apart from §7.8's centred states.
+.gatedmedia-auth__route {
+	margin: var(--gatedmedia-md) 0 0;
+	text-align: left;
 }
 
 // -----------------------------------------------------------------------------

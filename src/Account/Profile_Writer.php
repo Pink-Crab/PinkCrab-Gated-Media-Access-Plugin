@@ -12,6 +12,7 @@ namespace PinkCrab\Gated_Access\Account;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Support\Account_Url;
+use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
  * One profile shape — name, email, address, phone, company — and the handler
@@ -169,7 +170,7 @@ class Profile_Writer implements Hookable {
 	 */
 	public function handle(): void {
 		if ( ! is_user_logged_in() ) {
-			wp_safe_redirect( wp_login_url() );
+			wp_safe_redirect( Auth_Url::signin( Account_Url::section( 'profile' ) ) );
 			exit;
 		}
 

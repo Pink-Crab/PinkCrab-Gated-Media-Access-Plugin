@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
@@ -58,12 +59,14 @@ class Product_Offer implements Hookable {
 	 * @param Resolver      $resolver What this person can already see.
 	 * @param Access_Lookup $lookup   Access they used to have.
 	 * @param Item_Label    $labels   Names the items a product grants.
+	 * @param Settings      $settings Decides whether signing up is offered.
 	 */
 	public function __construct(
 		private Checkout $checkout,
 		private Resolver $resolver,
 		private Access_Lookup $lookup,
 		private Item_Label $labels,
+		private Settings $settings,
 	) {
 	}
 
@@ -108,6 +111,11 @@ class Product_Offer implements Hookable {
 		$data['error']      = $this->error();
 		$data['coupon']     = $this->coupon( $product_id, $user_id, $price );
 		$data['page_url']   = (string) get_permalink( $product_id );
+
+		// Whether a stranger looking at this page can make themselves an
+		// account. Under `admin` and `purchase` they cannot, and the signed-out
+		// controls must not say otherwise.
+		$data['signup_offered'] = Settings::ACCOUNT_CREATION_REGISTRATION === $this->settings->account_creation();
 
 		return $data;
 	}

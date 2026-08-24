@@ -40,6 +40,15 @@ class Settings {
 	/** Delete removes the record outright. */
 	public const REVOKE_BEHAVIOUR_DELETE = 'delete';
 
+	/** Anyone may sign themselves up on the front end. The default. */
+	public const ACCOUNT_CREATION_REGISTRATION = 'registration';
+
+	/** Only an administrator creates accounts. */
+	public const ACCOUNT_CREATION_ADMIN = 'admin';
+
+	/** An account appears when a purchase completes, and no other way. */
+	public const ACCOUNT_CREATION_PURCHASE = 'purchase';
+
 	/**
 	 * What revoking a record does on this site: revoke, expire or delete.
 	 *
@@ -98,6 +107,68 @@ class Settings {
 		$path = sanitize_title( (string) apply_filters( 'gatedmedia_product_path', $path ) );
 
 		return '' === $path ? 'access' : $path;
+	}
+
+	/**
+	 * Whether the plugin's own `/account/` route is registered at all.
+	 *
+	 * Off means a site places the account blocks on its own pages instead —
+	 * both roads render the same blocks, which is what stops them drifting.
+	 * Default on; filter `gatedmedia_account_route` has the last word.
+	 */
+	public function account_route(): bool {
+		$settings = get_option( self::OPTION );
+		$stored   = is_array( $settings ) && isset( $settings['account_route'] ) ? (string) $settings['account_route'] : '1';
+
+		/**
+		 * Filters whether the account route is on, over the stored setting.
+		 *
+		 * @param bool $on Whether to register the route.
+		 */
+		return (bool) apply_filters( 'gatedmedia_account_route', '1' === $stored );
+	}
+
+	/**
+	 * How someone gets an account: registration, admin or purchase
+	 * (requirements.md). Only this plugin's own sign-up obeys it — core's
+	 * `users_can_register` is never read and never written, so wp-login.php
+	 * keeps whatever policy the site already gave it.
+	 *
+	 * Default registration; filter `gatedmedia_account_creation` has the last
+	 * word, and anything unrecognised lands back there.
+	 */
+	public function account_creation(): string {
+		$settings = get_option( self::OPTION );
+		$route    = is_array( $settings ) && isset( $settings['account_creation'] ) ? (string) $settings['account_creation'] : self::ACCOUNT_CREATION_REGISTRATION;
+
+		/**
+		 * Filters how accounts are created, over the stored setting.
+		 *
+		 * @param string $route One of registration, admin, purchase.
+		 */
+		$route = (string) apply_filters( 'gatedmedia_account_creation', $route );
+
+		$known = array( self::ACCOUNT_CREATION_REGISTRATION, self::ACCOUNT_CREATION_ADMIN, self::ACCOUNT_CREATION_PURCHASE );
+
+		return in_array( $route, $known, true ) ? $route : self::ACCOUNT_CREATION_REGISTRATION;
+	}
+
+	/**
+	 * Whether a thin account is asked to complete itself on first sign-in.
+	 *
+	 * Default off — a prompt that interrupts everyone is worse than a profile
+	 * left thin. Filter `gatedmedia_profile_prompt` has the last word.
+	 */
+	public function profile_prompt(): bool {
+		$settings = get_option( self::OPTION );
+		$stored   = is_array( $settings ) && isset( $settings['profile_prompt'] ) ? (string) $settings['profile_prompt'] : '0';
+
+		/**
+		 * Filters whether first sign-in prompts for a thin profile.
+		 *
+		 * @param bool $prompt Whether to prompt.
+		 */
+		return (bool) apply_filters( 'gatedmedia_profile_prompt', '1' === $stored );
 	}
 
 	/**
