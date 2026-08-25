@@ -41,6 +41,15 @@ class Asset_Loader implements Hookable {
 	public const ADMIN_SCRIPT = 'gatedmedia-admin';
 
 	/**
+	 * The block editor bundle.
+	 *
+	 * Its own handle rather than more code in the admin one: this loads only
+	 * in the editor, through `enqueue_block_editor_assets`, and depends on
+	 * `wp-editor` and `wp-plugins`, which the admin bundle has no use for.
+	 */
+	public const EDITOR_SCRIPT = 'gatedmedia-editor';
+
+	/**
 	 * Registers the bundles, and the admin enqueue.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
@@ -48,6 +57,7 @@ class Asset_Loader implements Hookable {
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'init', array( $this, 'register' ) );
 		$loader->admin_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin' ) );
+		$loader->admin_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor' ) );
 	}
 
 	/**
@@ -89,6 +99,32 @@ class Asset_Loader implements Hookable {
 			$admin_script['version'],
 			true
 		);
+
+		$editor_script = $this->asset( 'js/editor' );
+		wp_register_script(
+			self::EDITOR_SCRIPT,
+			GATEDMEDIA_DIR_URL . 'build/js/editor.js',
+			$editor_script['dependencies'],
+			$editor_script['version'],
+			true
+		);
+	}
+
+	/**
+	 * The editor bundle, on the editors of types that can be restricted.
+	 *
+	 * `enqueue_block_editor_assets` rather than `admin_enqueue_scripts`: the
+	 * status control is a slot fill, and the slot only exists once the editor
+	 * has booted.
+	 */
+	public function enqueue_editor(): void {
+		$screen = get_current_screen();
+
+		if ( null === $screen || ! in_array( (string) $screen->post_type, Access_Taxonomy::object_types(), true ) ) {
+			return;
+		}
+
+		wp_enqueue_script( self::EDITOR_SCRIPT );
 	}
 
 	/**

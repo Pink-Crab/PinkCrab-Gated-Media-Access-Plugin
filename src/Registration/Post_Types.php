@@ -61,6 +61,21 @@ class Post_Types implements Hookable {
 	public const STATUS_REVOKED = 'gatedmedia_revoked';
 
 	/**
+	 * Content reachable only at its UUID, and only by someone granted it.
+	 *
+	 * The one status here that belongs to **content** rather than to an access
+	 * record. Setting it applies the marker term, so everything restriction
+	 * already means — absent from archives, search, REST and sitemaps, a hard
+	 * 404 without access — comes with it rather than being reimplemented.
+	 *
+	 * What it adds is addressing: a post carrying it answers at
+	 * `/{segment}/{uuid}` and nowhere else. Its slug 404s for everyone,
+	 * holders included, which is what separates it from an ordinary restricted
+	 * post — those keep their permalink and are merely refused.
+	 */
+	public const STATUS_GATED = 'gatedmedia_gated';
+
+	/**
 	 * Registers everything on init.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
@@ -280,6 +295,27 @@ class Post_Types implements Hookable {
 				__( 'Revoked', 'gated-media-access' ),
 				/* translators: %s: number of access records. */
 				_n_noop( 'Revoked <span class="count">(%s)</span>', 'Revoked <span class="count">(%s)</span>', 'gated-media-access' )
+			)
+		);
+
+		// Not status_args(): the three above belong to access records, which
+		// are never rendered. This one belongs to content that must still be
+		// renderable — for the holder, at its UUID. `public` is what lets the
+		// post be queried and displayed at all; every gate it needs is ours
+		// and is applied deliberately, rather than by making the status
+		// unqueryable and then fighting core to show it to one person.
+		register_post_status(
+			self::STATUS_GATED,
+			array(
+				'label'                     => __( 'Gated access', 'gated-media-access' ),
+				/* translators: %s: number of posts. */
+				'label_count'               => _n_noop( 'Gated access <span class="count">(%s)</span>', 'Gated access <span class="count">(%s)</span>', 'gated-media-access' ),
+				'public'                    => true,
+				'internal'                  => false,
+				'protected'                 => true,
+				'exclude_from_search'       => true,
+				'show_in_admin_all_list'    => true,
+				'show_in_admin_status_list' => true,
 			)
 		);
 	}

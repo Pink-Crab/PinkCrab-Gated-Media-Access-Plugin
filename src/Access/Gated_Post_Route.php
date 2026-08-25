@@ -1,0 +1,275 @@
+<?php
+/**
+ * Content reachable only at its UUID.
+ *
+ * @package PinkCrab\Gated_Access
+ */
+
+declare( strict_types = 1 );
+
+namespace PinkCrab\Gated_Access\Access;
+
+use WP_Post;
+use PinkCrab\Loader\Hook_Loader;
+use PinkCrab\Gated_Access\Hookable;
+use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Support\Uuid;
+
+/**
+ * The `gatedmedia_gated` status, and the addressing it implies.
+ *
+ * **It is a trigger, not a second access model.** Setting the status applies
+ * the marker term, which is what "restricted" has meant since round 2 — so
+ * `Post_Boundary` refuses it without access, `Resolver` decides who holds it,
+ * and its absence from archives, search, REST and sitemaps all follow with no
+ * new code. `post` has been a grantable item type since round 1; nothing about
+ * granting changes.
+ *
+ * What the status adds is **where the post lives**. An ordinary restricted post
+ * keeps its permalink and is merely refused to people without access. One
+ * carrying this status answers at `/{segment}/{uuid}` and nowhere else: its
+ * slug, `?p=`, and any stale permalink all 404 — for holders too.
+ *
+ * **404, never a redirect.** `Product_Route` settled this and the reasoning is
+ * the same here: bouncing a slug request to the real UUID URL would turn the
+ * slug into an oracle for discovering it.
+ */
+class Gated_Post_Route implements Hookable {
+
+	/** The query var the rewrite fills with the UUID. */
+	public const QUERY_VAR = 'gatedmedia_gated_uuid';
+
+	/** The internal flag marking a query that arrived through the UUID. */
+	public const VIA_FLAG = 'gatedmedia_gated_via_uuid';
+
+	/** Bumped when the rule below changes shape. */
+	private const REWRITE_VERSION = '1';
+
+	private const REWRITE_OPTION = 'gatedmedia_gated_rewrites';
+
+	/**
+	 * Owns the marker term the status applies.
+	 *
+	 * @param Restriction $restriction The marker term.
+	 */
+	public function __construct( private Restriction $restriction ) {
+	}
+
+	/**
+	 * The rule, its var, the routing, the permalink and the status trigger.
+	 *
+	 * @param Hook_Loader $loader The shared loader.
+	 */
+	public function register_hooks( Hook_Loader $loader ): void {
+		$loader->action( 'init', array( $this, 'register_rewrites' ) );
+		$loader->filter( 'query_vars', array( $this, 'register_query_vars' ) );
+		$loader->filter( 'request', array( $this, 'route_request' ) );
+		$loader->filter( 'post_link', array( $this, 'gated_link' ), 2 );
+		$loader->filter( 'post_type_link', array( $this, 'gated_link' ), 2 );
+		$loader->action( 'transition_post_status', array( $this, 'mark_on_transition' ), 3 );
+	}
+
+	/**
+	 * The URL segment gated content sits under.
+	 *
+	 * A filter rather than a setting, as `Account_Url::slug()` is: a site
+	 * changes this in code, and making it a setting invites someone to break
+	 * every link they have already shared.
+	 */
+	public static function segment(): string {
+		$filtered = apply_filters( 'gatedmedia_gated_path', 'gated' );
+		$segment  = is_string( $filtered ) ? sanitize_title( $filtered ) : '';
+
+		return '' === $segment ? 'gated' : $segment;
+	}
+
+	/**
+	 * A gated post's only URL.
+	 *
+	 * @param int $post_id The post.
+	 */
+	public static function url( int $post_id ): string {
+		return home_url( '/' . self::segment() . '/' . Uuid::ensure( 'post', $post_id ) . '/' );
+	}
+
+	/**
+	 * The UUID rule, flushed once per version-and-segment.
+	 */
+	public function register_rewrites(): void {
+		add_rewrite_rule(
+			'^' . self::segment() . '/([0-9a-f-]{36})/?$',
+			'index.php?' . self::QUERY_VAR . '=$matches[1]',
+			'top'
+		);
+
+		$this->flush_once();
+	}
+
+	/**
+	 * Makes both vars readable through get_query_var().
+	 *
+	 * @param array<int, string> $vars Core's public query vars.
+	 * @return array<int, string>
+	 */
+	public function register_query_vars( array $vars ): array {
+		$vars[] = self::QUERY_VAR;
+		$vars[] = self::VIA_FLAG;
+
+		return $vars;
+	}
+
+	/**
+	 * Turns a UUID into that post's own single query, and refuses every other
+	 * road to a gated post.
+	 *
+	 * @param array<string, mixed> $query_vars The main request's vars.
+	 * @return array<string, mixed>
+	 */
+	public function route_request( array $query_vars ): array {
+		// The request filter runs on admin queries too; clobbering their vars
+		// would send the editor's list table somewhere else entirely.
+		if ( is_admin() ) {
+			return $query_vars;
+		}
+
+		$uuid = (string) ( $query_vars[ self::QUERY_VAR ] ?? '' );
+
+		if ( '' !== $uuid ) {
+			$post_id = $this->find_gated_post( $uuid );
+
+			if ( null === $post_id ) {
+				return array( 'error' => '404' );
+			}
+
+			return array(
+				'p'            => $post_id,
+				'post_type'    => get_post_type( $post_id ),
+				'post_status'  => Post_Types::STATUS_GATED,
+				self::VIA_FLAG => 1,
+			);
+		}
+
+		// Any other main query that would land on a gated post — its slug, a
+		// bare `?p=`, a stale pretty permalink — is refused. The via-flag
+		// exempts the query this filter itself built above.
+		if ( '' === (string) ( $query_vars[ self::VIA_FLAG ] ?? '' ) && $this->names_gated_post( $query_vars ) ) {
+			return array( 'error' => '404' );
+		}
+
+		return $query_vars;
+	}
+
+	/**
+	 * A gated post's permalink is its UUID URL, so every link the site builds
+	 * — menus, related posts, an editor's own paste — points the only way in.
+	 *
+	 * @param string $link The permalink core built.
+	 * @param mixed  $post The post it is for.
+	 */
+	public function gated_link( string $link, mixed $post ): string {
+		$post = $post instanceof WP_Post ? $post : get_post( $post );
+
+		if ( ! $post instanceof WP_Post || Post_Types::STATUS_GATED !== $post->post_status ) {
+			return $link;
+		}
+
+		return self::url( (int) $post->ID );
+	}
+
+	/**
+	 * Setting the status marks the post restricted and mints its UUID.
+	 *
+	 * Removing the status leaves the marker alone, deliberately — the same
+	 * asymmetry `Restriction` documents. Unrestricting is a manual act,
+	 * because doing it automatically would silently republish content the
+	 * moment somebody changed a dropdown.
+	 *
+	 * @param string  $new_status The status being moved to.
+	 * @param string  $old_status The status being moved from.
+	 * @param WP_Post $post       The post.
+	 */
+	public function mark_on_transition( string $new_status, string $old_status, WP_Post $post ): void {
+		if ( Post_Types::STATUS_GATED !== $new_status || $new_status === $old_status ) {
+			return;
+		}
+
+		// Its own identity, and the only address it will answer at.
+		Uuid::ensure( 'post', (int) $post->ID );
+
+		$marker = $this->restriction->ensure_marker();
+
+		if ( 0 === $marker ) {
+			return;
+		}
+
+		wp_set_object_terms( (int) $post->ID, array( $marker ), Access_Taxonomy::TAXONOMY, true );
+	}
+
+	/**
+	 * Whether these query vars would land on a gated post.
+	 *
+	 * @param array<string, mixed> $query_vars The main request's vars.
+	 */
+	private function names_gated_post( array $query_vars ): bool {
+		$post_id = (int) ( $query_vars['p'] ?? $query_vars['page_id'] ?? 0 );
+
+		if ( 0 === $post_id ) {
+			$name = (string) ( $query_vars['name'] ?? $query_vars['pagename'] ?? '' );
+
+			if ( '' === $name ) {
+				return false;
+			}
+
+			$found = get_posts(
+				array(
+					'name'           => $name,
+					'post_type'      => 'any',
+					'post_status'    => Post_Types::STATUS_GATED,
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+				)
+			);
+
+			return array() !== $found;
+		}
+
+		return Post_Types::STATUS_GATED === get_post_status( $post_id );
+	}
+
+	/**
+	 * The gated post holding this UUID, if any.
+	 *
+	 * @param string $uuid The identity to look up.
+	 */
+	private function find_gated_post( string $uuid ): ?int {
+		$found = get_posts(
+			array(
+				'post_type'      => 'any',
+				'post_status'    => Post_Types::STATUS_GATED,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'meta_key'       => Uuid::META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One row by unique value.
+				'meta_value'     => $uuid, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- As above.
+			)
+		);
+
+		return array() === $found ? null : (int) $found[0];
+	}
+
+	/**
+	 * Flushes only when the rule itself changed — version or segment.
+	 */
+	private function flush_once(): void {
+		$stamp = self::REWRITE_VERSION . ':' . self::segment();
+
+		if ( get_option( self::REWRITE_OPTION ) === $stamp ) {
+			return;
+		}
+
+		flush_rewrite_rules( false );
+		update_option( self::REWRITE_OPTION, $stamp, true );
+	}
+}
