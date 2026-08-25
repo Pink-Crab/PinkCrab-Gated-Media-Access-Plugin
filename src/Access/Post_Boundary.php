@@ -141,6 +141,17 @@ class Post_Boundary implements Hookable {
 	 * @return mixed The response, or core's own invalid-ID error.
 	 */
 	public function refuse_rest_item( $response, $post ) {
+		// Somebody who may edit the post is not a visitor being refused entry
+		// — they are the person who restricted it. Without this exemption the
+		// block editor, which loads and saves every post over REST, answers 404
+		// for restricted content and an administrator locks themselves out of
+		// their own post the moment they gate it. The front end is untouched:
+		// `refuse_singular()` still refuses everyone without a record, so an
+		// editor visiting the public URL sees what a visitor sees.
+		if ( $post instanceof WP_Post && current_user_can( 'edit_post', (int) $post->ID ) ) {
+			return $response;
+		}
+
 		if ( $post instanceof WP_Post && $this->is_blocked( (int) $post->ID ) ) {
 			// Converted, not returned raw: the posts controller calls
 			// link_header() on whatever this filter hands back.

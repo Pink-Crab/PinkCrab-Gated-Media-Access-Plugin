@@ -16,6 +16,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Gated_Post_Route;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
+use PinkCrab\Gated_Access\Admin\Gated_Post_State;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Uuid;
@@ -206,6 +207,71 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 		[ $post_id, $uuid ] = $this->make_gated_post();
 
 		$this->assertSame( home_url( '/members-only/' . $uuid . '/' ), get_permalink( $post_id ) );
+	}
+
+	/**
+	 * @testdox The block editor can set the status: a REST save carries it through and the marker follows.
+	 *
+	 * The editor's own status control offers a fixed list and does not read the
+	 * registry, so the plugin ships a control of its own — but the saving is
+	 * core's, over REST. This proves the route that control drives: the schema
+	 * enum is `get_post_stati( [ 'internal' => false ] )` and
+	 * `handle_status_param()` passes a registered status straight through, so a
+	 * status that failed either would silently become a draft.
+	 */
+	public function test_a_rest_save_sets_the_status(): void {
+		$editor = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $editor );
+
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		// The REST server is not stood up for us; routes 404 without this.
+		global $wp_rest_server;
+		$wp_rest_server = new \WP_REST_Server();
+		do_action( 'rest_api_init', $wp_rest_server );
+
+		$request = new \WP_REST_Request( 'POST', '/wp/v2/posts/' . $post_id );
+		$request->set_body_params( array( 'status' => Post_Types::STATUS_GATED ) );
+
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( Post_Types::STATUS_GATED, get_post_status( $post_id ) );
+
+		$slugs = wp_get_object_terms(
+			$post_id,
+			Access_Taxonomy::TAXONOMY,
+			array(
+				'fields'                    => 'slugs',
+				Restriction::INCLUDE_MARKER => true,
+			)
+		);
+
+		$this->assertContains( Restriction::MARKER_SLUG, $slugs );
+	}
+
+	/**
+	 * @testdox The admin list names a gated post, so a row does not read as an ordinary published one.
+	 *
+	 * Called directly rather than through `display_post_states`: the filter is
+	 * registered with the loader's `admin_filter`, which attaches only when
+	 * `is_admin()` — decided at boot, long before this runs.
+	 */
+	public function test_the_admin_list_names_it(): void {
+		[ $post_id ] = $this->make_gated_post();
+
+		$states = ( new Gated_Post_State() )->add_state( array(), get_post( $post_id ) );
+
+		$this->assertContains( 'Gated access', $states );
+	}
+
+	/** @testdox An ordinary post gets no such label. */
+	public function test_an_ordinary_post_gets_no_label(): void {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$states = ( new Gated_Post_State() )->add_state( array(), get_post( $post_id ) );
+
+		$this->assertNotContains( 'Gated access', $states );
 	}
 
 	/** @testdox A segment filter returning rubbish falls back rather than pointing links at another host. */

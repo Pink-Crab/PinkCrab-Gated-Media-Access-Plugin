@@ -64,6 +64,7 @@ function blockEntries() {
 const assetEntries = {
 	'js/front': path.join( root, 'assets/js/front.js' ),
 	'js/admin': path.join( root, 'assets/js/admin.js' ),
+	'js/editor': path.join( root, 'assets/js/editor/index.js' ),
 	'css/front': path.join( root, 'assets/scss/front.scss' ),
 	'css/admin': path.join( root, 'assets/scss/admin.scss' ),
 };

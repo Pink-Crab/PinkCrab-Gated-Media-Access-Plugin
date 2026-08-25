@@ -46,6 +46,7 @@ use PinkCrab\Gated_Access\Account\Downloadable_Files;
 use PinkCrab\Gated_Access\Account\Group_Contents;
 use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Admin\Access_Filters;
+use PinkCrab\Gated_Access\Admin\Gated_Post_State;
 use PinkCrab\Gated_Access\Admin\Access_List;
 use PinkCrab\Gated_Access\Admin\Add_Access_Page;
 use PinkCrab\Gated_Access\Admin\Edit_Access_Page;
@@ -116,6 +117,7 @@ class Plugin {
 		Order_History::class,
 		Settings_Page::class,
 		Access_Filters::class,
+		Gated_Post_State::class,
 		Access_List::class,
 		Add_Access_Page::class,
 		Edit_Access_Page::class,
