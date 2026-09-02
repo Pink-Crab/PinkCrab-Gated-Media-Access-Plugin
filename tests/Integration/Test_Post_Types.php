@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Settings\Settings_Page;
 
 /**
  * The containers exist with the shape the plan gives them: what is public,
@@ -38,6 +39,38 @@ class Test_Post_Types extends WP_UnitTestCase {
 		$this->assertSame( 'gated-media-access', $access->show_in_menu );
 		$this->assertFalse( $access->query_var );
 		$this->assertFalse( $access->show_in_rest );
+	}
+
+	/**
+	 * @testdox Every screen this plugin owns lives under its own menu, not beside it.
+	 *
+	 * Products and Coupons each had a top-level entry of their own, so one
+	 * plugin occupied three places in the sidebar. Asserted rather than left
+	 * to the eye: a missing `show_in_menu` is invisible in a diff and only
+	 * shows up in the admin.
+	 *
+	 * @dataProvider owned_types
+	 *
+	 * @param string $type The post type.
+	 */
+	public function test_every_type_is_under_the_plugin_menu( string $type ): void {
+		$object = get_post_type_object( $type );
+
+		$this->assertNotNull( $object );
+		$this->assertSame( Settings_Page::MENU_SLUG, $object->show_in_menu, $type );
+	}
+
+	/**
+	 * The types with an admin screen.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function owned_types(): array {
+		return array(
+			'access'  => array( Post_Types::ACCESS ),
+			'product' => array( Post_Types::PRODUCT ),
+			'coupon'  => array( Post_Types::COUPON ),
+		);
 	}
 
 	/** @testdox The Access screen is gated on the give-access capability, and core's write surfaces are shut. */

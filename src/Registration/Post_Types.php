@@ -200,7 +200,9 @@ class Post_Types implements Hookable {
 				),
 				'has_archive'         => false,
 				'rewrite'             => array( 'slug' => 'product' ),
-				'menu_icon'           => 'dashicons-products',
+				// Under the plugin's own menu, as Access is. No menu_icon:
+				// a submenu has nowhere to draw one.
+				'show_in_menu'        => Settings_Page::MENU_SLUG,
 				'map_meta_cap'        => true,
 				'capability_type'     => array( 'gatedmedia_product', 'gatedmedia_products' ),
 				// Spec §7: the screens sit behind the one filtered
@@ -227,6 +229,7 @@ class Post_Types implements Hookable {
 				),
 				'public'          => false,
 				'show_ui'         => true,
+				'show_in_menu'    => Settings_Page::MENU_SLUG,
 				'show_in_rest'    => false,
 				'supports'        => array( 'title' ),
 				'rewrite'         => false,
