@@ -137,6 +137,81 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertSame( 'sk_new', $replaced['stripe_test_secret'] );
 	}
 
+	/**
+	 * @testdox Saving the Notifications tab leaves every General setting alone.
+	 *
+	 * Both tabs post the same form to the same callback, but the Notifications
+	 * tab renders only notification fields — so every General key is absent
+	 * from that submit. `sanitize()` assigned them unconditionally with a
+	 * default, which rewrote a live shop to Stripe test mode, blanked its
+	 * publishable keys, returned the currency to GBP and the product path to
+	 * `access` (scheduling a rewrite flush with it), all from saving an email
+	 * template.
+	 *
+	 * The payload here is exactly what that tab posts: `admin_copy`,
+	 * `admin_copy_address` and `expiry_warning_days`, plus the notify_* and
+	 * template_* keys. Nothing else.
+	 */
+	public function test_a_notifications_save_keeps_the_general_tab(): void {
+		update_option(
+			Settings::OPTION,
+			array(
+				'stripe_mode'      => 'live',
+				'stripe_live_key'  => 'pk_live_kept',
+				'stripe_test_key'  => 'pk_test_kept',
+				'currency'         => 'JPY',
+				'product_path'     => 'members',
+				'revoke_behaviour' => 'expire',
+			)
+		);
+
+		$clean = $this->page->sanitize(
+			array(
+				'admin_copy'          => '1',
+				'admin_copy_address'  => 'owner@example.test',
+				'expiry_warning_days' => '14',
+			)
+		);
+
+		$this->assertSame( 'live', $clean['stripe_mode'], 'a live shop must not be flipped to test' );
+		$this->assertSame( 'pk_live_kept', $clean['stripe_live_key'], 'the publishable key must not be blanked' );
+		$this->assertSame( 'pk_test_kept', $clean['stripe_test_key'] );
+		$this->assertSame( 'JPY', $clean['currency'], 'the shop currency must not return to GBP' );
+		$this->assertSame( 'members', $clean['product_path'], 'every shared product URL depends on this' );
+		$this->assertSame( 'expire', $clean['revoke_behaviour'] );
+
+		// What the tab did submit is still saved.
+		$this->assertSame( '1', $clean['admin_copy'] );
+		$this->assertSame( 'owner@example.test', $clean['admin_copy_address'] );
+		$this->assertSame( '14', $clean['expiry_warning_days'] );
+	}
+
+	/**
+	 * @testdox A General save still writes the General fields it submitted.
+	 *
+	 * The guard against fixing the above by making sanitize() ignore the
+	 * General keys altogether.
+	 */
+	public function test_a_general_save_still_writes_its_own_fields(): void {
+		update_option( Settings::OPTION, array( 'stripe_mode' => 'test', 'currency' => 'GBP' ) );
+
+		$clean = $this->page->sanitize(
+			array(
+				'stripe_mode'      => 'live',
+				'currency'         => 'usd',
+				'product_path'     => 'vault',
+				'revoke_behaviour' => 'delete',
+				'stripe_live_key'  => 'pk_live_new',
+			)
+		);
+
+		$this->assertSame( 'live', $clean['stripe_mode'] );
+		$this->assertSame( 'USD', $clean['currency'] );
+		$this->assertSame( 'vault', $clean['product_path'] );
+		$this->assertSame( 'delete', $clean['revoke_behaviour'] );
+		$this->assertSame( 'pk_live_new', $clean['stripe_live_key'] );
+	}
+
 	/** @testdox The Settings entry registers under the plugin menu behind manage_settings. */
 	public function test_settings_submenu_registered(): void {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
