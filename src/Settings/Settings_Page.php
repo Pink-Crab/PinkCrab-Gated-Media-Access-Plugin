@@ -289,13 +289,22 @@ class Settings_Page implements Hookable {
 		$existing = get_option( Settings::OPTION );
 		$clean    = is_array( $existing ) ? array_map( 'strval', $existing ) : array();
 
-		$clean['stripe_mode'] = Settings::MODE_LIVE === ( $input['stripe_mode'] ?? '' ) ? Settings::MODE_LIVE : Settings::MODE_TEST;
+		// Absent means "this form did not carry the field", never "reset it".
+		// The screen is two tabs posting one form to one callback, so a
+		// Notifications save arrives with no General key on it at all — and
+		// writing a default for each of those flipped a live shop to test
+		// mode, blanked its publishable keys and moved every product URL.
+		if ( isset( $input['stripe_mode'] ) ) {
+			$clean['stripe_mode'] = Settings::MODE_LIVE === $input['stripe_mode'] ? Settings::MODE_LIVE : Settings::MODE_TEST;
+		}
 
 		$clean = $this->sanitize_store( $input, $clean );
 
-		$behaviour                 = (string) ( $input['revoke_behaviour'] ?? '' );
-		$known                     = array( Settings::REVOKE_BEHAVIOUR_REVOKE, Settings::REVOKE_BEHAVIOUR_EXPIRE, Settings::REVOKE_BEHAVIOUR_DELETE );
-		$clean['revoke_behaviour'] = in_array( $behaviour, $known, true ) ? $behaviour : Settings::REVOKE_BEHAVIOUR_REVOKE;
+		if ( isset( $input['revoke_behaviour'] ) ) {
+			$behaviour                 = (string) $input['revoke_behaviour'];
+			$known                     = array( Settings::REVOKE_BEHAVIOUR_REVOKE, Settings::REVOKE_BEHAVIOUR_EXPIRE, Settings::REVOKE_BEHAVIOUR_DELETE );
+			$clean['revoke_behaviour'] = in_array( $behaviour, $known, true ) ? $behaviour : Settings::REVOKE_BEHAVIOUR_REVOKE;
+		}
 
 		$clean = $this->sanitize_keys( $input, $clean );
 		$clean = $this->accounts->sanitize( $input, $clean );
@@ -363,15 +372,23 @@ class Settings_Page implements Hookable {
 	 * @return array<string, string>
 	 */
 	private function sanitize_store( array $input, array $clean ): array {
-		$currency          = strtoupper( sanitize_text_field( (string) ( $input['currency'] ?? '' ) ) );
-		$clean['currency'] = \Symfony\Component\Intl\Currencies::exists( $currency ) ? $currency : 'GBP';
+		if ( isset( $input['currency'] ) ) {
+			$currency          = strtoupper( sanitize_text_field( (string) $input['currency'] ) );
+			$clean['currency'] = \Symfony\Component\Intl\Currencies::exists( $currency ) ? $currency : 'GBP';
+		}
+
+		if ( ! isset( $input['product_path'] ) ) {
+			return $clean;
+		}
 
 		$previous_path         = (string) ( $clean['product_path'] ?? '' );
-		$path                  = sanitize_title( (string) ( $input['product_path'] ?? '' ) );
+		$path                  = sanitize_title( (string) $input['product_path'] );
 		$clean['product_path'] = '' === $path ? 'access' : $path;
 
 		// The product rewrite rule is built from the path; a change only
-		// takes with a flush.
+		// takes with a flush. Guarded with the path itself, or a save from a
+		// form that never carried it scheduled a flush for a change that had
+		// not happened.
 		if ( $clean['product_path'] !== $previous_path ) {
 			add_action( 'shutdown', 'flush_rewrite_rules' );
 		}
@@ -388,8 +405,13 @@ class Settings_Page implements Hookable {
 	 * @return array<string, string>
 	 */
 	private function sanitize_keys( array $input, array $clean ): array {
+		// A publishable key is not a secret, so an empty submit does clear it —
+		// but only when the form actually carried the field. Absent is still
+		// "not submitted", as everywhere else here.
 		foreach ( array( 'stripe_test_key', 'stripe_live_key' ) as $name ) {
-			$clean[ $name ] = sanitize_text_field( (string) ( $input[ $name ] ?? '' ) );
+			if ( isset( $input[ $name ] ) ) {
+				$clean[ $name ] = sanitize_text_field( (string) $input[ $name ] );
+			}
 		}
 
 		foreach ( array( 'stripe_test_secret', 'stripe_test_webhook_secret', 'stripe_live_secret', 'stripe_live_webhook_secret' ) as $name ) {
