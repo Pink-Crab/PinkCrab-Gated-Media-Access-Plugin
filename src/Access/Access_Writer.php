@@ -28,6 +28,14 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
  *
  * Owns its meta keys, per the round 1 decision: the class that writes a key
  * registers it. The names are specification.md §1's.
+ *
+ * Large on purpose, and suppressed rather than split: architecture.md §3 makes
+ * this the *only* writer of access records, so grant, revoke, expire, refund
+ * and the stacking rules belong together by design. Splitting them to satisfy
+ * a threshold would put writes outside the one class that is supposed to hold
+ * them all.
+ *
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 class Access_Writer implements Hookable {
 
@@ -38,6 +46,21 @@ class Access_Writer implements Hookable {
 	public const META_REFERENCE  = 'gatedmedia_reference';
 	public const META_CREATED_BY = 'gatedmedia_created_by';
 	public const META_PAYLOAD    = 'gatedmedia_payload';
+
+	/**
+	 * What each payment added to a stacked record: `source|reference|days`,
+	 * one meta row per contribution.
+	 *
+	 * A record normally answers to one source and reference — the grant that
+	 * made it. Stacking breaks that: two payments become one record, and only
+	 * the first was written down. So a refund of the second found nothing to
+	 * act on, and a redelivered webhook stacked its days a second time.
+	 *
+	 * The days are stored rather than looked up from the product, so a refund
+	 * takes back exactly what was added even if the product's duration has
+	 * changed since.
+	 */
+	public const META_CONTRIBUTION = 'gatedmedia_contribution';
 
 	/**
 	 * Input checking and the read-side queries live beside the writer,
@@ -120,7 +143,7 @@ class Access_Writer implements Hookable {
 
 		// Timed re-grant while live: the new time stacks onto the expiry.
 		if ( null !== $duration_days ) {
-			$stacked = $this->stack_onto_live( $user_id, $item_type, $item_id, $duration_days );
+			$stacked = $this->stack_onto_live( $user_id, $item_type, $item_id, $duration_days, $source, $reference );
 
 			if ( null !== $stacked ) {
 				return $stacked;
@@ -139,6 +162,104 @@ class Access_Writer implements Hookable {
 	 */
 	public function revoke( int $access_id ): bool {
 		return $this->move_status( $access_id, Post_Types::STATUS_REVOKED, 'gatedmedia_access_revoked' );
+	}
+
+	/**
+	 * Takes back what one payment gave, and nothing else.
+	 *
+	 * The reverse of the stack. A record built from several payments must not
+	 * be revoked outright when one of them is refunded — the other periods
+	 * were paid for separately and still stand. So the refunded grant's own
+	 * days come off the expiry, and the record is revoked only when that
+	 * leaves nothing.
+	 *
+	 * Glynn's rule: 20 days refunded against 21 remaining leaves 1 day, and
+	 * access stands. Refunded against 19 remaining, it goes.
+	 *
+	 * A record with no contribution recorded is a single grant — nothing was
+	 * stacked onto it — so there is nothing to subtract and the whole record
+	 * is revoked, which is what a refund has always meant for those.
+	 *
+	 * Idempotency is the caller's: `Stripe_Webhook::refund()` acts only when
+	 * `mark_refunded()` says the row moved, so a redelivered refund never
+	 * reaches here twice.
+	 *
+	 * @param string $source    What granted it.
+	 * @param string $reference The grant's identifier.
+	 * @return bool Whether anything was taken back.
+	 */
+	public function refund( string $source, string $reference ): bool {
+		if ( '' === $reference ) {
+			return false;
+		}
+
+		$acted = false;
+
+		foreach ( $this->lookup->records_for_reference( $source, $reference ) as $access_id ) {
+			$acted = $this->take_back( $access_id, $source, $reference ) || $acted;
+		}
+
+		return $acted;
+	}
+
+	/**
+	 * One record, one refunded grant.
+	 *
+	 * @param int    $access_id The record.
+	 * @param string $source    What granted it.
+	 * @param string $reference The grant's identifier.
+	 */
+	private function take_back( int $access_id, string $source, string $reference ): bool {
+		$days = $this->contribution( $access_id, $source, $reference );
+
+		// Nothing stacked, or a lifetime grant with no days to give back:
+		// the record exists because of this payment alone.
+		if ( null === $days ) {
+			return $this->revoke( $access_id );
+		}
+
+		$expires    = (string) get_post_meta( $access_id, self::META_EXPIRES_AT, true );
+		$expires_at = '' === $expires ? false : strtotime( $expires . ' +0000' );
+
+		if ( false === $expires_at ) {
+			return $this->revoke( $access_id );
+		}
+
+		$remaining = $expires_at - $days * DAY_IN_SECONDS;
+
+		// The contribution goes whatever happens next, so a second refund of
+		// the same grant cannot take the days twice.
+		delete_post_meta( $access_id, self::META_CONTRIBUTION, $source . '|' . $reference . '|' . $days );
+
+		if ( $remaining <= time() ) {
+			return $this->revoke( $access_id );
+		}
+
+		update_post_meta( $access_id, self::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', $remaining ) );
+
+		return true;
+	}
+
+	/**
+	 * How many days one grant added to a record, or null when it added none
+	 * that were written down.
+	 *
+	 * @param int    $access_id The record.
+	 * @param string $source    What granted it.
+	 * @param string $reference The grant's identifier.
+	 */
+	private function contribution( int $access_id, string $source, string $reference ): ?int {
+		$prefix = $source . '|' . $reference . '|';
+
+		// `false`, said out loud: a stacked record carries one row per payment
+		// and every one of them has to be read.
+		foreach ( (array) get_post_meta( $access_id, self::META_CONTRIBUTION, false ) as $stored ) {
+			if ( is_string( $stored ) && str_starts_with( $stored, $prefix ) ) {
+				return (int) substr( $stored, strlen( $prefix ) );
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -274,9 +395,11 @@ class Access_Writer implements Hookable {
 	 * @param string $item_type     One of file, post, group.
 	 * @param string $item_id       The target's identifier.
 	 * @param int    $duration_days The time to add.
+	 * @param string $source        What granted it — the contribution's owner.
+	 * @param string $reference     The grant's identifier, '' for none.
 	 * @return int|null The extended record's ID, or null when nothing stacked.
 	 */
-	private function stack_onto_live( int $user_id, string $item_type, string $item_id, int $duration_days ): ?int {
+	private function stack_onto_live( int $user_id, string $item_type, string $item_id, int $duration_days, string $source, string $reference ): ?int {
 		foreach ( $this->lookup->records_for_item( $user_id, $item_type, $item_id ) as $record_id ) {
 			$expires    = (string) get_post_meta( $record_id, self::META_EXPIRES_AT, true );
 			$expires_at = '' === $expires ? false : strtotime( $expires . ' +0000' );
@@ -290,6 +413,16 @@ class Access_Writer implements Hookable {
 				self::META_EXPIRES_AT,
 				gmdate( 'Y-m-d H:i:s', $expires_at + $duration_days * DAY_IN_SECONDS )
 			);
+
+			// The record now owes its time to more than one grant. Written as
+			// repeated meta rather than replacing the originals, so
+			// `find_by_reference()` and `records_for_reference()` answer for
+			// every payment on the record with no change to their queries.
+			if ( '' !== $reference ) {
+				add_post_meta( $record_id, self::META_SOURCE, $source );
+				add_post_meta( $record_id, self::META_REFERENCE, $reference );
+				add_post_meta( $record_id, self::META_CONTRIBUTION, $source . '|' . $reference . '|' . $duration_days );
+			}
 
 			return $record_id;
 		}
@@ -372,23 +505,31 @@ class Access_Writer implements Hookable {
 		);
 
 		return array(
-			self::META_ITEM_TYPE  => $text,
-			self::META_ITEM_ID    => $text,
-			self::META_EXPIRES_AT => $text,
-			self::META_SOURCE     => $text,
-			self::META_REFERENCE  => $text,
-			self::META_CREATED_BY => array(
+			self::META_ITEM_TYPE    => $text,
+			self::META_ITEM_ID      => $text,
+			self::META_EXPIRES_AT   => $text,
+			self::META_SOURCE       => $text,
+			self::META_REFERENCE    => $text,
+			self::META_CREATED_BY   => array(
 				'type'              => 'integer',
 				'single'            => true,
 				'show_in_rest'      => false,
 				'sanitize_callback' => 'absint',
 				'auth_callback'     => '__return_false',
 			),
-			self::META_PAYLOAD    => array(
+			self::META_PAYLOAD      => array(
 				'type'              => 'string',
 				'single'            => true,
 				'show_in_rest'      => false,
 				'sanitize_callback' => static fn ( $value ): string => is_string( $value ) && null !== json_decode( $value ) ? $value : '',
+				'auth_callback'     => '__return_false',
+			),
+			// Not single: a stacked record carries one row per payment.
+			self::META_CONTRIBUTION => array(
+				'type'              => 'string',
+				'single'            => false,
+				'show_in_rest'      => false,
+				'sanitize_callback' => 'sanitize_text_field',
 				'auth_callback'     => '__return_false',
 			),
 		);

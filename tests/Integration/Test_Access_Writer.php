@@ -133,6 +133,117 @@ class Test_Access_Writer extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( time() + 40 * DAY_IN_SECONDS, strtotime( $expires . ' +0000' ), 5 );
 	}
 
+	/**
+	 * @testdox A stacked grant is findable by its own reference, so a repeat delivery cannot extend twice.
+	 *
+	 * `stack_onto_live()` wrote only the new expiry, so the second payment's
+	 * reference was recorded nowhere. `find_by_reference()` then missed it and
+	 * the retry guard never fired: a redelivered webhook stacked the same
+	 * payment's days on a second time.
+	 */
+	public function test_a_stacked_grant_is_findable_by_its_own_reference(): void {
+		$post_id = self::factory()->post->create();
+		$lookup  = new Access_Lookup();
+
+		$first  = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, 'stripe', 'pi_stack_1' );
+		$second = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 10, 'stripe', 'pi_stack_2' );
+
+		$this->assertSame( $first, $second, 'the second grant stacks onto the first record' );
+
+		$this->assertSame(
+			$first,
+			$lookup->find_by_reference( 'stripe', 'pi_stack_2', 'post', (string) $post_id ),
+			'the stacked record must answer to the reference that extended it'
+		);
+	}
+
+	/** @testdox A redelivered webhook for a stacked payment extends the expiry once, not twice. */
+	public function test_a_redelivered_stacked_payment_does_not_extend_twice(): void {
+		$post_id = self::factory()->post->create();
+
+		$first = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, 'stripe', 'pi_once_1' );
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, 10, 'stripe', 'pi_once_2' );
+
+		// Stripe delivers the same event again.
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, 10, 'stripe', 'pi_once_2' );
+
+		$expires = (string) get_post_meta( $first, Access_Writer::META_EXPIRES_AT, true );
+
+		$this->assertEqualsWithDelta(
+			time() + 40 * DAY_IN_SECONDS,
+			strtotime( $expires . ' +0000' ),
+			5,
+			'40 days, not 50: the repeat delivery must be refused'
+		);
+	}
+
+	/**
+	 * @testdox Refunding a stacked payment takes back only the days it paid for.
+	 *
+	 * Glynn's rule: 20 days bought against 21 remaining leaves 1 day, and
+	 * access stands. The refund subtracts that payment's contribution, never
+	 * the whole record — the earlier period was paid for separately.
+	 */
+	public function test_a_refund_takes_back_only_its_own_days(): void {
+		$post_id = self::factory()->post->create();
+
+		$record = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 1, 'stripe', 'pi_ref_1' );
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, 20, 'stripe', 'pi_ref_2' );
+
+		// 1 + 20 = 21 days stand before the refund.
+		$this->assertTrue( $this->writer->refund( 'stripe', 'pi_ref_2' ) );
+
+		$this->assertSame(
+			Post_Types::STATUS_ACTIVE,
+			get_post_status( $record ),
+			'a day remains, so the record stays active'
+		);
+
+		$expires = (string) get_post_meta( $record, Access_Writer::META_EXPIRES_AT, true );
+
+		$this->assertEqualsWithDelta(
+			time() + 1 * DAY_IN_SECONDS,
+			strtotime( $expires . ' +0000' ),
+			5,
+			'21 days less the refunded 20 leaves 1'
+		);
+	}
+
+	/** @testdox A refund that leaves nothing revokes the record. */
+	public function test_a_refund_that_empties_the_record_revokes_it(): void {
+		$post_id = self::factory()->post->create();
+
+		$record = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 19, 'stripe', 'pi_gone_1' );
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, 20, 'stripe', 'pi_gone_2' );
+
+		// 19 + 20 = 39; refunding the 20 leaves 19 — still standing.
+		// Refunding the 19 as well leaves nothing.
+		$this->writer->refund( 'stripe', 'pi_gone_2' );
+		$this->writer->refund( 'stripe', 'pi_gone_1' );
+
+		$this->assertSame( Post_Types::STATUS_REVOKED, get_post_status( $record ) );
+	}
+
+	/** @testdox Refunding a payment that was never stacked revokes its record outright. */
+	public function test_a_refund_of_an_unstacked_payment_revokes(): void {
+		$post_id = self::factory()->post->create();
+
+		$record = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, 'stripe', 'pi_solo' );
+
+		$this->assertTrue( $this->writer->refund( 'stripe', 'pi_solo' ) );
+		$this->assertSame( Post_Types::STATUS_REVOKED, get_post_status( $record ) );
+	}
+
+	/** @testdox Refunding a lifetime grant revokes it: there are no days to take back. */
+	public function test_a_refund_of_a_lifetime_grant_revokes(): void {
+		$post_id = self::factory()->post->create();
+
+		$record = $this->writer->grant( $this->user_id, 'post', (string) $post_id, null, 'stripe', 'pi_life' );
+
+		$this->assertTrue( $this->writer->refund( 'stripe', 'pi_life' ) );
+		$this->assertSame( Post_Types::STATUS_REVOKED, get_post_status( $record ) );
+	}
+
 	/** @testdox Re-granting after expiry writes a fresh record from today. */
 	public function test_an_expired_regrant_is_a_fresh_record(): void {
 		$post_id = self::factory()->post->create();
