@@ -22,10 +22,24 @@ use Symfony\Component\Intl\Currencies;
  *
  * No hand-kept currency tables. ICU answers every currency question — the
  * fraction digits that drive the minor-unit division, the symbol, the
- * placement. The intl extension is used when the host has it (locale-aware
- * formatting); where it is not loaded, symfony/intl supplies the same ICU
- * data as plain PHP and the layout falls back to symbol-prefix. Either way
- * the amount is right for all of ISO 4217.
+ * placement — for all of ISO 4217, on every host.
+ *
+ * **Two different things are needed, and they are not interchangeable.**
+ * `symfony/intl` carries ICU's *data*; the intl *extension* provides
+ * `\NumberFormatter` for locale-aware layout and `\Locale`, which every
+ * `symfony/intl` reader reaches for on its way to the data.
+ *
+ * `symfony/polyfill-intl-icu` supplies `\Locale` where the extension is
+ * absent, which is what makes the data readable at all — on shared hosting
+ * without ext-intl, and in WordPress Playground. Its stubs are classmapped,
+ * so a host that *has* the extension finds the real classes first and the
+ * polyfill is never loaded.
+ *
+ * The extension is therefore detected with `extension_loaded()`, never with
+ * `class_exists( \NumberFormatter::class )` — the polyfill defines that class
+ * too, but its constructor accepts only the locale `en` and its
+ * `setTextAttribute()` throws unconditionally. Asking whether the class
+ * exists gets a yes and then a fatal.
  */
 class Money {
 
@@ -92,7 +106,11 @@ class Money {
 	 * @param int    $digits   Its fraction digits.
 	 */
 	private static function render( float $amount, string $currency, int $digits ): string {
-		if ( class_exists( \NumberFormatter::class ) ) {
+		// The extension, not the class: `symfony/polyfill-intl-icu` defines
+		// \NumberFormatter too, but its constructor takes only the locale `en`
+		// and `setTextAttribute()` throws unconditionally — so `class_exists()`
+		// answers yes and the next line fatals.
+		if ( extension_loaded( 'intl' ) ) {
 			$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
 			$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
 
@@ -115,7 +133,8 @@ class Money {
 	 * @param string $currency ISO code, already uppercased.
 	 */
 	private static function digits( string $currency ): int {
-		if ( class_exists( \NumberFormatter::class ) ) {
+		// As in render(): the polyfill's stub would throw here.
+		if ( extension_loaded( 'intl' ) ) {
 			$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
 			$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
 
