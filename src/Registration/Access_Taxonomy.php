@@ -100,7 +100,15 @@ class Access_Taxonomy implements Hookable {
 					'add_new_item'  => __( 'Add New Group', 'gated-media-access' ),
 				),
 				'public'             => false,
+				// The UI stays on so core's term editing still exists for code
+				// that expects it, but it gets no menu of its own: `show_ui`
+				// with no `show_in_menu` hangs a "Groups" entry under *every*
+				// object type — Posts, Pages and Media, three doors to one
+				// thing, none of them under this plugin's menu. `Groups_Page`
+				// is the door now. A group is not a term in the ordinary
+				// sense and is not administered as one.
 				'show_ui'            => true,
+				'show_in_menu'       => false,
 				// Round 4: the item's Access metabox is the assignment
 				// surface, so core's free-tagging fields all switch off —
 				// the editor panel (REST), the classic tag box, and the
