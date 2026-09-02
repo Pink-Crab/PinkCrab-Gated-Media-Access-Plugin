@@ -15,7 +15,6 @@ use WP_REST_Response;
 use WP_REST_Server;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
-use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 
 /**
@@ -39,14 +38,12 @@ class Stripe_Webhook implements Hookable {
 	 * @param Stripe_Gateway $gateway  Verifies the delivery.
 	 * @param Checkout       $checkout Grants from the snapshot on completion.
 	 * @param Access_Writer  $writer   The one writer of access records.
-	 * @param Access_Lookup  $lookup   Finds what a payment granted, for the refund.
 	 */
 	public function __construct(
 		private Payment_Store $store,
 		private Stripe_Gateway $gateway,
 		private Checkout $checkout,
-		private Access_Writer $writer,
-		private Access_Lookup $lookup
+		private Access_Writer $writer
 	) {
 	}
 
@@ -165,9 +162,10 @@ class Stripe_Webhook implements Hookable {
 			return;
 		}
 
-		foreach ( $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) as $access_id ) {
-			$this->writer->revoke( $access_id );
-		}
+		// Not a blanket revoke: a renewal stacks onto a live record, so the
+		// record can owe its time to more than one payment. The writer takes
+		// back this payment's days and revokes only when nothing is left.
+		$this->writer->refund( Checkout::SOURCE_STRIPE, $payment->uuid );
 
 		/**
 		 * Fires once a payment has been refunded and its access revoked.

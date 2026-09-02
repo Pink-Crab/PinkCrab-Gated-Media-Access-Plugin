@@ -73,7 +73,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 
 		add_action(
 			'rest_api_init',
-			array( new Stripe_Webhook( $this->store, $gateway, $checkout, $writer, $this->lookup ), 'register_route' )
+			array( new Stripe_Webhook( $this->store, $gateway, $checkout, $writer ), 'register_route' )
 		);
 		do_action( 'rest_api_init', $wp_rest_server );
 	}
@@ -167,6 +167,57 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		// A retried refund changes nothing.
 		$this->deliver( $refund_body );
 		$this->assertSame( array( $payment->payment_id ), $refunded );
+	}
+
+	/**
+	 * @testdox Refunding a renewal takes back only the days it bought, and leaves the rest standing.
+	 *
+	 * The whole purchase path, not just the writer: two payments for the same
+	 * timed product, the second stacking onto the first's live record, then a
+	 * refund of the second.
+	 *
+	 * Before this, `stack_onto_live()` wrote only the expiry, so no record
+	 * carried the second payment's uuid: `records_for_reference()` found
+	 * nothing, the refund revoked nothing, and the buyer kept the days they
+	 * had been repaid for.
+	 */
+	public function test_refunding_a_renewal_takes_back_only_its_own_days(): void {
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		update_post_meta( $product_id, Product_Meta::META_DURATION, 20 );
+
+		$first  = $this->store->create_pending( $this->buyer_id, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ) );
+		$second = $this->store->create_pending( $this->buyer_id, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ) );
+
+		$this->deliver( (string) wp_json_encode( $this->completed_event( $first->uuid ) ) );
+		$this->deliver( (string) wp_json_encode( $this->event( 'checkout.session.completed', array( 'client_reference_id' => $second->uuid, 'payment_intent' => 'pi_10' ) ) ) );
+
+		$records = $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $second->uuid );
+
+		$this->assertCount( 1, $records, 'the renewal stacked, and the record must answer to its reference' );
+
+		$record = $records[0];
+
+		// 20 + 20 days stand before the refund.
+		$this->deliver(
+			(string) wp_json_encode(
+				$this->event( 'charge.refunded', array( 'payment_intent' => 'pi_10' ), 'charge' )
+			)
+		);
+
+		$this->assertSame(
+			Post_Types::STATUS_ACTIVE,
+			get_post_status( $record ),
+			'the first payment still stands, so the record must not be revoked'
+		);
+
+		$expires = (string) get_post_meta( $record, Access_Writer::META_EXPIRES_AT, true );
+
+		$this->assertEqualsWithDelta(
+			time() + 20 * DAY_IN_SECONDS,
+			strtotime( $expires . ' +0000' ),
+			5,
+			'40 days less the refunded 20 leaves 20'
+		);
 	}
 
 	/** @testdox A confirmation for a payment that is not ours is acknowledged and ignored. */
