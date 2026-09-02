@@ -239,6 +239,14 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
+
+		// The button's 24px top margin is for standing alone under a field.
+		// On a row beside an input it pushes the button off the input's line,
+		// and `align-items: center` then centres the pair around the offset.
+		.gatedmedia-admin-button {
+			margin-top: 0;
+			align-self: stretch;
+		}
 	}
 
 	.gatedmedia-admin-check {
@@ -307,6 +315,35 @@
 		.gatedmedia-admin-panel-body {
 			padding: 0 20px 20px;
 			border-top: $hairline;
+		}
+	}
+
+	// What a group holds, and who holds it. A plain list rather than a table:
+	// two facts per row, and a table's header would be heavier than the
+	// content under it.
+	.gatedmedia-admin-list {
+		margin: 8px 0 20px;
+		// Held to the width of the fields above it. Left to the container the
+		// row's action lands at the far edge of a wide screen, a hand-span
+		// away from the thing it acts on.
+		max-width: 680px;
+
+		li {
+			display: flex;
+			align-items: baseline;
+			gap: 8px;
+			padding: 6px 0;
+			border-bottom: $hairline;
+			margin: 0;
+		}
+
+		li:last-child {
+			border-bottom: 0;
+		}
+
+		// The row's own action sits at its end rather than beside the label.
+		.gatedmedia-admin-row-action {
+			margin-left: auto;
 		}
 	}
 

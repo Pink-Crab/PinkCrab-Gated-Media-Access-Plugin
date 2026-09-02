@@ -105,6 +105,54 @@ class Access_Lookup {
 	}
 
 	/**
+	 * Everyone currently holding one item.
+	 *
+	 * The other way round from `records_for_item()`, which asks about one
+	 * person: this asks about one thing and answers with the people. A group's
+	 * own screen needs it — "who has this" is half of what a group is, and
+	 * until now nothing could answer it without walking every user.
+	 *
+	 * The holder is the record's author (architecture.md §2), so the user ids
+	 * come off the records rather than from a meta key of their own.
+	 *
+	 * Active only. Expired and revoked records are history, and a screen that
+	 * listed them as holders would be lying.
+	 *
+	 * @param string $item_type One of file, post, group.
+	 * @param string $item_id   The target's identifier.
+	 * @return array<int, int> User ids, each once.
+	 */
+	public function holders_of( string $item_type, string $item_id ): array {
+		$records = get_posts(
+			array(
+				'post_type'      => Post_Types::ACCESS,
+				'post_status'    => Post_Types::STATUS_ACTIVE,
+				'posts_per_page' => -1,
+				'no_found_rows'  => true,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One admin screen; the item pair is the whole condition.
+				'meta_query'     => array(
+					array(
+						'key'   => Access_Writer::META_ITEM_TYPE,
+						'value' => $item_type,
+					),
+					array(
+						'key'   => Access_Writer::META_ITEM_ID,
+						'value' => $item_id,
+					),
+				),
+			)
+		);
+
+		$holders = array();
+
+		foreach ( $records as $record ) {
+			$holders[] = (int) $record->post_author;
+		}
+
+		return array_values( array_unique( $holders ) );
+	}
+
+	/**
 	 * The user's active records for one item.
 	 *
 	 * @param int    $user_id   Who holds them.
