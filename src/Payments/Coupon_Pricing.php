@@ -27,15 +27,50 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
  * somebody's money; this decides what a code is worth, writes nothing, and
  * spends nothing. Usage is counted from completed payments rather than stored,
  * so an abandoned checkout consumes nothing (spec §1b).
+ *
+ * A checkout in flight has completed nothing, so it counts for nothing here
+ * on its own — which let two buyers arriving together both pass a limit of
+ * one. `Coupon_Hold` covers that window, and its live reservations count
+ * alongside completions in both answers below. Reserving is a write, so it
+ * stays out of this class; `Checkout` does it.
  */
 class Coupon_Pricing {
 
 	/**
-	 * Reads completions, and nothing else.
+	 * Reads completions and reservations, and nothing else.
 	 *
 	 * @param Payment_Store $store The payments table's owner.
+	 * @param Coupon_Hold   $holds The short reservations on limited coupons.
 	 */
-	public function __construct( private Payment_Store $store ) {
+	public function __construct( private Payment_Store $store, private Coupon_Hold $holds ) {
+	}
+
+	/**
+	 * How many more times the coupon may be used at all, counting completions
+	 * and live reservations. `PHP_INT_MAX` when it carries no limit.
+	 *
+	 * @param WP_Post $coupon The coupon.
+	 */
+	public function room( WP_Post $coupon ): int {
+		$limit = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_USAGE_LIMIT, true );
+
+		return '' === $limit
+			? PHP_INT_MAX
+			: (int) $limit - $this->store->coupon_completions( $coupon->ID );
+	}
+
+	/**
+	 * The same for one buyer's own limit.
+	 *
+	 * @param WP_Post $coupon  The coupon.
+	 * @param int     $user_id The buyer.
+	 */
+	public function room_for_user( WP_Post $coupon, int $user_id ): int {
+		$limit = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_PER_USER_LIMIT, true );
+
+		return '' === $limit
+			? PHP_INT_MAX
+			: (int) $limit - $this->store->coupon_completions( $coupon->ID, $user_id );
 	}
 
 	/**
@@ -107,20 +142,17 @@ class Coupon_Pricing {
 	}
 
 	/**
-	 * Whether both usage limits have room, counted from completed payments.
+	 * Whether both usage limits have room, counting completed payments and
+	 * the checkouts currently holding one.
 	 *
 	 * @param WP_Post $coupon  The coupon.
 	 * @param int     $user_id The buyer.
 	 */
 	private function within_limits( WP_Post $coupon, int $user_id ): bool {
-		$usage_limit = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_USAGE_LIMIT, true );
-
-		if ( '' !== $usage_limit && $this->store->coupon_completions( $coupon->ID ) >= (int) $usage_limit ) {
+		if ( $this->room( $coupon ) - $this->holds->live( $coupon->ID ) <= 0 ) {
 			return false;
 		}
 
-		$per_user = (string) get_post_meta( $coupon->ID, Coupon_Metabox::META_PER_USER_LIMIT, true );
-
-		return '' === $per_user || $this->store->coupon_completions( $coupon->ID, $user_id ) < (int) $per_user;
+		return $this->room_for_user( $coupon, $user_id ) - $this->holds->live_for_user( $coupon->ID, $user_id ) > 0;
 	}
 }

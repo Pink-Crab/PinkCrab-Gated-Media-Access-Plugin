@@ -56,7 +56,6 @@ class Test_Access_Created_Mail extends WP_UnitTestCase {
 		$this->mail = new Access_Created_Mail(
 			new Notification_Sender( new Settings() ),
 			new Access_Taxonomy(),
-			new Account_Route( new Section_Registry(), new Account_Renderer(), new Asset_Loader(), new Sprite(), new Settings() ),
 			new My_Access_Section()
 		);
 
@@ -77,6 +76,8 @@ class Test_Access_Created_Mail extends WP_UnitTestCase {
 	public function tear_down(): void {
 		remove_filter( 'pre_wp_mail', array( $this, 'capture_mail' ) );
 		remove_action( 'gatedmedia_access_granted', array( $this->mail, 'queue' ) );
+		remove_all_filters( 'gatedmedia_account_route' );
+		remove_all_filters( 'gatedmedia_account_url' );
 		parent::tear_down();
 	}
 
@@ -102,6 +103,34 @@ class Test_Access_Created_Mail extends WP_UnitTestCase {
 		$this->assertSame( 'Your access to Secret Post is ready', $this->outbox[0]['subject'] );
 		$this->assertStringContainsString( 'Access expires: never', (string) $this->outbox[0]['message'] );
 		$this->assertStringContainsString( home_url( '/account/my-access/' ), (string) $this->outbox[0]['message'] );
+	}
+
+	/**
+	 * The link was built from the route's slug by hand rather than through
+	 * `Account_Url`, so it kept pointing at `/account/` after the setting had
+	 * turned that route off — an email inviting the holder to a 404.
+	 *
+	 * @testdox With the account route off, the email link does not point at a page that no longer answers.
+	 */
+	public function test_the_link_follows_the_account_route_setting(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+
+		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, null, 'admin' );
+		$this->mail->flush();
+
+		$this->assertCount( 1, $this->outbox );
+		$this->assertStringNotContainsString( '/account/', (string) $this->outbox[0]['message'] );
+	}
+
+	/** @testdox A site with its own pages gets its own link in the email. */
+	public function test_the_link_follows_the_url_filter(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+		add_filter( 'gatedmedia_account_url', static fn(): string => home_url( '/members-area/' ) );
+
+		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, null, 'admin' );
+		$this->mail->flush();
+
+		$this->assertStringContainsString( home_url( '/members-area/' ), (string) $this->outbox[0]['message'] );
 	}
 
 	/** @testdox Several grants in one request mean one email, items joined. */

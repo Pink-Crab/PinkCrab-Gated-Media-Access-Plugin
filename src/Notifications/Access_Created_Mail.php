@@ -12,10 +12,10 @@ namespace PinkCrab\Gated_Access\Notifications;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Account\Account_Route;
 use PinkCrab\Gated_Access\Account\Sections\My_Access_Section;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
  * Tells the holder when access is created, whichever route created it —
@@ -44,13 +44,11 @@ class Access_Created_Mail implements Hookable {
 	 *
 	 * @param Notification_Sender $sender   The one sender.
 	 * @param Access_Taxonomy     $taxonomy Turns a group UUID back into its term.
-	 * @param Account_Route       $route    The account area's URL segment.
 	 * @param My_Access_Section   $section  The section the email links to.
 	 */
 	public function __construct(
 		private Notification_Sender $sender,
 		private Access_Taxonomy $taxonomy,
-		private Account_Route $route,
 		private My_Access_Section $section
 	) {
 	}
@@ -98,7 +96,7 @@ class Access_Created_Mail implements Hookable {
 				$user_id,
 				array(
 					'item'    => implode( ', ', array_unique( array_map( array( $this, 'item_label' ), $access_ids ) ) ),
-					'link'    => home_url( sprintf( '/%s/%s/', $this->route->slug(), $this->section->slug() ) ),
+					'link'    => Account_Url::section( $this->section->slug() ),
 					'expires' => $this->expires_label( $access_ids ),
 				)
 			);

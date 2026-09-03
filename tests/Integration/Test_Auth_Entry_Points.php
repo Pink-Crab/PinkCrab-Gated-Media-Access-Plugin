@@ -13,6 +13,9 @@ use Exception;
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Account\Account_Route;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
+use PinkCrab\Gated_Access\Auth\Auth_Action;
+use PinkCrab\Gated_Access\Auth\Auth_Route;
+use PinkCrab\Gated_Access\Auth\Auth_State;
 use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -57,10 +60,101 @@ class Test_Auth_Entry_Points extends WP_UnitTestCase {
 	public function tear_down(): void {
 		remove_all_filters( 'wp_redirect' );
 		remove_all_filters( 'gatedmedia_account_creation' );
+		remove_all_filters( 'gatedmedia_account_route' );
+		remove_all_filters( 'gatedmedia_account_url' );
+		remove_all_filters( 'gatedmedia_profile_prompt' );
 		delete_option( Settings::OPTION );
 		$_POST = array();
 
 		parent::tear_down();
+	}
+
+	/**
+	 * `Profile_Writer::referer()` falls back to the profile section when the
+	 * request carries no referer, so with the route off it fell back to a
+	 * page that no longer answers.
+	 *
+	 * @testdox With the account route off, a saved profile does not return to a page that no longer answers.
+	 */
+	public function test_the_profile_save_returns_somewhere_that_answers(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+
+		$_POST['_wpnonce'] = wp_create_nonce( Profile_Writer::ACTION );
+
+		$url = $this->capture( array( new Profile_Writer(), 'handle' ) );
+
+		$this->assertStringNotContainsString( '/account/', $url );
+	}
+
+	/**
+	 * A site placing the blocks on its own pages must be obeyed here too —
+	 * this destination used to short-circuit to the home page without ever
+	 * asking `Account_Url`, so the filter was ignored.
+	 *
+	 * @testdox With the account route off, a signed-in visitor is sent to the site's own account page.
+	 */
+	public function test_the_signed_in_destination_follows_the_url_filter(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+		add_filter( 'gatedmedia_account_url', static fn(): string => home_url( '/members-area/' ) );
+
+		wp_set_current_user( self::factory()->user->create() );
+
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		$wp_rewrite->flush_rules();
+
+		$this->go_to( home_url( '/sign-in/' ) );
+		set_query_var( Auth_Route::QUERY_FLAG, '1' );
+
+		$url = $this->capture( array( $this->auth_route(), 'send_signed_in_away' ) );
+
+		$this->assertSame( home_url( '/members-area/' ), $url );
+
+		$wp_rewrite->set_permalink_structure( '' );
+		$wp_rewrite->flush_rules();
+	}
+
+	/** @testdox With the route off, a signed-in visitor's landing place follows the site's own pages. */
+	public function test_the_signed_in_landing_follows_the_url_filter(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+		add_filter( 'gatedmedia_account_url', static fn(): string => home_url( '/members-area/' ) );
+
+		wp_set_current_user( self::factory()->user->create() );
+
+		$url = $this->capture( array( new Auth_Action( new Settings() ), 'handle_signed_in' ) );
+
+		$this->assertSame( home_url( '/members-area/' ), $url );
+	}
+
+	/**
+	 * The profile prompt's destination never consulted the setting at all, so
+	 * it pointed at the route whether or not the route existed.
+	 *
+	 * @testdox With the route off, the profile prompt does not send a new user to a page that no longer answers.
+	 */
+	public function test_the_profile_prompt_destination_follows_the_setting(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+		add_filter( 'gatedmedia_profile_prompt', '__return_true' );
+
+		wp_set_current_user( self::factory()->user->create() );
+
+		$url = $this->capture( array( new Auth_Action( new Settings() ), 'handle_signed_in' ) );
+
+		$this->assertStringNotContainsString( '/account/', $url );
+	}
+
+	/**
+	 * The auth route, built the way the container builds it.
+	 */
+	private function auth_route(): Auth_Route {
+		return new Auth_Route(
+			new Auth_State( new Settings() ),
+			$this->createMock( \PinkCrab\Gated_Access\Assets\Asset_Loader::class ),
+			$this->createMock( \PinkCrab\Gated_Access\Blocks\Sprite::class )
+		);
 	}
 
 	/**

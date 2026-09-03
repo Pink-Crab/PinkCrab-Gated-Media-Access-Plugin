@@ -13,6 +13,7 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
+use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Admin\Payment_Detail_Page;
 use PinkCrab\Gated_Access\Admin\Payments_List_Table;
 use PinkCrab\Gated_Access\Payments\Checkout;
@@ -20,6 +21,7 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
+use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
  * One payment whole: the row's facts, the access its reference wrote, and
@@ -108,6 +110,67 @@ class Test_Payment_Detail_Page extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'No payment found', $html );
 		$this->assertStringContainsString( 'gatedmedia-payments', $html );
+	}
+
+	/**
+	 * `Coupon_Hold` reserves a limited coupon only briefly, so two checkouts
+	 * overlapping by longer than that can both complete. Nothing can be
+	 * refused once Stripe has the money, so the payment that went past the
+	 * limit says so here and the ones within it stay quiet.
+	 *
+	 * @testdox A payment that took a coupon past its limit says so; the one within it does not.
+	 */
+	public function test_a_payment_past_the_coupon_limit_is_flagged(): void {
+		$coupon = self::factory()->post->create(
+			array(
+				'post_type'  => Post_Types::COUPON,
+				'post_title' => 'Once Only',
+			)
+		);
+
+		update_post_meta( $coupon, Coupon_Metabox::META_USAGE_LIMIT, '1' );
+
+		$first  = $this->store->create_pending( 1, 1, 100, 'GBP', array(), $coupon, 20 );
+		$second = $this->store->create_pending( 2, 1, 100, 'GBP', array(), $coupon, 20 );
+
+		$this->store->mark_complete( $first->uuid );
+		$this->store->mark_complete( $second->uuid );
+
+		$this->assertStringNotContainsString( 'use 1 of a coupon', $this->render_detail( $first->uuid ) );
+		$this->assertStringContainsString( 'use 2 of a coupon limited to 1', $this->render_detail( $second->uuid ) );
+	}
+
+	/** @testdox A coupon with no limit is never reported as over one. */
+	public function test_an_unlimited_coupon_is_never_flagged(): void {
+		$coupon = self::factory()->post->create(
+			array(
+				'post_type'  => Post_Types::COUPON,
+				'post_title' => 'As Often As You Like',
+			)
+		);
+
+		$first  = $this->store->create_pending( 1, 1, 100, 'GBP', array(), $coupon, 20 );
+		$second = $this->store->create_pending( 2, 1, 100, 'GBP', array(), $coupon, 20 );
+
+		$this->store->mark_complete( $first->uuid );
+		$this->store->mark_complete( $second->uuid );
+
+		$this->assertStringNotContainsString( 'limited to', $this->render_detail( $second->uuid ) );
+	}
+
+	/**
+	 * The detail page's markup for one payment.
+	 *
+	 * @param string $uuid The payment to render.
+	 */
+	private function render_detail( string $uuid ): string {
+		$_GET['payment'] = $uuid;
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+		unset( $_GET['payment'] );
+
+		return $html;
 	}
 
 	/** @testdox The list's Reference column links to the detail page. */

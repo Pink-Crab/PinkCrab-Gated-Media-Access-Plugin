@@ -57,7 +57,6 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 			new Notification_Sender( new Settings() ),
 			new Settings(),
 			new Access_Taxonomy(),
-			new Account_Route( new Section_Registry(), new Account_Renderer(), new Asset_Loader(), new Sprite(), new Settings() ),
 			new My_Access_Section()
 		);
 		$this->job->register_meta();
@@ -76,9 +75,25 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		remove_filter( 'pre_wp_mail', array( $this, 'capture_mail' ) );
+		remove_all_filters( 'gatedmedia_account_route' );
 		wp_clear_scheduled_hook( Expiry_Warning::HOOK );
 		delete_option( Settings::OPTION );
 		parent::tear_down();
+	}
+
+	/**
+	 * Built from the route's slug by hand rather than through `Account_Url`,
+	 * so it survived the setting that turned the route off.
+	 *
+	 * @testdox With the account route off, the warning's link does not point at a page that no longer answers.
+	 */
+	public function test_the_link_follows_the_account_route_setting(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+
+		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 3, 'admin' );
+
+		$this->assertSame( 1, $this->job->run() );
+		$this->assertStringNotContainsString( '/account/', (string) $this->outbox[0]['message'] );
 	}
 
 	/**

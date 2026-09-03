@@ -69,7 +69,9 @@ class Account_Fields {
 				printf(
 					/* translators: %s: the account area's URL. */
 					esc_html__( 'Switched on, the account area answers at %s. Switched off it does not, and the same blocks can be placed on pages of your own.', 'gated-media-access' ),
-					'<code>' . esc_html( Account_Url::section( '' ) ) . '</code>'
+					// Not Account_Url::section(), which answers where links go —
+					// this names the route being switched, on or off.
+					'<code>' . esc_html( home_url( '/' . Account_Url::slug() . '/' ) ) . '</code>'
 				);
 				?>
 			</p>

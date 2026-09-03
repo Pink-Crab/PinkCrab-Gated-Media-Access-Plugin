@@ -216,9 +216,7 @@ class Auth_Action implements Hookable {
 			return add_query_arg( 'profile', 'complete', Account_Url::section( 'profile' ) );
 		}
 
-		return $this->settings->account_route()
-			? Account_Url::section( 'my-access' )
-			: home_url( '/' );
+		return Account_Url::section( 'my-access' );
 	}
 
 	/**

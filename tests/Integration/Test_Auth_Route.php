@@ -126,7 +126,6 @@ class Test_Auth_Route extends WP_UnitTestCase {
 		$wp_rewrite->rules = array();
 
 		( new Auth_Route(
-			new Settings(),
 			new Auth_State( new Settings() ),
 			$this->createMock( Asset_Loader::class ),
 			$this->createMock( Sprite::class )

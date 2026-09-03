@@ -72,6 +72,9 @@ class Test_Checkout extends WP_UnitTestCase {
 		remove_all_filters( 'gatedmedia_product_eligibility' );
 		remove_all_filters( 'gatedmedia_coupon_valid' );
 		remove_all_filters( 'gatedmedia_coupon_discount' );
+		remove_all_filters( 'gatedmedia_coupon_hold_seconds' );
+		remove_all_actions( 'gatedmedia_checkout_failed' );
+		remove_all_filters( 'gatedmedia_account_route' );
 
 		parent::tear_down();
 	}
@@ -158,6 +161,25 @@ class Test_Checkout extends WP_UnitTestCase {
 			Order_History::NEW_ORDER . '=' . $payment->uuid,
 			$gateway->return_url
 		);
+	}
+
+	/**
+	 * The worst of the dead links: the buyer has paid, and Stripe sends them
+	 * to a page the setting has stopped answering. Their access lands either
+	 * way — there was just nothing to tell them so.
+	 *
+	 * @testdox With the account route off, Stripe is not told to return the buyer to a page that no longer answers.
+	 */
+	public function test_return_url_follows_the_account_route_setting(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$gateway = $this->fake_gateway();
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id );
+
+		$this->assertIsString( $gateway->return_url );
+		$this->assertStringNotContainsString( '/account/', $gateway->return_url );
 	}
 
 	/** @testdox A site can send the buyer somewhere of its own. */
@@ -254,16 +276,108 @@ class Test_Checkout extends WP_UnitTestCase {
 		$this->assertSame( 'gatedmedia_bad_coupon', $late->get_error_code() );
 	}
 
-	/** @testdox An abandoned checkout spends nothing — the pending row does not count against limits. */
+	/**
+	 * Usage is still counted from completions and nothing else — a pending
+	 * row is not one. The reservation a checkout in flight holds is a
+	 * separate, short-lived thing that expires on its own; it never becomes
+	 * a use.
+	 *
+	 * @testdox An abandoned checkout completes nothing, so it spends nothing.
+	 */
 	public function test_pending_payment_spends_no_coupon(): void {
+		$product   = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$coupon_id = $this->coupon( 'once', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id, 'once' );
+
+		$this->assertSame( 0, $this->store->coupon_completions( $coupon_id ), 'a pending payment is not a completion' );
+	}
+
+	/**
+	 * The harm, stated plainly: two buyers were both part-way through
+	 * checkout when the other started, so neither had completed and neither
+	 * counted. Both then paid, and a coupon limited to one use was spent
+	 * twice.
+	 *
+	 * @testdox A coupon limited to one use cannot be completed twice.
+	 */
+	public function test_a_limit_one_coupon_cannot_be_completed_twice(): void {
+		$product   = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$coupon_id = $this->coupon( 'once', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
+		$gateway   = $this->fake_gateway();
+		$other     = self::factory()->user->create( array( 'user_email' => 'other@example.com' ) );
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id, 'once' );
+		$this->checkout( $gateway )->purchase( $product, $other, 'once' );
+
+		foreach ( $this->store->paged( 1, 10 ) as $payment ) {
+			$this->store->mark_complete( $payment->uuid, 'pi_' . $payment->payment_id );
+		}
+
+		$this->assertSame( 1, $this->store->coupon_completions( $coupon_id ), 'a usage limit of one must not be spent twice' );
+	}
+
+	/**
+	 * The hold is what closes the gap: a checkout in flight reserves the
+	 * coupon for a short while, so a second buyer arriving in the same
+	 * moment is refused rather than sent to Stripe.
+	 *
+	 * @testdox A checkout in flight holds a limited coupon against everyone else.
+	 */
+	public function test_a_pending_checkout_holds_a_limited_coupon(): void {
 		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
 		$this->coupon( 'once', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
 		$gateway = $this->fake_gateway();
+		$other   = self::factory()->user->create( array( 'user_email' => 'other@example.com' ) );
 
 		$this->checkout( $gateway )->purchase( $product, $this->buyer_id, 'once' );
-		$second = $this->checkout( $gateway )->purchase( $product, $this->buyer_id, 'once' );
+		$second = $this->checkout( $gateway )->purchase( $product, $other, 'once' );
 
-		$this->assertIsArray( $second, 'a pending payment must not consume the coupon' );
+		$this->assertInstanceOf( WP_Error::class, $second );
+		$this->assertSame( 'gatedmedia_bad_coupon', $second->get_error_code() );
+	}
+
+	/** @testdox A per-user limit is held by that buyer's own checkout in flight. */
+	public function test_a_pending_checkout_holds_a_per_user_limit(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'mine', 'percent', 20, array( Coupon_Metabox::META_PER_USER_LIMIT => '1' ) );
+		$gateway = $this->fake_gateway();
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id, 'mine' );
+		$second = $this->checkout( $gateway )->purchase( $product, $this->buyer_id, 'mine' );
+
+		$this->assertInstanceOf( WP_Error::class, $second );
+		$this->assertSame( 'gatedmedia_bad_coupon', $second->get_error_code() );
+	}
+
+	/** @testdox A hold of zero seconds turns the reservation off entirely. */
+	public function test_the_hold_can_be_switched_off(): void {
+		add_filter( 'gatedmedia_coupon_hold_seconds', '__return_zero' );
+
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'once', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
+		$gateway = $this->fake_gateway();
+		$other   = self::factory()->user->create( array( 'user_email' => 'other@example.com' ) );
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id, 'once' );
+		$second = $this->checkout( $gateway )->purchase( $product, $other, 'once' );
+
+		$this->assertIsArray( $second, 'with the hold off, an in-flight checkout reserves nothing' );
+	}
+
+	/** @testdox A checkout that fails gives its hold back straight away. */
+	public function test_a_failed_payment_releases_the_hold(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'once', 'percent', 20, array( Coupon_Metabox::META_USAGE_LIMIT => '1' ) );
+		$other   = self::factory()->user->create( array( 'user_email' => 'other@example.com' ) );
+
+		$refused = $this->checkout( $this->failing_gateway() )->purchase( $product, $this->buyer_id, 'once' );
+
+		$this->assertInstanceOf( WP_Error::class, $refused );
+
+		$second = $this->checkout( $this->fake_gateway() )->purchase( $product, $other, 'once' );
+
+		$this->assertIsArray( $second, 'a checkout that never reached Stripe must not keep the coupon' );
 	}
 
 	/** @testdox The allow-list blocks buyers off it, and the eligibility filter has the last word. */
@@ -290,6 +404,27 @@ class Test_Checkout extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $outcome );
 		$this->assertSame( Payment::STATUS_FAILED, $this->store->paged( 1, 1 )[0]->status );
+	}
+
+	/** @testdox A checkout that could not start announces itself, carrying the gateway's reason. */
+	public function test_gateway_failure_announces(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$heard   = array();
+
+		add_action(
+			'gatedmedia_checkout_failed',
+			static function ( $payment_id, $error ) use ( &$heard ): void {
+				$heard[] = array( $payment_id, $error );
+			},
+			10,
+			2
+		);
+
+		$this->checkout( $this->failing_gateway() )->purchase( $product, $this->buyer_id );
+
+		$this->assertCount( 1, $heard, 'the failure must announce exactly once' );
+		$this->assertSame( $this->store->paged( 1, 1 )[0]->payment_id, $heard[0][0] );
+		$this->assertSame( 'refused', $heard[0][1]->get_error_message() );
 	}
 
 	/** @testdox Granting a product's items twice with one reference writes each item exactly once. */

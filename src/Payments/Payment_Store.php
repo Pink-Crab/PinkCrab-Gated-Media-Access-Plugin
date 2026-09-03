@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Payments;
 
+use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
+
 /**
  * Every query against `{prefix}gatedmedia_payments` lives here. Payments are
  * not Access records — `Access_Writer` has no part in this table — but the
@@ -19,7 +21,7 @@ namespace PinkCrab\Gated_Access\Payments;
  * exactly one state, and let affected-rows answer who was first. One
  * statement, no gap between checking and writing, nothing else stored.
  *
- * Eleven public methods, all queries against the one table. Splitting them
+ * Thirteen public methods, all queries against the one table. Splitting them
  * would put two owners on `{prefix}gatedmedia_payments` to satisfy a counter,
  * which is the rule this class exists to keep.
  *
@@ -285,7 +287,9 @@ class Payment_Store {
 	/**
 	 * How many completed payments carry a coupon — its usage count, since
 	 * usage is never stored (spec §1b). Counted at completion, so an
-	 * abandoned checkout consumes nothing.
+	 * abandoned checkout consumes nothing. `Coupon_Hold` covers the window
+	 * between starting a checkout and finishing one; this counts only what
+	 * finished.
 	 *
 	 * @param int $coupon_id The coupon.
 	 * @param int $user_id   Restrict to one user's completions, 0 for all.
@@ -313,6 +317,85 @@ class Payment_Store {
 				"SELECT COUNT(*) FROM {$table} WHERE coupon_id = %d AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Our own table name.
 				$coupon_id,
 				Payment::STATUS_COMPLETE
+			)
+		);
+	}
+
+	/**
+	 * Whether this payment took its coupon past a limit, and by how much —
+	 * null when it carries no coupon, has not completed, or stayed inside
+	 * both limits.
+	 *
+	 * `Coupon_Hold` reserves a limited coupon only briefly, so two checkouts
+	 * that overlap by longer than that window can both complete, and nothing
+	 * can be refused once Stripe has the money. This is how the Payments
+	 * screen says so afterwards. The whole-coupon limit is reported ahead of
+	 * the per-buyer one when a payment breaks both.
+	 *
+	 * @param Payment $payment The row being asked about.
+	 * @return array{used: int, limit: int, per_user: bool}|null
+	 */
+	public function coupon_overuse( Payment $payment ): ?array {
+		if ( 0 === $payment->coupon_id || Payment::STATUS_COMPLETE !== $payment->status ) {
+			return null;
+		}
+
+		$limits = array(
+			Coupon_Metabox::META_USAGE_LIMIT    => 0,
+			Coupon_Metabox::META_PER_USER_LIMIT => $payment->user_id,
+		);
+
+		foreach ( $limits as $key => $scope ) {
+			$limit = (string) get_post_meta( $payment->coupon_id, $key, true );
+			$used  = '' === $limit ? 0 : $this->coupon_use_ordinal( $payment, $scope );
+
+			if ( '' !== $limit && $used > (int) $limit ) {
+				return array(
+					'used'     => $used,
+					'limit'    => (int) $limit,
+					'per_user' => 0 !== $scope,
+				);
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Which use of the coupon this payment was: how many completions carrying
+	 * it exist up to and including this row.
+	 *
+	 * Ordered by id, so the answer for a given payment never changes as later
+	 * ones complete.
+	 *
+	 * @param Payment $payment The row being asked about.
+	 * @param int     $user_id Count only this user's completions, 0 for all.
+	 */
+	private function coupon_use_ordinal( Payment $payment, int $user_id ): int {
+		global $wpdb;
+
+		$table = Payments_Schema::table_name();
+
+		if ( $user_id > 0 ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own table.
+			return (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$table} WHERE coupon_id = %d AND status = %s AND id <= %d AND user_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Our own table name.
+					$payment->coupon_id,
+					Payment::STATUS_COMPLETE,
+					$payment->payment_id,
+					$user_id
+				)
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own table.
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE coupon_id = %d AND status = %s AND id <= %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Our own table name.
+				$payment->coupon_id,
+				Payment::STATUS_COMPLETE,
+				$payment->payment_id
 			)
 		);
 	}

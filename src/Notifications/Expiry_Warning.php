@@ -12,11 +12,11 @@ namespace PinkCrab\Gated_Access\Notifications;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Account\Account_Route;
 use PinkCrab\Gated_Access\Account\Sections\My_Access_Section;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
+use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
  * Warns holders before timed access lapses — `Sweep`'s shape (spec §9):
@@ -43,14 +43,12 @@ class Expiry_Warning implements Hookable {
 	 * @param Notification_Sender $sender   The one sender.
 	 * @param Settings            $settings The lead-time setting.
 	 * @param Access_Taxonomy     $taxonomy Turns a group UUID back into its term.
-	 * @param Account_Route       $route    The account area's URL segment.
 	 * @param My_Access_Section   $section  The section the email links to.
 	 */
 	public function __construct(
 		private Notification_Sender $sender,
 		private Settings $settings,
 		private Access_Taxonomy $taxonomy,
-		private Account_Route $route,
 		private My_Access_Section $section
 	) {
 	}
@@ -136,7 +134,7 @@ class Expiry_Warning implements Hookable {
 				$holder,
 				array(
 					'item'    => $this->item_label( $access_id ),
-					'link'    => home_url( sprintf( '/%s/%s/', $this->route->slug(), $this->section->slug() ) ),
+					'link'    => Account_Url::section( $this->section->slug() ),
 					'expires' => $this->expires_label( $access_id ),
 				)
 			);
