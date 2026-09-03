@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
+use PinkCrab\Gated_Access\Access\Sweep;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
@@ -141,6 +142,26 @@ class Test_Held_Access extends WP_UnitTestCase {
 		$this->assertSame( array( 'Gone File' ), array_column( $data['past'], 'title' ) );
 		$this->assertSame( array( 'Kept File' ), array_column( $data['available'], 'title' ) );
 		$this->assertArrayNotHasKey( 'expiry_state', $data['past'][0] );
+	}
+
+	/**
+	 * The sweep moves an expired record's status, which is exactly what the
+	 * past list reads. Backdating the meta alone never catches this.
+	 *
+	 * @testdox Past access survives the nightly sweep, rather than emptying once it has run.
+	 */
+	public function test_past_survives_the_sweep(): void {
+		$gone_file = self::factory()->attachment->create( array( 'post_title' => 'Gone File' ) );
+
+		$gone = $this->writer->grant( $this->user_id, 'file', (string) $gone_file, 30, 'admin' );
+
+		update_post_meta( $gone, Access_Writer::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) );
+
+		$this->assertSame( 1, ( new Sweep( $this->writer ) )->run(), 'the sweep expires the record' );
+
+		$data = apply_filters( 'gatedmedia_files_data', self::FILES_DEFAULTS );
+
+		$this->assertSame( array( 'Gone File' ), array_column( $data['past'], 'title' ) );
 	}
 
 	/** @testdox A held group row links to the group rather than sitting dead. */

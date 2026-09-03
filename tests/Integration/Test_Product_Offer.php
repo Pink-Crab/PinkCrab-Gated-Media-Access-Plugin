@@ -74,7 +74,8 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		$checkout = new Checkout(
 			new Payment_Store(),
 			$this->writer,
-			new Stripe_Gateway( new Settings() )
+			new Stripe_Gateway( new Settings() ),
+			new Resolver( $taxonomy )
 		);
 
 		$this->data = new Product_Offer(

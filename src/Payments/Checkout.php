@@ -12,6 +12,7 @@ namespace PinkCrab\Gated_Access\Payments;
 use WP_Error;
 use WP_Post;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Account\Order_History;
@@ -35,6 +36,9 @@ use PinkCrab\Gated_Access\Support\Account_Url;
  * product is found, not who may buy (architecture §7).
  *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects") The one place the payment
+ * row, the grants, the gateway, the coupons and what the claimant already
+ * holds all have to meet.
  */
 class Checkout {
 
@@ -48,11 +52,12 @@ class Checkout {
 	 * The row, the grants and the gateway — nothing else writes any of the
 	 * three.
 	 *
-	 * @param Payment_Store  $store   The payments table's owner.
-	 * @param Access_Writer  $writer  The one writer of access records.
-	 * @param Stripe_Gateway $gateway The one class that talks to Stripe.
+	 * @param Payment_Store  $store    The payments table's owner.
+	 * @param Access_Writer  $writer   The one writer of access records.
+	 * @param Stripe_Gateway $gateway  The one class that talks to Stripe.
+	 * @param Resolver       $resolver What the claimant can already see.
 	 */
-	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway ) {
+	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway, private Resolver $resolver ) {
 		// Built here rather than injected: they are calculations over the same
 		// store, with no lifecycle of their own and nobody else resolving them.
 		$this->holds   = new Coupon_Hold();
@@ -208,19 +213,54 @@ class Checkout {
 	 * A free product: direct Access, no payment row, Stripe uninvolved.
 	 * Free is not a zero-value order (architecture §7).
 	 *
+	 * Nothing caps how often a free product may be claimed — only still
+	 * holding it does. Each claim carries its own reference, because the old
+	 * fixed one matched the claimant's own expired record and the writer's
+	 * retry guard answered with it: a free product that ran out could never be
+	 * claimed again, and the Join button did nothing for ever.
+	 *
+	 * Only what they cannot already see is claimed, so a second press stacks
+	 * no days onto what is still live.
+	 *
 	 * @param WP_Post $product The free product.
 	 * @param int     $user_id The claimant.
-	 * @return array{redirect: string}
+	 * @return array{redirect: string}|WP_Error
 	 */
-	private function claim_free( WP_Post $product, int $user_id ): array {
-		$this->grant_items(
-			$product,
-			$user_id,
-			self::SOURCE_FREE,
-			"user:{$user_id}:product:{$product->ID}"
+	private function claim_free( WP_Post $product, int $user_id ): array|WP_Error {
+		$wanted = array_values(
+			array_filter(
+				array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_ITEMS, false ) ),
+				fn( string $item ): bool => ! $this->already_holds( $user_id, $item )
+			)
 		);
 
+		if ( array() !== $wanted ) {
+			$failed = $this->grant_each(
+				$wanted,
+				$user_id,
+				$this->duration_days( $product->ID ),
+				self::SOURCE_FREE,
+				"user:{$user_id}:product:{$product->ID}:" . wp_generate_uuid4()
+			);
+
+			if ( $failed instanceof WP_Error ) {
+				return $failed;
+			}
+		}
+
 		return array( 'redirect' => (string) get_permalink( $product ) );
+	}
+
+	/**
+	 * Whether one `type:identifier` entry is already theirs, dates included.
+	 *
+	 * @param int    $user_id Who is claiming.
+	 * @param string $item    The `type:identifier` entry.
+	 */
+	private function already_holds( int $user_id, string $item ): bool {
+		list( $type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
+
+		return '' !== $identifier && $this->resolver->can_see( $user_id, $type, $identifier );
 	}
 
 	/**

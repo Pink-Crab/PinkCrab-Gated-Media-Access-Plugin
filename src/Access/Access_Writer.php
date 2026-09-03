@@ -270,12 +270,18 @@ class Access_Writer implements Hookable {
 	 * passes live ones, where the date is pulled to now first — expiry stays
 	 * a date the resolver can trust either way.
 	 *
+	 * A revoked record is refused. Revocation is a state with no way back but a
+	 * fresh grant, and expiry is a way back — an expired record can be dated
+	 * forward from Edit Access, which a revoked one cannot.
+	 *
 	 * Fires `gatedmedia_access_expired` with the record and its holder.
 	 *
 	 * @param int $access_id The record to expire.
 	 */
 	public function expire( int $access_id ): bool {
-		if ( Post_Types::ACCESS !== get_post_type( $access_id ) ) {
+		$record = get_post( $access_id );
+
+		if ( null === $record || Post_Types::ACCESS !== $record->post_type || Post_Types::STATUS_REVOKED === $record->post_status ) {
 			return false;
 		}
 

@@ -21,6 +21,7 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Stripe_Gateway;
 use PinkCrab\Gated_Access\Products\Invites;
 use PinkCrab\Gated_Access\Products\Product_Meta;
+use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -56,7 +57,7 @@ class Test_Invites extends WP_UnitTestCase {
 
 		$this->lookup  = new Access_Lookup();
 		$this->invites = new Invites(
-			new Checkout( new Payment_Store(), $writer, new Stripe_Gateway( new Settings() ) ),
+			new Checkout( new Payment_Store(), $writer, new Stripe_Gateway( new Settings() ), new Resolver( new Access_Taxonomy() ) ),
 			new Notification_Sender( new Settings() )
 		);
 		$this->invites->register_meta();

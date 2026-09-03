@@ -30,6 +30,7 @@ use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Access\Sweep;
+use PinkCrab\Gated_Access\Access\User_Deletion;
 use PinkCrab\Gated_Access\Notifications\Access_Created_Mail;
 use PinkCrab\Gated_Access\Notifications\Expiry_Warning;
 use PinkCrab\Gated_Access\Payments\Access_Grant_Route;
@@ -94,6 +95,7 @@ class Plugin {
 		Post_Boundary::class,
 		Gated_Post_Route::class,
 		Sweep::class,
+		User_Deletion::class,
 		Access_Created_Mail::class,
 		Expiry_Warning::class,
 		Payments_Schema::class,

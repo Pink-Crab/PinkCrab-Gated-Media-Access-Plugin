@@ -24,6 +24,7 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 use PinkCrab\Gated_Access\Payments\Stripe_Gateway;
 use PinkCrab\Gated_Access\Payments\Stripe_Webhook;
+use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -67,7 +68,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$this->post_item = self::factory()->post->create();
 
 		$gateway  = new Stripe_Gateway( new Settings() );
-		$checkout = new Checkout( $this->store, $writer, $gateway );
+		$checkout = new Checkout( $this->store, $writer, $gateway, new Resolver( new Access_Taxonomy() ) );
 
 		global $wp_rest_server;
 		$wp_rest_server = new WP_REST_Server();
