@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Tests\Integration;
 
+use WP_REST_Request;
+use WP_REST_Server;
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
@@ -66,6 +68,9 @@ class Test_Invites extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
+		global $wp_rest_server;
+		$wp_rest_server = null;
+
 		remove_filter( 'pre_wp_mail', array( $this, 'capture_mail' ) );
 		delete_option( Settings::OPTION );
 		parent::tear_down();
@@ -202,5 +207,65 @@ class Test_Invites extends WP_UnitTestCase {
 		$this->invites->process( $product_id );
 
 		$this->assertCount( 0, $this->outbox );
+	}
+
+	/**
+	 * A block editor save, over the REST route the product form actually
+	 * posts to — the post row is written first, the meta after it.
+	 *
+	 * @param int                $product_id The product being saved.
+	 * @param array<int, string> $emails     The allow-list as the form sends it.
+	 * @return int The response status.
+	 */
+	private function rest_save( int $product_id, array $emails ): int {
+		global $wp_rest_server;
+		$wp_rest_server = new WP_REST_Server();
+		do_action( 'rest_api_init', $wp_rest_server );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$request = new WP_REST_Request( 'POST', '/wp/v2/' . Post_Types::PRODUCT . '/' . $product_id );
+		$request->set_body_params( array( 'meta' => array( Product_Meta::META_EMAILS => $emails ) ) );
+
+		return rest_get_server()->dispatch( $request )->get_status();
+	}
+
+	/** @testdox An address added in the block editor is invited by that same save, not the next one. */
+	public function test_rest_save_invites_the_address_it_added(): void {
+		$product_id = $this->make_product( 500 );
+
+		$this->assertSame( 200, $this->rest_save( $product_id, array( 'late@example.test' ) ) );
+
+		$this->assertSame( array( 'late@example.test' ), get_post_meta( $product_id, Product_Meta::META_EMAILS, false ) );
+		$this->assertCount( 1, $this->outbox );
+		$this->assertSame( array( 'late@example.test' ), $this->outbox[0]['to'] );
+		$this->assertArrayHasKey( 'late@example.test', $this->invites->sent_map( $product_id ) );
+	}
+
+	/** @testdox An address removed in the block editor is forgotten by that same save. */
+	public function test_rest_save_forgets_the_address_it_removed(): void {
+		$product_id = $this->make_product( 500 );
+		add_post_meta( $product_id, Product_Meta::META_EMAILS, 'leaver@example.test' );
+		$this->invites->process( $product_id );
+
+		$this->assertSame( 200, $this->rest_save( $product_id, array() ) );
+
+		$this->assertSame( array(), $this->invites->sent_map( $product_id ) );
+	}
+
+	/** @testdox Saving anything that is not a product is left alone. */
+	public function test_other_post_types_are_left_alone(): void {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		add_post_meta( $post_id, Product_Meta::META_EMAILS, 'passerby@example.test' );
+
+		wp_update_post(
+			array(
+				'ID'         => $post_id,
+				'post_title' => 'Renamed',
+			)
+		);
+
+		$this->assertCount( 0, $this->outbox );
+		$this->assertSame( '', get_post_meta( $post_id, Invites::META_INVITES, true ) );
 	}
 }
