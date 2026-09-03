@@ -155,6 +155,23 @@ class Test_Sweep extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Revocation is a state, and expiry is a way out of it: an expired record
+	 * can be dated forward from Edit Access, a revoked one cannot. Expiring a
+	 * revoked record is therefore a way back from a withdrawal that is meant
+	 * to have none.
+	 *
+	 * @testdox Expire refuses a record that is already revoked, leaving it revoked.
+	 */
+	public function test_expire_refuses_a_revoked_record(): void {
+		$access_id = $this->grant_days( 30 );
+
+		$this->writer->revoke( $access_id );
+
+		$this->assertFalse( $this->writer->expire( $access_id ) );
+		$this->assertSame( Post_Types::STATUS_REVOKED, get_post_status( $access_id ) );
+	}
+
+	/**
 	 * Grants through the writer for a fresh (or given) post target.
 	 *
 	 * @param int|null $duration_days Days, or null for lifetime.

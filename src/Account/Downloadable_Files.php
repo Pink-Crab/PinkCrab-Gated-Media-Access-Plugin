@@ -104,6 +104,11 @@ class Downloadable_Files implements Hookable {
 	 * Files whose access has run out: direct records past their date, and the
 	 * contents of groups past theirs.
 	 *
+	 * Both statuses, because history outlives the sweep: it moves records past
+	 * their date to expired, and `Access_Writer::set_expiry()` writes that
+	 * status straight away when an admin backdates one. Revoked is left out —
+	 * that is a withdrawal, not something that ran out.
+	 *
 	 * @param int $user_id Whose history.
 	 * @return array<int, int>
 	 */
@@ -111,7 +116,7 @@ class Downloadable_Files implements Hookable {
 		$ids = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
-				'post_status'    => Post_Types::STATUS_ACTIVE,
+				'post_status'    => array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED ),
 				'author'         => $user_id,
 				'posts_per_page' => -1,
 				'fields'         => 'ids',

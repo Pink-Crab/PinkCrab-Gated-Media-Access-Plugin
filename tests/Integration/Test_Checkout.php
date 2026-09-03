@@ -14,6 +14,8 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Access\Access_Writer;
+use PinkCrab\Gated_Access\Access\Resolver;
+use PinkCrab\Gated_Access\Access\Sweep;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Payments\Checkout;
@@ -109,6 +111,51 @@ class Test_Checkout extends WP_UnitTestCase {
 		$this->assertSame( 0, $this->store->total(), 'free is not a zero-value order' );
 		$this->assertNull( $gateway->asked, 'Stripe must not be involved at all' );
 		$this->assertCount( 2, $this->access_ids() );
+	}
+
+	/**
+	 * The claim's fixed reference matched the expired record, so the writer's
+	 * retry guard answered with it and nothing new was written — a Join button
+	 * that did nothing, for ever.
+	 *
+	 * @testdox A free timed product can be claimed again once the first claim has run out.
+	 */
+	public function test_a_lapsed_free_claim_can_be_made_again(): void {
+		$product = $this->product( 0, array( "post:{$this->post_item}" ), array( Product_Meta::META_DURATION => array( '30' ) ) );
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id );
+
+		$first = $this->access_ids();
+
+		$this->assertCount( 1, $first );
+
+		update_post_meta( $first[0], Access_Writer::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) );
+		( new Sweep( $this->writer ) )->run();
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id );
+
+		$records = $this->access_ids();
+
+		$this->assertCount( 2, $records, 'the lapsed record is not the answer to a fresh claim' );
+
+		$statuses = array_map( fn( $id ) => get_post_status( $id ), $records );
+
+		$this->assertContains( Post_Types::STATUS_ACTIVE, $statuses, 'the new claim is live' );
+	}
+
+	/** @testdox Claiming a free product again while it is still held writes nothing and extends nothing. */
+	public function test_a_live_free_claim_is_not_claimed_twice(): void {
+		$product = $this->product( 0, array( "post:{$this->post_item}" ), array( Product_Meta::META_DURATION => array( '30' ) ) );
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id );
+
+		$records = $this->access_ids();
+		$expiry  = (string) get_post_meta( $records[0], Access_Writer::META_EXPIRES_AT, true );
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id );
+
+		$this->assertSame( $records, $this->access_ids(), 'a second press writes no second record' );
+		$this->assertSame( $expiry, (string) get_post_meta( $records[0], Access_Writer::META_EXPIRES_AT, true ), 'and does not stack days on' );
 	}
 
 	/** @testdox A coupon that takes the price to zero completes the payment on the spot and grants. */
@@ -538,7 +585,7 @@ class Test_Checkout extends WP_UnitTestCase {
 			}
 		);
 
-		$flow = new Checkout( $this->refusing_store(), $this->writer, $this->fake_gateway() );
+		$flow = new Checkout( $this->refusing_store(), $this->writer, $this->fake_gateway(), new Resolver( new Access_Taxonomy() ) );
 
 		$flow->purchase( $product, $this->buyer_id, 'freebie' );
 
@@ -629,7 +676,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	 * @param Stripe_Gateway $gateway The fake.
 	 */
 	private function checkout( Stripe_Gateway $gateway ): Checkout {
-		return new Checkout( $this->store, $this->writer, $gateway );
+		return new Checkout( $this->store, $this->writer, $gateway, new Resolver( new Access_Taxonomy() ) );
 	}
 
 	/**

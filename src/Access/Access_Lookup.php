@@ -224,4 +224,32 @@ class Access_Lookup {
 
 		return array_map( 'intval', $ids );
 	}
+
+	/**
+	 * Every record one person holds, whatever state it is in.
+	 *
+	 * All three statuses, because this answers "what is theirs", not "what
+	 * works" — deleting a user takes their history with them too.
+	 *
+	 * @param int $user_id Whose records.
+	 * @return array<int, int>
+	 */
+	public function records_for_user( int $user_id ): array {
+		if ( $user_id < 1 ) {
+			return array();
+		}
+
+		$ids = get_posts(
+			array(
+				'post_type'      => Post_Types::ACCESS,
+				'post_status'    => array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
+				'author'         => $user_id,
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+
+		return array_map( 'intval', $ids );
+	}
 }
