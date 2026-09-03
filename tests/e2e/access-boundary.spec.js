@@ -38,21 +38,32 @@ test.describe( 'signed in as the granted user', () => {
 		await expect( page.locator( 'body' ) ).toContainText( 'Granted post' );
 	} );
 
-	test( 'a restricted post not held is a hard 404 with no clues', async ( { page } ) => {
+	test( 'a restricted post not held is a hard 404 with no clues', async ( {
+		page,
+	} ) => {
 		const response = await page.goto( '/?name=e2e-refused-post' );
 
 		expect( response.status() ).toBe( 404 );
-		await expect( page.locator( 'body' ) ).not.toContainText( 'Refused post' );
-		await expect( page.locator( 'body' ) ).not.toContainText( 'Locked away.' );
+		await expect( page.locator( 'body' ) ).not.toContainText(
+			'Refused post'
+		);
+		await expect( page.locator( 'body' ) ).not.toContainText(
+			'Locked away.'
+		);
 	} );
 
 	test( 'search does not surface the refused post', async ( { page } ) => {
 		await page.goto( '/?s=Refused' );
 
-		await expect( page.locator( 'body' ) ).not.toContainText( 'Refused post' );
+		await expect( page.locator( 'body' ) ).not.toContainText(
+			'Refused post'
+		);
 	} );
 
-	test( 'the protected file serves its bytes to the holder, the substitute to everyone else', async ( { page, request } ) => {
+	test( 'the protected file serves its bytes to the holder, the substitute to everyone else', async ( {
+		page,
+		request,
+	} ) => {
 		await page.goto( '/account/files/' );
 
 		const href = await page
@@ -75,12 +86,16 @@ test.describe( 'signed in as the granted user', () => {
 } );
 
 test.describe( 'signed out', () => {
-	test( 'every restricted post is a 404, held by someone or not', async ( { page } ) => {
+	test( 'every restricted post is a 404, held by someone or not', async ( {
+		page,
+	} ) => {
 		const refused = await page.goto( '/?name=e2e-refused-post' );
 		expect( refused.status() ).toBe( 404 );
 
 		const granted = await page.goto( '/?name=e2e-granted-post' );
 		expect( granted.status() ).toBe( 404 );
-		await expect( page.locator( 'body' ) ).not.toContainText( 'Members only.' );
+		await expect( page.locator( 'body' ) ).not.toContainText(
+			'Members only.'
+		);
 	} );
 } );

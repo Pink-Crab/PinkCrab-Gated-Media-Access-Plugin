@@ -17,6 +17,12 @@ namespace PinkCrab\Gated_Access\Payments;
  *
  * Status is one of the four spec §3 values, held here so every caller names
  * the same strings.
+ *
+ * One field per column, and the table decides how many there are: this is
+ * what a row of `{prefix}gatedmedia_payments` looks like, so dropping a
+ * field or splitting the class would make it lie about the row it came from.
+ *
+ * @SuppressWarnings("PHPMD.TooManyFields")
  */
 final class Payment {
 
@@ -140,6 +146,17 @@ final class Payment {
 	public ?string $refunded_at = null;
 
 	/**
+	 * Why the last grant attempt failed, empty when none has.
+	 *
+	 * A payment whose grant fails stays pending so Stripe delivers again,
+	 * but its retries are finite — so the cause is kept here, where the
+	 * payment's own screen can show it once Stripe has given up.
+	 *
+	 * @var string
+	 */
+	public string $grant_error = '';
+
+	/**
 	 * Built from a row, nowhere else — the property list stays honest to the
 	 * table and the constructor stays out of every caller's way.
 	 *
@@ -163,6 +180,7 @@ final class Payment {
 		$payment->created_at               = (string) ( $row['created_at'] ?? '' );
 		$payment->completed_at             = isset( $row['completed_at'] ) ? (string) $row['completed_at'] : null;
 		$payment->refunded_at              = isset( $row['refunded_at'] ) ? (string) $row['refunded_at'] : null;
+		$payment->grant_error              = (string) ( $row['grant_error'] ?? '' );
 
 		return $payment;
 	}

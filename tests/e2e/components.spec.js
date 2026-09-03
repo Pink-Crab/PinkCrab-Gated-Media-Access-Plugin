@@ -38,10 +38,13 @@ test.describe( 'a component on an ordinary page', () => {
 		await page.goto( '/component-kitchen-sink/' );
 	} );
 
-	test( 'design tokens reach it, so it is not unstyled', async ( { page } ) => {
+	test( 'design tokens reach it, so it is not unstyled', async ( {
+		page,
+	} ) => {
 		// The token that decides every fill. Undefined here was the fault.
 		const primary = await page.evaluate( () =>
-			getComputedStyle( document.documentElement )
+			window
+				.getComputedStyle( document.documentElement )
 				.getPropertyValue( '--gatedmedia-primary' )
 				.trim()
 		);
@@ -49,7 +52,9 @@ test.describe( 'a component on an ordinary page', () => {
 		expect( primary ).toBe( '#5d5e67' );
 	} );
 
-	test( 'a button is the size and colour §6.3 specifies', async ( { page } ) => {
+	test( 'a button is the size and colour §6.3 specifies', async ( {
+		page,
+	} ) => {
 		const button = page.locator( '.gatedmedia-button--primary' ).first();
 
 		await expect( button ).toBeVisible();
@@ -58,8 +63,12 @@ test.describe( 'a component on an ordinary page', () => {
 		expect( box.height ).toBe( 44 );
 
 		const styles = await button.evaluate( ( el ) => {
-			const c = getComputedStyle( el );
-			return { bg: c.backgroundColor, weight: c.fontWeight, radius: c.borderTopLeftRadius };
+			const c = window.getComputedStyle( el );
+			return {
+				bg: c.backgroundColor,
+				weight: c.fontWeight,
+				radius: c.borderTopLeftRadius,
+			};
 		} );
 
 		expect( styles.bg ).toBe( 'rgb(93, 94, 103)' );
@@ -74,9 +83,13 @@ test.describe( 'a component on an ordinary page', () => {
 		// Every <use> must resolve. A reference with no symbol draws nothing
 		// at all rather than failing, which is how this went unnoticed.
 		const unresolved = await page.evaluate( () => {
-			const ids = [ ...document.querySelectorAll( 'symbol' ) ].map( ( s ) => s.id );
+			const ids = [ ...document.querySelectorAll( 'symbol' ) ].map(
+				( s ) => s.id
+			);
 			return [ ...document.querySelectorAll( 'use' ) ]
-				.map( ( u ) => ( u.getAttribute( 'href' ) || '' ).replace( '#', '' ) )
+				.map( ( u ) =>
+					( u.getAttribute( 'href' ) || '' ).replace( '#', '' )
+				)
 				.filter( ( ref ) => ref && ! ids.includes( ref ) );
 		} );
 
@@ -88,7 +101,10 @@ test.describe( 'a component on an ordinary page', () => {
 	} ) => {
 		// The section heading is a block-level element the theme constrains,
 		// so it marks where the column starts.
-		const column = await page.locator( '.gatedmedia-section-heading' ).first().boundingBox();
+		const column = await page
+			.locator( '.gatedmedia-section-heading' )
+			.first()
+			.boundingBox();
 
 		for ( const selector of [
 			'.gatedmedia-button',
@@ -100,7 +116,9 @@ test.describe( 'a component on an ordinary page', () => {
 
 			expect(
 				Math.abs( box.x - column.x ),
-				`${ selector } is ${ Math.round( box.x - column.x ) }px from the column`
+				`${ selector } is ${ Math.round(
+					box.x - column.x
+				) }px from the column`
 			).toBeLessThanOrEqual( 2 );
 		}
 	} );
@@ -111,17 +129,22 @@ test.describe( 'a component on an ordinary page', () => {
 		const invalid = page.locator( '.gatedmedia-field.is-invalid' ).first();
 
 		await expect( invalid ).toBeVisible();
-		await expect( invalid.locator( '[aria-invalid="true"]' ) ).toHaveCount( 1 );
+		await expect( invalid.locator( '[aria-invalid="true"]' ) ).toHaveCount(
+			1
+		);
 
 		const border = await invalid
 			.locator( '.gatedmedia-field__input' )
-			.evaluate( ( el ) => getComputedStyle( el ).borderTopColor );
+			.evaluate( ( el ) => window.getComputedStyle( el ).borderTopColor );
 
 		expect( border ).toBe( 'rgb(158, 63, 78)' );
 	} );
 
 	test( 'zero renders as the word Free', async ( { page } ) => {
-		await expect( page.locator( '.gatedmedia-price-block__amount', { hasText: 'Free' } ) )
-			.toHaveCount( 1 );
+		await expect(
+			page.locator( '.gatedmedia-price-block__amount', {
+				hasText: 'Free',
+			} )
+		).toHaveCount( 1 );
 	} );
 } );

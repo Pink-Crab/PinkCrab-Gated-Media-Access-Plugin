@@ -238,8 +238,17 @@ class Checkout {
 		}
 
 		if ( 0 === $total ) {
-			$this->store->mark_complete( $payment->uuid );
-			$this->grant_snapshot( $payment );
+			// mark_complete() answers whether we moved the row, and only the
+			// mover grants — the same rule the webhook follows.
+			if ( ! $this->store->mark_complete( $payment->uuid ) ) {
+				return new WP_Error( 'gatedmedia_payment_row', __( 'The payment could not be completed.', 'gated-media-access' ) );
+			}
+
+			$failed = $this->grant_snapshot( $payment );
+
+			if ( $failed instanceof WP_Error ) {
+				$this->store->record_grant_error( $payment->uuid, $failed->get_error_message() );
+			}
 
 			/** This hook is documented in Stripe_Webhook. */
 			do_action( 'gatedmedia_payment_completed', $payment->payment_id );
@@ -274,21 +283,34 @@ class Checkout {
 	 * Duration still reads from the product — a duration is a promise about
 	 * time, not contents.
 	 *
+	 * Every item that can be granted is, and the failures come back together:
+	 * a snapshot item deleted since purchase must not silently cost the buyer
+	 * the rest of what they paid for.
+	 *
 	 * @param Payment $payment The completed payment.
+	 * @return WP_Error|null Null when every item landed.
 	 */
-	public function grant_snapshot( Payment $payment ): void {
-		$duration = (string) get_post_meta( $payment->product_id, Product_Meta::META_DURATION, true );
-		$days     = '' === $duration ? null : (int) $duration;
+	public function grant_snapshot( Payment $payment ): ?WP_Error {
+		return $this->grant_each(
+			$payment->contents_snapshot,
+			$payment->user_id,
+			$this->duration_days( $payment->product_id ),
+			self::SOURCE_STRIPE,
+			$payment->uuid
+		);
+	}
 
-		foreach ( $payment->contents_snapshot as $item ) {
-			list( $type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
+	/**
+	 * The product's duration as the writer wants it: null for lifetime, or
+	 * the day count. `Product_Meta::sanitize_duration()` normalises on write
+	 * and the key defaults to lifetime, so nothing falsey reaches here.
+	 *
+	 * @param int $product_id The product being granted from.
+	 */
+	private function duration_days( int $product_id ): ?int {
+		$duration = (string) get_post_meta( $product_id, Product_Meta::META_DURATION, true );
 
-			if ( '' === $identifier ) {
-				continue;
-			}
-
-			$this->writer->grant( $payment->user_id, $type, $identifier, $days, self::SOURCE_STRIPE, $payment->uuid );
-		}
+		return Product_Meta::DURATION_LIFETIME === $duration ? null : (int) $duration;
 	}
 
 	/**
@@ -299,20 +321,48 @@ class Checkout {
 	 * @param int     $user_id   Who receives.
 	 * @param string  $source    stripe or free.
 	 * @param string  $reference The payment uuid, or the free claim's key.
+	 * @return WP_Error|null Null when every item landed.
 	 */
-	public function grant_items( WP_Post $product, int $user_id, string $source, string $reference ): void {
-		$duration = (string) get_post_meta( $product->ID, Product_Meta::META_DURATION, true );
-		$days     = '' === $duration ? null : (int) $duration;
+	public function grant_items( WP_Post $product, int $user_id, string $source, string $reference ): ?WP_Error {
+		return $this->grant_each(
+			array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_ITEMS, false ) ),
+			$user_id,
+			$this->duration_days( $product->ID ),
+			$source,
+			$reference
+		);
+	}
 
-		foreach ( array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_ITEMS, false ) ) as $item ) {
+	/**
+	 * The grant loop both paths share: every `type:id` row is attempted, and
+	 * whatever the writer refused comes back as one error carrying each
+	 * refusal. Discarding these is how a buyer paid and received nothing.
+	 *
+	 * @param array<int, string> $items     The `type:id` rows.
+	 * @param int                $user_id   Who receives.
+	 * @param int|null           $days      Duration, null for lifetime.
+	 * @param string             $source    stripe or free.
+	 * @param string             $reference The payment uuid, or the free claim's key.
+	 * @return WP_Error|null Null when every item landed.
+	 */
+	private function grant_each( array $items, int $user_id, ?int $days, string $source, string $reference ): ?WP_Error {
+		$failed = new WP_Error();
+
+		foreach ( $items as $item ) {
 			list( $type, $identifier ) = array_pad( explode( ':', $item, 2 ), 2, '' );
 
 			if ( '' === $identifier ) {
 				continue;
 			}
 
-			$this->writer->grant( $user_id, $type, $identifier, $days, $source, $reference );
+			$granted = $this->writer->grant( $user_id, $type, $identifier, $days, $source, $reference );
+
+			if ( $granted instanceof WP_Error ) {
+				$failed->add( $granted->get_error_code(), sprintf( '%s: %s', $item, $granted->get_error_message() ) );
+			}
 		}
+
+		return $failed->has_errors() ? $failed : null;
 	}
 
 

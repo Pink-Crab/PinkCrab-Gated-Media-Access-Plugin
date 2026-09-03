@@ -42,6 +42,18 @@ class Product_Meta implements Hookable {
 	public const META_SEND_INVITES = 'gatedmedia_send_invites';
 
 	/**
+	 * Lifetime, and the only thing that means it.
+	 *
+	 * `get_post_meta()` answers `''` for a key with no row, so an unset
+	 * duration, an empty box and a stored zero were all falsey and all
+	 * indistinguishable — the offer read them as lifetime and the checkout
+	 * read them as zero days, which the validator refuses. One value means
+	 * lifetime now, it is not falsey, and `sanitize_duration()` makes it the
+	 * only thing that can be stored short of a real day count.
+	 */
+	public const DURATION_LIFETIME = '-1';
+
+	/**
 	 * The currency stamp reads settings; stored item rows label through the
 	 * taxonomy's UUID identity.
 	 *
@@ -189,6 +201,20 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
+	 * Normalises the duration on write: a real day count stores as itself,
+	 * and everything else — an empty box, a zero, a negative, a word —
+	 * stores as lifetime. Readers then only ever meet `-1` or a count above
+	 * zero, and no falsey value carries meaning anywhere.
+	 *
+	 * @param mixed $value Whatever was submitted.
+	 */
+	public function sanitize_duration( $value ): string {
+		$days = is_scalar( $value ) ? (int) $value : 0;
+
+		return $days < 1 ? self::DURATION_LIFETIME : (string) $days;
+	}
+
+	/**
 	 * One definition per key (spec §1a) — in REST for the block, every
 	 * write behind manage-products, rows validated by their sanitizers.
 	 *
@@ -215,7 +241,14 @@ class Product_Meta implements Hookable {
 				'auth_callback'     => $manager,
 			),
 			self::META_CURRENCY     => $single_text,
-			self::META_DURATION     => $single_text,
+			self::META_DURATION     => array(
+				'type'              => 'string',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'default'           => self::DURATION_LIFETIME,
+				'sanitize_callback' => array( $this, 'sanitize_duration' ),
+				'auth_callback'     => $manager,
+			),
 			self::META_VISIBILITY   => array(
 				'type'              => 'string',
 				'single'            => true,

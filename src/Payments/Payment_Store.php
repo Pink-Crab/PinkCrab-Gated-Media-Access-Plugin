@@ -92,6 +92,29 @@ class Payment_Store {
 	}
 
 	/**
+	 * Records why a grant failed, or clears it with an empty string once one
+	 * succeeds. Stripe's retries are finite, so this is what is left to look
+	 * at on the payment's own screen after it has stopped delivering.
+	 *
+	 * @param string $uuid   The payment.
+	 * @param string $reason The cause, or '' to clear.
+	 */
+	public function record_grant_error( string $uuid, string $reason ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Our own table.
+		$updated = $wpdb->update(
+			Payments_Schema::table_name(),
+			array( 'grant_error' => $reason ),
+			array( 'uuid' => $uuid ),
+			array( '%s' ),
+			array( '%s' )
+		);
+
+		return is_int( $updated ) && $updated > 0;
+	}
+
+	/**
 	 * Pending → complete, exactly once. True means we were first and the
 	 * caller grants access; false means another delivery already did.
 	 *

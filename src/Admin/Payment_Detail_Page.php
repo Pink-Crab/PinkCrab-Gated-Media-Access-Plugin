@@ -171,8 +171,21 @@ class Payment_Detail_Page implements Hookable {
 		</div>
 		<?php
 
+		// A recorded cause is the difference between "not yet" and "it tried
+		// and could not" — Stripe's retries are finite, so after it gives up
+		// this is the only place the failure shows.
+		if ( '' !== $payment->grant_error ) {
+			printf(
+				'<p class="gatedmedia-admin-help">%s</p><p class="gatedmedia-admin-help">%s</p>',
+				esc_html__( 'The last attempt to grant this payment failed:', 'gated-media-access' ),
+				esc_html( $payment->grant_error )
+			);
+		}
+
 		if ( array() === $records ) {
-			printf( '<p class="gatedmedia-admin-help">%s</p>', esc_html__( 'Nothing granted by this payment yet.', 'gated-media-access' ) );
+			if ( '' === $payment->grant_error ) {
+				printf( '<p class="gatedmedia-admin-help">%s</p>', esc_html__( 'Nothing granted by this payment yet.', 'gated-media-access' ) );
+			}
 
 			return;
 		}

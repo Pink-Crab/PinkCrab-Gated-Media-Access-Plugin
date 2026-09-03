@@ -129,11 +129,13 @@
 	}
 
 	&__title {
+
 		@include h4-row;
 		margin: 0;
 	}
 
 	&__meta {
+
 		@include meta-secondary;
 		margin-top: var(--gatedmedia-xs);
 	}
@@ -174,6 +176,7 @@
 	// §7.3 — Orders is the one row that does not stack. Price and status stay
 	// right-aligned at every width.
 	&--order {
+
 		@include narrow {
 			flex-direction: row;
 			align-items: flex-start;
@@ -215,6 +218,7 @@
 }
 
 @keyframes gatedmedia-pulse {
+
 	0%,
 	100% {
 		opacity: 1;
@@ -226,6 +230,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
 	.gatedmedia-row.is-loading {
 		animation: none;
 	}
@@ -247,6 +252,7 @@
 	min-width: 120px;
 	padding: 0 var(--gatedmedia-lg);
 	font-family: inherit;
+
 	@include label-bold;
 	border-radius: var(--gatedmedia-radius);
 	border: 1px solid transparent;
@@ -294,6 +300,7 @@
 	align-items: center;
 	gap: var(--gatedmedia-xs);
 	color: var(--gatedmedia-primary);
+
 	@include label-bold;
 	text-decoration: underline;
 	text-underline-offset: 4px;
@@ -403,8 +410,7 @@
 // -----------------------------------------------------------------------------
 // §6.6 Status pill.
 //
-// Five values: complete, refunded, active, expired, revoked. A refunded or
-// revoked row additionally drops to 60% — that is the row's job, not the pill's.
+// complete, refunded, active, expired, revoked.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-status-pill {
@@ -446,12 +452,14 @@
 // -----------------------------------------------------------------------------
 
 .gatedmedia-field {
+
 	& + & {
 		margin-top: var(--gatedmedia-md);
 	}
 
 	&__label {
 		display: block;
+
 		@include label-bold;
 		margin-bottom: var(--gatedmedia-sm);
 	}
@@ -478,11 +486,13 @@
 	// Doubles as the helper line and the validation message — they occupy the
 	// same place and never both appear.
 	&__message {
+
 		@include meta-secondary;
 		margin-top: var(--gatedmedia-sm);
 	}
 
 	&.is-invalid {
+
 		.gatedmedia-field__label,
 		.gatedmedia-field__message {
 			color: var(--gatedmedia-error);
@@ -508,6 +518,7 @@ textarea.gatedmedia-field__input {
 // -----------------------------------------------------------------------------
 
 .gatedmedia-section-heading {
+
 	@include xs;
 	font-weight: 700;
 	text-transform: uppercase;
@@ -538,6 +549,7 @@ textarea.gatedmedia-field__input {
 	}
 
 	&__title {
+
 		@include h4-row;
 		margin: 0 0 var(--gatedmedia-sm);
 	}
@@ -640,6 +652,7 @@ textarea.gatedmedia-field__input {
 	// Used in order detail to record that the contents are frozen as they were
 	// on the order date.
 	&__note {
+
 		@include meta-secondary;
 		font-style: italic;
 		margin-top: var(--gatedmedia-md);
@@ -654,6 +667,7 @@ textarea.gatedmedia-field__input {
 // -----------------------------------------------------------------------------
 
 .gatedmedia-price-block {
+
 	&__original {
 		font-size: 16px;
 		text-decoration: line-through;
@@ -662,10 +676,12 @@ textarea.gatedmedia-field__input {
 	}
 
 	&__amount {
+
 		@include h1;
 	}
 
 	&__term {
+
 		@include meta-secondary;
 		margin-top: var(--gatedmedia-xs);
 	}
@@ -676,6 +692,7 @@ textarea.gatedmedia-field__input {
 // -----------------------------------------------------------------------------
 
 .gatedmedia-coupon {
+
 	&__row {
 		display: flex;
 		gap: var(--gatedmedia-sm);
@@ -742,6 +759,7 @@ textarea.gatedmedia-field__input {
 
 // Reserves the foot of the page so content clears the bar above.
 .has-action-bar {
+
 	@include narrow {
 		padding-bottom: 96px;
 	}
@@ -755,6 +773,7 @@ textarea.gatedmedia-field__input {
 // -----------------------------------------------------------------------------
 
 .gatedmedia-summary {
+
 	@include meta-secondary;
 }
 
@@ -803,7 +822,8 @@ textarea.gatedmedia-field__input {
 }
 
 @keyframes gatedmedia-spin {
+
 	to {
-		transform: rotate( 360deg );
+		transform: rotate(360deg);
 	}
 }

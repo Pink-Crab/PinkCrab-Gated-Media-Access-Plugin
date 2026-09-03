@@ -1,0 +1,11 @@
+{
+	"extends": "@wordpress/stylelint-config/scss-stylistic",
+	"rules": {
+		"selector-class-pattern": null,
+		"scss/comment-no-empty": null,
+		"value-keyword-case": null,
+		"no-duplicate-selectors": null,
+		"selector-id-pattern": null,
+		"no-descending-specificity": null
+	}
+}

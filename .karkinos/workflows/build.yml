@@ -1,0 +1,34 @@
+name: Build
+
+# Separate from the lint and test workflows so a broken build reads as a
+# broken build. wp-6-9.yml and e2e.yml both build assets, but there it is
+# setup for something else, and a webpack failure surfaces as a test failure.
+#
+# Blocks are registered from build/blocks, which is gitignored, so this is
+# also the only check that a checkout can produce a working plugin at all.
+on:
+  pull_request:
+
+jobs:
+  build:
+    name: Assets compile
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+      # A build that emits nothing still exits 0, so the entry points are
+      # asserted rather than assumed.
+      - name: Check the entry points exist
+        run: |
+          test -d build/blocks || { echo "build/blocks missing"; exit 1; }
+          test -f build/js/editor.js || { echo "build/js/editor.js missing"; exit 1; }
+          test -f build/css/front.css || { echo "build/css/front.css missing"; exit 1; }
+          test -f build/css/admin.css || { echo "build/css/admin.css missing"; exit 1; }

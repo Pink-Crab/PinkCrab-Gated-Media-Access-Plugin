@@ -36,6 +36,22 @@ const META = {
 	sendInvites: 'gatedmedia_send_invites',
 };
 
+// Matches Product_Meta::DURATION_LIFETIME — the server normalises to it on
+// write, so the block must write it too rather than an empty string.
+const LIFETIME = '-1';
+
+/**
+ * What an empty or zero duration box stores: lifetime, never an empty string.
+ *
+ * @param {string} typed What is in the box.
+ * @return {string} The value to save.
+ */
+function storedDays( typed ) {
+	const days = typed.replace( /\D/g, '' );
+
+	return '' === days || '0' === days ? LIFETIME : days;
+}
+
 const ENDPOINTS = {
 	group: 'gatedmedia_search_groups',
 	post: 'gatedmedia_search_posts',
@@ -67,7 +83,7 @@ function currencySymbol( currency ) {
 			.find( ( piece ) => 'currency' === piece.type );
 
 		return part ? part.value : currency;
-	} catch ( error ) {
+	} catch {
 		return currency;
 	}
 }
@@ -326,7 +342,11 @@ export default function Edit() {
 
 	const items = meta[ META.items ] || [];
 	const emails = meta[ META.emails ] || [];
-	const duration = meta[ META.duration ] || '';
+	// Lifetime is stored as -1, never as an empty string: an empty box and an
+	// unset key used to be the same falsey thing. The box still shows empty
+	// for it, with the placeholder saying what empty means.
+	const storedDuration = meta[ META.duration ] ?? '';
+	const duration = LIFETIME === storedDuration ? '' : storedDuration;
 	const digits = currencyDigits( shop.currency );
 	const minor = meta[ META.price ] || 0;
 	const set = ( key, value ) => setMeta( { ...meta, [ key ]: value } );
@@ -334,11 +354,11 @@ export default function Edit() {
 	const emailValid = /^\S+@\S+\.\S+$/.test( emailDraft.trim() );
 
 	const addEmail = () => {
-		const address = emailDraft.trim().toLowerCase();
-
 		if ( ! emailValid ) {
 			return;
 		}
+
+		const address = emailDraft.trim().toLowerCase();
 
 		if ( ! emails.includes( address ) ) {
 			set( META.emails, [ ...emails, address ] );
@@ -398,17 +418,13 @@ export default function Edit() {
 				<div style={ STYLES.header }>
 					<div>
 						<span style={ STYLES.caps }>
-							{ __(
-								'Product settings',
-								'gated-media-access'
-							) }
+							{ __( 'Product settings', 'gated-media-access' ) }
 						</span>
 						<p style={ STYLES.ref }>
 							{ meta[ META.uuid ]
-								? `${ __(
-										'Ref:',
-										'gated-media-access'
-								  ) } ${ meta[ META.uuid ] }`
+								? `${ __( 'Ref:', 'gated-media-access' ) } ${
+										meta[ META.uuid ]
+								  }`
 								: __(
 										'Ref: minted on first save',
 										'gated-media-access'
@@ -448,9 +464,7 @@ export default function Edit() {
 						>
 							{ __( 'Amount', 'gated-media-access' ) }
 						</span>
-						<div
-							style={ { ...STYLES.inputWrap, width: '150px' } }
-						>
+						<div style={ { ...STYLES.inputWrap, width: '150px' } }>
 							<span style={ STYLES.inputPrefix }>
 								{ currencySymbol( shop.currency ) }
 							</span>
@@ -489,9 +503,7 @@ export default function Edit() {
 						>
 							{ __( 'Duration', 'gated-media-access' ) }
 						</span>
-						<div
-							style={ { ...STYLES.inputWrap, width: '130px' } }
-						>
+						<div style={ { ...STYLES.inputWrap, width: '130px' } }>
 							<input
 								type="text"
 								inputMode="numeric"
@@ -504,10 +516,7 @@ export default function Edit() {
 								onChange={ ( event ) =>
 									set(
 										META.duration,
-										event.target.value.replace(
-											/\D/g,
-											''
-										)
+										storedDays( event.target.value )
 									)
 								}
 								aria-label={ __(
@@ -544,9 +553,7 @@ export default function Edit() {
 									) }
 								</span>
 							}
-							checked={
-								'unlisted' === meta[ META.visibility ]
-							}
+							checked={ 'unlisted' === meta[ META.visibility ] }
 							onChange={ ( unlisted ) =>
 								set(
 									META.visibility,
@@ -676,11 +683,7 @@ export default function Edit() {
 										type="button"
 										style={ STYLES.rowAction }
 										onClick={ () =>
-											removeFrom(
-												META.items,
-												items,
-												row
-											)
+											removeFrom( META.items, items, row )
 										}
 									>
 										<span style={ STYLES.caps }>

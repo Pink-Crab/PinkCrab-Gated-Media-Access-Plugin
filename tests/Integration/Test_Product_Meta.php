@@ -82,6 +82,36 @@ class Test_Product_Meta extends WP_UnitTestCase {
 		$this->assertSame( array( 'file:42', '' ), get_post_meta( $this->product_id, Product_Meta::META_ITEMS, false ) );
 	}
 
+	/**
+	 * @testdox A duration normalises on write: a real count keeps itself, everything else stores as lifetime.
+	 *
+	 * The whole point of `-1`. An unset key, an empty box, a zero and a
+	 * negative were all falsey and all the same value to a reader, which is
+	 * how the offer came to promise "Lifetime access" for something the
+	 * checkout handed to the validator as zero days and had refused.
+	 */
+	public function test_duration_normalises_on_write(): void {
+		$this->assertSame(
+			Product_Meta::DURATION_LIFETIME,
+			(string) get_post_meta( $this->product_id, Product_Meta::META_DURATION, true ),
+			'an unset duration reads as lifetime, not as an empty string'
+		);
+
+		foreach ( array( '', '0', 0, '-5', 'soon' ) as $stored ) {
+			update_post_meta( $this->product_id, Product_Meta::META_DURATION, $stored );
+
+			$this->assertSame(
+				Product_Meta::DURATION_LIFETIME,
+				(string) get_post_meta( $this->product_id, Product_Meta::META_DURATION, true ),
+				sprintf( '"%s" must store as lifetime', (string) $stored )
+			);
+		}
+
+		update_post_meta( $this->product_id, Product_Meta::META_DURATION, '30' );
+
+		$this->assertSame( '30', (string) get_post_meta( $this->product_id, Product_Meta::META_DURATION, true ) );
+	}
+
 	/** @testdox Saving stamps the identity once and the shop currency every time. */
 	public function test_stamp(): void {
 		$this->meta->stamp( $this->product_id );

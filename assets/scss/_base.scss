@@ -15,6 +15,7 @@
 	box-sizing: border-box;
 	font-family: var(--gatedmedia-font);
 	color: var(--gatedmedia-on-surface);
+
 	@include body-main;
 
 	*,
@@ -37,7 +38,9 @@
 	select,
 	textarea,
 	[tabindex] {
+
 		&:focus-visible {
+
 			@include focus-ring;
 		}
 	}
@@ -52,6 +55,7 @@
 // -----------------------------------------------------------------------------
 
 .gatedmedia {
+
 	.is-inactive {
 		opacity: var(--gatedmedia-mute-inactive);
 	}
@@ -77,26 +81,31 @@
 
 	// The page title, 32px/700. Used where the theme is not supplying it.
 	&--page {
+
 		@include h1;
 	}
 
 	// A row title — a file, an order, a group.
 	&--row {
+
 		@include h4-row;
 	}
 }
 
 .gatedmedia-text {
 	margin: 0;
+
 	@include body-main;
 
 	// The muted second line: file type, size, date, expiry.
 	&--meta {
+
 		@include meta-secondary;
 	}
 
 	// Footnotes, and the small uppercase labels.
 	&--small {
+
 		@include xs;
 	}
 }
@@ -115,6 +124,7 @@
 
 // Vertical rhythm, on the §1 scale. `md` is the resting state.
 .gatedmedia-stack {
+
 	> * + * {
 		margin-top: var(--gatedmedia-md);
 	}
@@ -134,6 +144,7 @@
 
 // Matches core's .screen-reader-text, so it behaves identically in wp-admin.
 .gatedmedia-visually-hidden {
+
 	@include visually-hidden;
 }
 

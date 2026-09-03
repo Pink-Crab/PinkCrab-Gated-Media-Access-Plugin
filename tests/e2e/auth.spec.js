@@ -73,19 +73,23 @@ test.describe( 'the auth view', () => {
 		await page.fill( '#gatedmedia-password', 'definitely-wrong' );
 		await page.getByRole( 'button', { name: /^sign in$/i } ).click();
 
-		await expect( page.locator( '.gatedmedia-notice--error' ) ).toBeVisible();
+		await expect(
+			page.locator( '.gatedmedia-notice--error' )
+		).toBeVisible();
 
 		// §7.7: both fields, because marking one would say which half was wrong.
-		await expect( page.locator( '.gatedmedia-field.is-invalid' ) ).toHaveCount(
-			2
-		);
+		await expect(
+			page.locator( '.gatedmedia-field.is-invalid' )
+		).toHaveCount( 2 );
 
 		// The address comes back so they need not retype it; the password does
 		// not, because it would have to travel in the URL to do so.
 		await expect( page.locator( '#gatedmedia-email' ) ).toHaveValue(
 			'nobody@example.com'
 		);
-		await expect( page.locator( '#gatedmedia-password' ) ).toHaveValue( '' );
+		await expect( page.locator( '#gatedmedia-password' ) ).toHaveValue(
+			''
+		);
 	} );
 
 	test( 'asking for a reset link confirms nothing about the address', async ( {
@@ -102,14 +106,18 @@ test.describe( 'the auth view', () => {
 
 		// The fields and the button are replaced entirely (§7.7).
 		await expect( card.locator( 'input[type="email"]' ) ).toHaveCount( 0 );
-		await expect( card.locator( 'button[type="submit"]' ) ).toHaveCount( 0 );
+		await expect( card.locator( 'button[type="submit"]' ) ).toHaveCount(
+			0
+		);
 
 		await expect( card.locator( '.gatedmedia-notice' ) ).toContainText(
 			/if that email has an account/i
 		);
 	} );
 
-	test( 'signing in for real lands where the URL asked', async ( { page } ) => {
+	test( 'signing in for real lands where the URL asked', async ( {
+		page,
+	} ) => {
 		await page.goto( '/sign-in/' );
 
 		await page.fill( '#gatedmedia-email', USER );
@@ -169,8 +177,8 @@ test.describe( 'the way in from a product', () => {
 		// Sign up asks for the two fields §7.7 gives it, and says what the
 		// password has to be.
 		await expect( page.locator( '#gatedmedia-email' ) ).toBeVisible();
-		await expect( page.locator( '.gatedmedia-field__message' ) ).toContainText(
-			/at least \d+ characters/i
-		);
+		await expect(
+			page.locator( '.gatedmedia-field__message' )
+		).toContainText( /at least \d+ characters/i );
 	} );
 } );
