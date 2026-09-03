@@ -51,6 +51,23 @@ class Stripe_Webhook implements Hookable {
 	public const REFUSED = 'refused';
 
 	/**
+	 * The session `payment_status` values that mean the money is ours.
+	 *
+	 * A card is authorised while the buyer is still on the page, so the
+	 * completion and the money are the same moment. A delayed method — a
+	 * direct debit, a bank transfer — is not: Stripe completes the session
+	 * when the buyer commits, says `unpaid` here, and reports the outcome
+	 * days later as `checkout.session.async_payment_succeeded` or
+	 * `checkout.session.async_payment_failed`. `no_payment_required` is a
+	 * price a coupon took to nothing, which owes nothing and grants.
+	 *
+	 * Anything else waits: the row stays pending, which is what it is.
+	 *
+	 * @var array<int, string>
+	 */
+	private const PAID = array( 'paid', 'no_payment_required' );
+
+	/**
 	 * The row, the verification, the grants and the revokes.
 	 *
 	 * @param Payment_Store  $store    The payments table's owner.
@@ -123,10 +140,15 @@ class Stripe_Webhook implements Hookable {
 		$failed = null;
 
 		switch ( $event->type ) {
+			// The money landing later is the same completion, arriving late.
 			case 'checkout.session.completed':
+			case 'checkout.session.async_payment_succeeded':
 				$failed = $this->complete( $object );
 				break;
+			// A delayed payment that failed ends the checkout exactly as
+			// abandoning it does: the row fails and the coupon goes back.
 			case 'checkout.session.expired':
+			case 'checkout.session.async_payment_failed':
 				$this->expire( $object );
 				break;
 			case 'charge.refunded':
@@ -155,6 +177,10 @@ class Stripe_Webhook implements Hookable {
 	 * that fails leaves the row pending and comes back as an error, so the
 	 * route answers 500 and Stripe delivers again.
 	 *
+	 * The money is the second gate (`self::PAID`): a completion that has
+	 * collected nothing yet leaves the row pending and grants nothing, and
+	 * the `async_payment_succeeded` that follows comes back through here.
+	 *
 	 * @param \Stripe\StripeObject $session The event's checkout session.
 	 * @return WP_Error|null Null when there is nothing for Stripe to retry.
 	 */
@@ -163,6 +189,10 @@ class Stripe_Webhook implements Hookable {
 		$payment = $this->store->find_by_uuid( $uuid );
 
 		if ( null === $payment || Payment::STATUS_PENDING !== $payment->status ) {
+			return null;
+		}
+
+		if ( ! in_array( (string) ( $session['payment_status'] ?? '' ), self::PAID, true ) ) {
 			return null;
 		}
 
@@ -198,10 +228,10 @@ class Stripe_Webhook implements Hookable {
 	}
 
 	/**
-	 * A checkout that ended without payment: pending → failed, and the
-	 * guard means a late completion cannot resurrect it. Whatever coupon it
-	 * was holding goes back at the same time, rather than waiting out its
-	 * own expiry.
+	 * A checkout that ended without payment — abandoned, or a delayed
+	 * payment the bank refused: pending → failed, and the guard means a late
+	 * completion cannot resurrect it. Whatever coupon it was holding goes
+	 * back at the same time, rather than waiting out its own expiry.
 	 *
 	 * @param \Stripe\StripeObject $session The event's checkout session.
 	 */
