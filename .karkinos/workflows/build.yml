@@ -18,6 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No setup-node: the runner image carries Node 22 and npm 10.
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
