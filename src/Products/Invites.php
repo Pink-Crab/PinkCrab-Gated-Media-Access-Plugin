@@ -49,15 +49,22 @@ class Invites implements Hookable {
 	}
 
 	/**
-	 * The map's registration and the save listener — after
-	 * `Product_Meta::stamp()` at default priority, so the row meta is settled.
+	 * The map's registration and the save listener.
+	 *
+	 * `wp_after_insert_post`, not `save_post`: the block editor saves the
+	 * allow-list as REST meta, which `WP_REST_Posts_Controller` writes
+	 * *after* `wp_update_post()` has already fired `save_post`. Listening
+	 * there read the previous list, so an address added in a save was not
+	 * invited until the next one. This hook fires once the post, its terms
+	 * and its meta are all written, on the REST and the classic path alike.
+	 * It carries no post type, so `process()` checks.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'init', array( $this, 'register_meta' ) );
 		$loader->filter( 'is_protected_meta', array( $this, 'protect_meta' ), 3 );
-		$loader->action( 'save_post_' . Post_Types::PRODUCT, array( $this, 'process' ), 1, 20 );
+		$loader->action( 'wp_after_insert_post', array( $this, 'process' ) );
 	}
 
 	/**
@@ -91,14 +98,19 @@ class Invites implements Hookable {
 
 	/**
 	 * The save listener: keeps the sent map in step with the allow-list,
-	 * and invites every address new to it.
+	 * and invites every address new to it. Every post type reaches here, so
+	 * anything but a product leaves at once.
 	 *
-	 * @param int $post_id The product being saved.
+	 * @param int $post_id The post being saved.
 	 */
 	public function process( int $post_id ): void {
 		$product = get_post( $post_id );
 
-		if ( null === $product || false !== wp_is_post_revision( $post_id ) || false !== wp_is_post_autosave( $post_id ) ) {
+		if ( null === $product || Post_Types::PRODUCT !== $product->post_type ) {
+			return;
+		}
+
+		if ( false !== wp_is_post_revision( $post_id ) || false !== wp_is_post_autosave( $post_id ) ) {
 			return;
 		}
 
