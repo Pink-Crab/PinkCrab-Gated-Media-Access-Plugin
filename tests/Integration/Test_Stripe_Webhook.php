@@ -18,6 +18,7 @@ use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Payments\Checkout;
+use PinkCrab\Gated_Access\Payments\Coupon_Hold;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
@@ -189,7 +190,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$second = $this->store->create_pending( $this->buyer_id, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ) );
 
 		$this->deliver( (string) wp_json_encode( $this->completed_event( $first->uuid ) ) );
-		$this->deliver( (string) wp_json_encode( $this->event( 'checkout.session.completed', array( 'client_reference_id' => $second->uuid, 'payment_intent' => 'pi_10' ) ) ) );
+		$this->deliver( (string) wp_json_encode( $this->session_event( 'checkout.session.completed', $second->uuid, 'paid', 'pi_10' ) ) );
 
 		$records = $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $second->uuid );
 
@@ -342,6 +343,135 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @testdox A completed checkout whose money has not been collected grants nothing and stays pending.
+	 *
+	 * Stripe completes the session for a delayed method — a direct debit, a
+	 * bank transfer — before the money is collected, and says so in the
+	 * session's `payment_status`. Granting on the event alone hands over
+	 * what was bought before it is paid for.
+	 */
+	public function test_an_unpaid_completion_grants_nothing(): void {
+		$payment = $this->pending_payment();
+
+		$response = $this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, 'unpaid' ) ) );
+
+		$this->assertSame( 200, $response->get_status(), 'there is nothing for Stripe to retry — the money is simply not here yet' );
+		$this->assertSame( Payment::STATUS_PENDING, $this->store->find_by_uuid( $payment->uuid )->status );
+		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+	}
+
+	/** @testdox A session that says nothing about the money grants nothing. */
+	public function test_a_completion_without_a_payment_status_grants_nothing(): void {
+		$payment = $this->pending_payment();
+
+		$this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, '' ) ) );
+
+		$this->assertSame( Payment::STATUS_PENDING, $this->store->find_by_uuid( $payment->uuid )->status );
+		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+	}
+
+	/** @testdox A checkout that needed no payment at all still grants — a coupon can take the price to nothing. */
+	public function test_a_checkout_needing_no_payment_grants(): void {
+		$payment = $this->pending_payment();
+
+		$this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, 'no_payment_required' ) ) );
+
+		$this->assertSame( Payment::STATUS_COMPLETE, $this->store->find_by_uuid( $payment->uuid )->status );
+		$this->assertCount( 1, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+	}
+
+	/** @testdox The money landing later grants the access and completes the row — exactly once. */
+	public function test_the_money_landing_later_grants(): void {
+		$payment = $this->pending_payment();
+
+		$completed = array();
+		add_action(
+			'gatedmedia_payment_completed',
+			static function ( int $payment_id ) use ( &$completed ): void {
+				$completed[] = $payment_id;
+			}
+		);
+
+		$this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, 'unpaid' ) ) );
+
+		$this->assertSame( Payment::STATUS_PENDING, $this->store->find_by_uuid( $payment->uuid )->status, 'nothing may land before the money does' );
+
+		$body = (string) wp_json_encode( $this->session_event( 'checkout.session.async_payment_succeeded', $payment->uuid ) );
+
+		$this->assertSame( 200, $this->deliver( $body )->get_status() );
+
+		$read = $this->store->find_by_uuid( $payment->uuid );
+
+		$this->assertSame( Payment::STATUS_COMPLETE, $read->status );
+		$this->assertSame( 'pi_9', $read->stripe_payment_intent_id );
+		$this->assertCount( 1, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+		$this->assertSame( array( $payment->payment_id ), $completed );
+
+		// Stripe retries: the same delivery again grants nothing twice.
+		$this->deliver( $body );
+
+		$this->assertCount( 1, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+		$this->assertSame( array( $payment->payment_id ), $completed );
+	}
+
+	/**
+	 * @testdox A delayed payment that fails leaves the row failed, gives the coupon back, and cannot then complete.
+	 */
+	public function test_a_delayed_payment_that_fails_releases_everything(): void {
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		$coupon_id  = self::factory()->post->create( array( 'post_type' => Post_Types::COUPON ) );
+		$payment    = $this->store->create_pending( $this->buyer_id, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ), $coupon_id, 200 );
+		$holds      = new Coupon_Hold();
+
+		$holds->take( $coupon_id, $payment->uuid, 1 );
+
+		$this->assertSame( 1, $holds->live( $coupon_id ), 'the checkout in flight reserves the coupon' );
+
+		$this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, 'unpaid' ) ) );
+		$this->deliver( (string) wp_json_encode( $this->session_event( 'checkout.session.async_payment_failed', $payment->uuid, 'unpaid' ) ) );
+
+		$this->assertSame( Payment::STATUS_FAILED, $this->store->find_by_uuid( $payment->uuid )->status );
+		$this->assertSame( 0, $holds->live( $coupon_id ), 'a payment that failed must not go on holding the coupon' );
+		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+
+		// A success arriving after the failure cannot resurrect it.
+		$this->deliver( (string) wp_json_encode( $this->session_event( 'checkout.session.async_payment_succeeded', $payment->uuid ) ) );
+
+		$this->assertSame( Payment::STATUS_FAILED, $this->store->find_by_uuid( $payment->uuid )->status );
+		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+	}
+
+	/** @testdox A grant that fails as the money lands asks Stripe to deliver again. */
+	public function test_a_failed_grant_on_the_money_landing_asks_for_a_retry(): void {
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		$doomed     = self::factory()->post->create();
+
+		$payment = $this->store->create_pending(
+			$this->buyer_id,
+			$product_id,
+			1000,
+			'GBP',
+			array( "post:{$this->post_item}", "post:{$doomed}" )
+		);
+
+		wp_delete_post( $doomed, true );
+
+		$unpaid = $this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, 'unpaid' ) ) );
+
+		$this->assertSame( 200, $unpaid->get_status(), 'nothing was attempted, so there is nothing to retry' );
+		$this->assertSame( '', $this->store->find_by_uuid( $payment->uuid )->grant_error );
+
+		$body = (string) wp_json_encode( $this->session_event( 'checkout.session.async_payment_succeeded', $payment->uuid ) );
+
+		$this->assertSame( 500, $this->deliver( $body )->get_status(), 'a 200 tells Stripe never to try again' );
+
+		$read = $this->store->find_by_uuid( $payment->uuid );
+
+		$this->assertSame( Payment::STATUS_PENDING, $read->status, 'the row must stay retryable' );
+		$this->assertNotSame( '', $read->grant_error, 'the cause must be recorded where an administrator can see it' );
+	}
+
+	/**
 	 * A pending payment for one product whose snapshot holds one post.
 	 */
 	private function pending_payment(): Payment {
@@ -353,17 +483,35 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	/**
 	 * A checkout.session.completed event body for a payment.
 	 *
-	 * @param string $uuid The payment it confirms.
+	 * @param string $uuid           The payment it confirms.
+	 * @param string $payment_status Where Stripe says the money has got to.
 	 * @return array<string, mixed>
 	 */
-	private function completed_event( string $uuid ): array {
-		return $this->event(
-			'checkout.session.completed',
-			array(
-				'client_reference_id' => $uuid,
-				'payment_intent'      => 'pi_9',
-			)
+	private function completed_event( string $uuid, string $payment_status = 'paid' ): array {
+		return $this->session_event( 'checkout.session.completed', $uuid, $payment_status );
+	}
+
+	/**
+	 * Any checkout session event, carrying what Stripe carries: the payment
+	 * it belongs to, its intent, and where the money has got to.
+	 *
+	 * @param string $type           The event type.
+	 * @param string $uuid           The payment it belongs to.
+	 * @param string $payment_status Where the money has got to, '' to leave the field out.
+	 * @param string $intent         The payment intent id.
+	 * @return array<string, mixed>
+	 */
+	private function session_event( string $type, string $uuid, string $payment_status = 'paid', string $intent = 'pi_9' ): array {
+		$session = array(
+			'client_reference_id' => $uuid,
+			'payment_intent'      => $intent,
 		);
+
+		if ( '' !== $payment_status ) {
+			$session['payment_status'] = $payment_status;
+		}
+
+		return $this->event( $type, $session );
 	}
 
 	/**
