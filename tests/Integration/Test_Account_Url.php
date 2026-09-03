@@ -31,8 +31,52 @@ class Test_Account_Url extends WP_UnitTestCase {
 	 */
 	public function tear_down(): void {
 		remove_all_filters( 'gatedmedia_account_slug' );
+		remove_all_filters( 'gatedmedia_account_route' );
+		remove_all_filters( 'gatedmedia_account_url' );
 
 		parent::tear_down();
+	}
+
+	/**
+	 * With the account route switched off the plugin answers nothing at
+	 * `/account/`, so every link built here would be a 404. The setting is
+	 * read in this one place rather than at each call site, which is how the
+	 * emails and the checkout return URL came to keep pointing at a route
+	 * that had been turned off.
+	 *
+	 * @testdox With the route off, links fall back to the home page rather than a page that does not answer.
+	 */
+	public function test_the_route_being_off_moves_every_link(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+
+		$this->assertSame( home_url( '/' ), Account_Url::section( 'orders' ) );
+		$this->assertSame( home_url( '/' ), Account_Url::detail( 'orders', 'abc' ) );
+	}
+
+	/** @testdox A site placing the blocks on its own pages points the links at them. */
+	public function test_a_site_can_map_its_own_pages(): void {
+		add_filter( 'gatedmedia_account_route', '__return_false' );
+		add_filter(
+			'gatedmedia_account_url',
+			static fn( string $url, string $section ): string => home_url( "/my-{$section}/" ),
+			10,
+			2
+		);
+
+		$this->assertSame( home_url( '/my-orders/' ), Account_Url::section( 'orders' ) );
+	}
+
+	/** @testdox The filter is offered with the route on too, so a site can move one section without moving all of them. */
+	public function test_the_filter_applies_with_the_route_on(): void {
+		add_filter(
+			'gatedmedia_account_url',
+			static fn( string $url, string $section ): string => 'profile' === $section ? home_url( '/edit-me/' ) : $url,
+			10,
+			2
+		);
+
+		$this->assertSame( home_url( '/edit-me/' ), Account_Url::section( 'profile' ) );
+		$this->assertSame( home_url( '/account/orders/' ), Account_Url::section( 'orders' ) );
 	}
 
 	/** @testdox A section links to its own page under the account segment, with a trailing slash. */

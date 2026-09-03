@@ -61,8 +61,21 @@ class Checkout_Action implements Hookable {
 	}
 
 	/**
+	 * The host of the session Stripe just handed back, when it is not one we
+	 * already name.
+	 *
+	 * @var string
+	 */
+	private string $session_host = '';
+
+	/**
 	 * Core's wp_safe_redirect() only follows hosts it knows; the hosted
 	 * checkout lives on Stripe's.
+	 *
+	 * `checkout.stripe.com` is the usual one, but a Stripe account can serve
+	 * Checkout from a domain of its own, and naming only the default sent
+	 * those buyers to wp-admin with a pending row behind them and no word
+	 * about why. So the session's own host is allowed alongside it.
 	 *
 	 * @param array<int, string> $hosts Core's allow-list.
 	 * @return array<int, string>
@@ -70,7 +83,29 @@ class Checkout_Action implements Hookable {
 	public function allow_stripe_host( array $hosts ): array {
 		$hosts[] = 'checkout.stripe.com';
 
+		if ( '' !== $this->session_host ) {
+			$hosts[] = $this->session_host;
+		}
+
 		return $hosts;
+	}
+
+	/**
+	 * Trusts the host of a destination `Checkout` produced.
+	 *
+	 * Never request input: the only off-site URL that reaches here came back
+	 * from the Stripe API under this site's own secret key, so its host is
+	 * Stripe's to choose. An on-site destination needs no allowance and adds
+	 * nothing.
+	 *
+	 * @param string $url Where the buyer is about to be sent.
+	 */
+	private function allow_destination_host( string $url ): void {
+		$host = (string) wp_parse_url( $url, PHP_URL_HOST );
+
+		$this->session_host = '' === $host || (string) wp_parse_url( home_url(), PHP_URL_HOST ) === $host
+			? ''
+			: $host;
 	}
 
 	/**
@@ -95,6 +130,8 @@ class Checkout_Action implements Hookable {
 			wp_safe_redirect( add_query_arg( self::ERROR_FLAG, $outcome->get_error_code(), (string) get_permalink( $product_id ) ) );
 			exit;
 		}
+
+		$this->allow_destination_host( $outcome['redirect'] );
 
 		wp_safe_redirect( $outcome['redirect'] );
 		exit;

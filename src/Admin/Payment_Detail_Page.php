@@ -153,6 +153,43 @@ class Payment_Detail_Page implements Hookable {
 				esc_html( (string) $value )
 			);
 		}
+
+		$this->render_coupon_overuse( $payment );
+	}
+
+	/**
+	 * Says so when this payment took its coupon past a limit, and stays quiet
+	 * otherwise. A checkout reserves a limited coupon only briefly, so two
+	 * that overlap by longer than that can both complete — and nothing can be
+	 * refused once Stripe has the money, so this reports rather than prevents.
+	 *
+	 * @param Payment $payment The row.
+	 */
+	private function render_coupon_overuse( Payment $payment ): void {
+		$overuse = $this->store->coupon_overuse( $payment );
+
+		if ( null === $overuse ) {
+			return;
+		}
+
+		printf(
+			'<p class="gatedmedia-admin-help">%s</p>',
+			esc_html(
+				$overuse['per_user']
+					? sprintf(
+						/* translators: 1: which of this buyer's uses this was, 2: the coupon's per-buyer limit. */
+						__( 'This payment is this buyer’s use %1$d of a coupon limited to %2$d each. Two of their checkouts overlapped, and nothing was refused after the money was taken.', 'gated-media-access' ),
+						$overuse['used'],
+						$overuse['limit']
+					)
+					: sprintf(
+						/* translators: 1: which use this was, 2: the coupon's limit. */
+						__( 'This payment is use %1$d of a coupon limited to %2$d. Two checkouts overlapped, and nothing was refused after the money was taken.', 'gated-media-access' ),
+						$overuse['used'],
+						$overuse['limit']
+					)
+			)
+		);
 	}
 
 	/**

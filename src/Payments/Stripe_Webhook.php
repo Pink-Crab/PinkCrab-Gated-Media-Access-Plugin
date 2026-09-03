@@ -183,6 +183,10 @@ class Stripe_Webhook implements Hookable {
 			return null;
 		}
 
+		// The completion is the coupon's real count from here, so the
+		// reservation standing in for it is given back.
+		$this->checkout->release_hold( $payment );
+
 		/**
 		 * Fires once a payment has completed and its access has landed.
 		 *
@@ -195,12 +199,21 @@ class Stripe_Webhook implements Hookable {
 
 	/**
 	 * A checkout that ended without payment: pending → failed, and the
-	 * guard means a late completion cannot resurrect it.
+	 * guard means a late completion cannot resurrect it. Whatever coupon it
+	 * was holding goes back at the same time, rather than waiting out its
+	 * own expiry.
 	 *
 	 * @param \Stripe\StripeObject $session The event's checkout session.
 	 */
 	private function expire( \Stripe\StripeObject $session ): void {
-		$this->store->mark_failed( (string) ( $session['client_reference_id'] ?? '' ) );
+		$uuid    = (string) ( $session['client_reference_id'] ?? '' );
+		$payment = $this->store->find_by_uuid( $uuid );
+
+		if ( null === $payment || ! $this->store->mark_failed( $uuid ) ) {
+			return;
+		}
+
+		$this->checkout->release_hold( $payment );
 	}
 
 	/**

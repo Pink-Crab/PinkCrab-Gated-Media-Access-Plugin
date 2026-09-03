@@ -15,7 +15,6 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Assets\Asset_Loader;
 use PinkCrab\Gated_Access\Blocks\Sprite;
-use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
@@ -62,13 +61,11 @@ class Auth_Route implements Hookable {
 	/**
 	 * Everything the route needs, resolved by the container.
 	 *
-	 * @param Settings     $settings Decides where a signed-in visitor is sent.
 	 * @param Auth_State   $state    Which of the four states this request is.
 	 * @param Asset_Loader $assets   Supplies the front bundle.
 	 * @param Sprite       $sprite   Prints the icon symbols the notice uses.
 	 */
 	public function __construct(
-		private Settings $settings,
 		private Auth_State $state,
 		private Asset_Loader $assets,
 		private Sprite $sprite,
@@ -227,9 +224,7 @@ class Auth_Route implements Hookable {
 		$redirect = '' === $raw ? '' : wp_validate_redirect( $raw, '' );
 
 		if ( '' === $redirect ) {
-			$redirect = $this->settings->account_route()
-				? Account_Url::section( 'my-access' )
-				: home_url( '/' );
+			$redirect = Account_Url::section( 'my-access' );
 		}
 
 		wp_safe_redirect( $redirect );

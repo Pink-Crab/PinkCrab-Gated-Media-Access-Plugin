@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
+use PinkCrab\Gated_Access\Settings\Account_Fields;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
@@ -44,6 +45,23 @@ class Test_Account_Settings extends WP_UnitTestCase {
 		delete_option( Settings::OPTION );
 
 		parent::tear_down();
+	}
+
+	/**
+	 * The help text names the URL the route would answer at, so it has to go
+	 * on saying `/account/` while the setting is off — that is the thing the
+	 * administrator is being asked about.
+	 *
+	 * @testdox The Accounts help text names the route's own URL whichever way the setting is set.
+	 */
+	public function test_the_help_text_always_names_the_route_url(): void {
+		$this->store( 'account_route', '0' );
+
+		ob_start();
+		( new Account_Fields( $this->settings ) )->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( home_url( '/account/' ), $html );
 	}
 
 	/**

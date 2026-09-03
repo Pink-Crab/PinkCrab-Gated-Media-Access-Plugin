@@ -23,7 +23,9 @@ use PinkCrab\Gated_Access\Support\Money;
  *
  * Usage is never stored: both limits count completed payments carrying the
  * coupon (`Payment_Store::coupon_completions()`), so an abandoned checkout
- * consumes nothing.
+ * consumes nothing. A checkout in flight reserves one use for a short window
+ * on top of that (`Coupon_Hold`), which is what stops buyers arriving together
+ * from all passing the same limit.
  *
  * A fixed value is stored in minor units at two decimals. A fixed amount
  * has no currency of its own — it is taken off whatever currency the

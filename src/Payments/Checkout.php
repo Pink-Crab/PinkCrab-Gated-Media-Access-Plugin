@@ -33,6 +33,8 @@ use PinkCrab\Gated_Access\Support\Account_Url;
  * Eligibility is the allow-list plus the `gatedmedia_product_eligibility`
  * filter. Unlisted never blocks a purchase — visibility restricts how the
  * product is found, not who may buy (architecture §7).
+ *
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 class Checkout {
 
@@ -51,9 +53,10 @@ class Checkout {
 	 * @param Stripe_Gateway $gateway The one class that talks to Stripe.
 	 */
 	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway ) {
-		// Built here rather than injected: it is a calculation over the same
-		// store, with no lifecycle of its own and nobody else resolving it.
-		$this->coupons = new Coupon_Pricing( $store );
+		// Built here rather than injected: they are calculations over the same
+		// store, with no lifecycle of their own and nobody else resolving them.
+		$this->holds   = new Coupon_Hold();
+		$this->coupons = new Coupon_Pricing( $store, $this->holds );
 	}
 
 	/**
@@ -62,6 +65,13 @@ class Checkout {
 	 * @var Coupon_Pricing
 	 */
 	private Coupon_Pricing $coupons;
+
+	/**
+	 * The short reservation a checkout puts on a limited coupon.
+	 *
+	 * @var Coupon_Hold
+	 */
+	private Coupon_Hold $holds;
 
 	/**
 	 * Takes one person buying one product to the right place: straight to
@@ -163,7 +173,7 @@ class Checkout {
 
 		$discount = null === $coupon ? 0 : $this->coupons->discount( $coupon, $price );
 
-		return $this->begin_payment( $product, $user_id, $price, $discount, null === $coupon ? 0 : $coupon->ID );
+		return $this->begin_payment( $product, $user_id, $price, $discount, $coupon );
 	}
 
 	/**
@@ -218,45 +228,80 @@ class Checkout {
 	 * unless a coupon took it to zero, where the row completes on the spot
 	 * (the coupon is spent at completion, so the completion must exist).
 	 *
-	 * @param WP_Post $product   The product.
-	 * @param int     $user_id   The buyer.
-	 * @param int     $price     Full price, minor units.
-	 * @param int     $discount  What the coupon takes off, minor units.
-	 * @param int     $coupon_id The coupon, 0 for none.
+	 * @param WP_Post      $product  The product.
+	 * @param int          $user_id  The buyer.
+	 * @param int          $price    Full price, minor units.
+	 * @param int          $discount What the coupon takes off, minor units.
+	 * @param WP_Post|null $coupon   The coupon, null for none.
 	 * @return array{redirect: string}|WP_Error
 	 */
-	private function begin_payment( WP_Post $product, int $user_id, int $price, int $discount, int $coupon_id ): array|WP_Error {
+	private function begin_payment( WP_Post $product, int $user_id, int $price, int $discount, ?WP_Post $coupon ): array|WP_Error {
 		$currency = (string) get_post_meta( $product->ID, Product_Meta::META_CURRENCY, true );
 		$currency = '' === $currency ? 'GBP' : $currency;
 		$total    = max( 0, $price - $discount );
 		$snapshot = array_map( 'strval', (array) get_post_meta( $product->ID, Product_Meta::META_ITEMS, false ) );
 
-		$payment = $this->store->create_pending( $user_id, $product->ID, $total, $currency, $snapshot, $coupon_id, $discount );
+		$payment = $this->store->create_pending( $user_id, $product->ID, $total, $currency, $snapshot, null === $coupon ? 0 : $coupon->ID, $discount );
 
 		if ( null === $payment ) {
 			return new WP_Error( 'gatedmedia_payment_row', __( 'The payment could not be started.', 'gated-media-access' ) );
 		}
 
-		if ( 0 === $total ) {
-			// mark_complete() answers whether we moved the row, and only the
-			// mover grants — the same rule the webhook follows.
-			if ( ! $this->store->mark_complete( $payment->uuid ) ) {
-				return new WP_Error( 'gatedmedia_payment_row', __( 'The payment could not be completed.', 'gated-media-access' ) );
-			}
+		// The row is the hold's name, so the reservation comes after it. A
+		// buyer who loses the race has taken nothing and is told the same
+		// thing the limit check tells everybody else.
+		if ( null !== $coupon && ! $this->reserve( $coupon, $payment ) ) {
+			$this->store->mark_failed( $payment->uuid );
 
-			$failed = $this->grant_snapshot( $payment );
-
-			if ( $failed instanceof WP_Error ) {
-				$this->store->record_grant_error( $payment->uuid, $failed->get_error_message() );
-			}
-
-			/** This hook is documented in Stripe_Webhook. */
-			do_action( 'gatedmedia_payment_completed', $payment->payment_id );
-
-			return array( 'redirect' => $this->return_url( $payment ) );
+			return new WP_Error( 'gatedmedia_bad_coupon', __( 'That coupon cannot be used.', 'gated-media-access' ) );
 		}
 
-		$user    = get_userdata( $user_id );
+		return 0 === $total
+			? $this->complete_now( $payment )
+			: $this->to_stripe( $product, $payment );
+	}
+
+	/**
+	 * A coupon took the total to zero: the row completes here rather than on
+	 * a confirmation that will never arrive, and grants on the spot.
+	 *
+	 * @param Payment $payment The pending row.
+	 * @return array{redirect: string}|WP_Error
+	 */
+	private function complete_now( Payment $payment ): array|WP_Error {
+		// mark_complete() answers whether we moved the row, and only the
+		// mover grants — the same rule the webhook follows.
+		if ( ! $this->store->mark_complete( $payment->uuid ) ) {
+			return new WP_Error( 'gatedmedia_payment_row', __( 'The payment could not be completed.', 'gated-media-access' ) );
+		}
+
+		$failed = $this->grant_snapshot( $payment );
+
+		if ( $failed instanceof WP_Error ) {
+			$this->store->record_grant_error( $payment->uuid, $failed->get_error_message() );
+		}
+
+		// The completion counts from here, so the reservation standing in for
+		// it is given back.
+		$this->release_hold( $payment );
+
+		/** This hook is documented in Stripe_Webhook. */
+		do_action( 'gatedmedia_payment_completed', $payment->payment_id );
+
+		return array( 'redirect' => $this->return_url( $payment ) );
+	}
+
+	/**
+	 * The hosted session, and the buyer's road to it. A gateway that refuses
+	 * fails the row and gives back whatever it was holding — nothing was
+	 * charged and nobody is going to Stripe.
+	 *
+	 * @param WP_Post $product The product being bought.
+	 * @param Payment $payment The pending row.
+	 * @return array{redirect: string}|WP_Error
+	 */
+	private function to_stripe( WP_Post $product, Payment $payment ): array|WP_Error {
+		$user    = get_userdata( $payment->user_id );
 		$session = $this->gateway->create_checkout_session(
 			$payment,
 			$product->post_title,
@@ -267,6 +312,8 @@ class Checkout {
 
 		if ( $session instanceof WP_Error ) {
 			$this->store->mark_failed( $payment->uuid );
+			$this->release_hold( $payment );
+			$this->log_failure( $payment, $session );
 
 			return $session;
 		}
@@ -274,6 +321,58 @@ class Checkout {
 		$this->store->attach_session( $payment->uuid, $session['id'] );
 
 		return array( 'redirect' => $session['url'] );
+	}
+
+	/**
+	 * The gateway's own reason, to the debug log and to whoever hooked on.
+	 *
+	 * @param Payment  $payment The row that failed.
+	 * @param WP_Error $error   What the gateway said.
+	 */
+	private function log_failure( Payment $payment, WP_Error $error ): void {
+		// wp-config need not define it, so ask before reading it.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug only, and the buyer is told nothing but the generic wording.
+			error_log( sprintf( 'Gated Media Access: checkout %s could not be started: %s', $payment->uuid, $error->get_error_message() ) );
+		}
+
+		/**
+		 * Fires when a checkout could not be started at all.
+		 *
+		 * @param int      $payment_id The failed payment's row id.
+		 * @param WP_Error $error      What the gateway said.
+		 */
+		do_action( 'gatedmedia_checkout_failed', $payment->payment_id, $error );
+	}
+
+	/**
+	 * Reserves the coupon for this payment, both limits it carries.
+	 *
+	 * @param WP_Post $coupon  The coupon being spent.
+	 * @param Payment $payment The pending row the hold is named after.
+	 */
+	private function reserve( WP_Post $coupon, Payment $payment ): bool {
+		if ( ! $this->holds->take( $coupon->ID, $payment->uuid, $this->coupons->room( $coupon ) ) ) {
+			return false;
+		}
+
+		return $this->holds->take_for_user(
+			$coupon->ID,
+			$payment->user_id,
+			$payment->uuid,
+			$this->coupons->room_for_user( $coupon, $payment->user_id )
+		);
+	}
+
+	/**
+	 * Gives back whatever this payment reserved — once it has completed, once
+	 * it has failed, or once Stripe says its session expired. A payment with
+	 * no coupon reserved nothing and this does nothing.
+	 *
+	 * @param Payment $payment The payment that is no longer in flight.
+	 */
+	public function release_hold( Payment $payment ): void {
+		$this->holds->release( $payment->coupon_id, $payment->user_id, $payment->uuid );
 	}
 
 	/**
