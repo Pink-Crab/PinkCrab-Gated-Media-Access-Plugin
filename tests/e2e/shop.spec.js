@@ -172,7 +172,9 @@ test.describe( 'the product page', () => {
 		).toHaveValue( COUPON );
 
 		// Nothing was bought by looking at a price.
-		await expect( page.locator( '.gatedmedia-view--product' ) ).toBeVisible();
+		await expect(
+			page.locator( '.gatedmedia-view--product' )
+		).toBeVisible();
 
 		// Remove puts it back.
 		await page.getByRole( 'link', { name: 'Remove' } ).click();
@@ -262,7 +264,9 @@ test.describe( 'the product page', () => {
 		await page.goto( '/account/orders/' );
 
 		// §6.15 is explicit, and nothing but the composer can enforce it.
-		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount( 0 );
+		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount(
+			0
+		);
 	} );
 
 	test( 'a refused checkout comes back saying why', async ( { page } ) => {
@@ -415,7 +419,10 @@ test.describe( 'orders', () => {
 			'data-gatedmedia-url',
 			new RegExp( `/gated-media-access/v1/payment/${ uuid }` )
 		);
-		await expect( panel ).not.toHaveAttribute( 'data-gatedmedia-nonce', '' );
+		await expect( panel ).not.toHaveAttribute(
+			'data-gatedmedia-nonce',
+			''
+		);
 	} );
 
 	test( 'the poll asks the route, and a payment that stays pending is never called a failure', async ( {

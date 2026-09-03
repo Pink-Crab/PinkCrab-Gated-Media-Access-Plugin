@@ -10,8 +10,7 @@
 //
 //   1. Sass variables — needed where CSS custom properties cannot reach, which
 //      in practice means media queries.
-//   2. Custom properties on .gatedmedia — themeable at runtime, and the reason a host
-//      site can restyle us without a build step.
+//   2. Custom properties on .gatedmedia — themeable at runtime.
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -39,7 +38,7 @@ $breakpoint-mobile: 782px;
 // still override any of these without a fight.
 // -----------------------------------------------------------------------------
 
-:where( :root ) {
+:where(:root) {
 	// §1 — the spacing scale. Six steps, all multiples of the 4px unit.
 	--gatedmedia-xs: 4px; // icon to label; title to the line under it
 	--gatedmedia-sm: 8px; // related controls; label to input
@@ -80,7 +79,7 @@ $breakpoint-mobile: 782px;
 	// §5 — colour.
 	--gatedmedia-background: #fcf8f9;
 	--gatedmedia-surface: #fcf8f9;
-	--gatedmedia-surface-lowest: #ffffff;
+	--gatedmedia-surface-lowest: #fff;
 	--gatedmedia-surface-low: #f6f3f4;
 	--gatedmedia-surface-variant: #e5e1e5;
 	--gatedmedia-on-surface: #333235;
@@ -116,8 +115,7 @@ $breakpoint-mobile: 782px;
 // exactly like the mocks: any theme defining a `primary` preset would recolour
 // our buttons. So it is a scope you add rather than the default.
 //
-// Add `gatedmedia-theme` alongside `gatedmedia` on the wrapper to inherit. Each falls back to
-// the §5 value above, so a theme defining none of them changes nothing.
+// Add `gatedmedia-theme` beside `gatedmedia` to inherit.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-theme {

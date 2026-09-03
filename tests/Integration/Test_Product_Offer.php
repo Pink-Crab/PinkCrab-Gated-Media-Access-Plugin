@@ -99,8 +99,11 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'post:' . $this->post_id );
 		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 2500 );
 
-		// The framework's tear_down unregisters every meta key.
+		// The framework's tear_down unregisters every meta key. Product_Meta
+		// is registered here because the duration's default and sanitizer are
+		// the reason no falsey value can reach the offer.
 		( new Coupon_Metabox() )->register_meta();
+		( new Product_Meta( new Settings(), $taxonomy ) )->register_meta();
 
 		wp_set_current_user( $this->user_id );
 	}
@@ -238,10 +241,37 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->data->product( self::DEFAULTS, $this->product_id )['items'] );
 	}
 
-	/** @testdox A duration stored as a plain zero is lifetime, not "access for 0 days". */
-	public function test_a_zero_duration_is_lifetime(): void {
+	/**
+	 * @testdox Lifetime is -1, and the term the buyer reads says so.
+	 *
+	 * The offer used to call every falsey duration lifetime, which the
+	 * checkout did not, so the page promised a lifetime the payment path
+	 * refused to grant. One value means lifetime now, and it is not falsey.
+	 */
+	public function test_minus_one_is_lifetime(): void {
+		update_post_meta( $this->product_id, Product_Meta::META_DURATION, '-1' );
+
+		$this->assertSame( 'Lifetime access', $this->data->product( self::DEFAULTS, $this->product_id )['term'] );
+	}
+
+	/**
+	 * @testdox A zero duration cannot reach the page at all — it normalises to lifetime on write.
+	 *
+	 * The offer no longer forgives a falsey duration, because nothing falsey
+	 * can be stored: `Product_Meta::sanitize_duration()` turns a zero into
+	 * lifetime before the page ever reads it. Without the normalisation this
+	 * would draw "Access for 0 days" against something the checkout refuses
+	 * to grant.
+	 */
+	public function test_a_zero_duration_normalises_to_lifetime(): void {
 		update_post_meta( $this->product_id, Product_Meta::META_DURATION, '0' );
 
+		$this->assertSame( '-1', (string) get_post_meta( $this->product_id, Product_Meta::META_DURATION, true ) );
+		$this->assertSame( 'Lifetime access', $this->data->product( self::DEFAULTS, $this->product_id )['term'] );
+	}
+
+	/** @testdox A product that never stored a duration reads lifetime from the registered default. */
+	public function test_an_unstored_duration_is_lifetime(): void {
 		$this->assertSame( 'Lifetime access', $this->data->product( self::DEFAULTS, $this->product_id )['term'] );
 	}
 

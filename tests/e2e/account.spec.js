@@ -37,12 +37,18 @@ test.describe( 'account area', () => {
 		await expect( page ).toHaveTitle( /My Access/ );
 	} );
 
-	test( 'the theme still renders its own header and footer around us', async ( { page } ) => {
+	test( 'the theme still renders its own header and footer around us', async ( {
+		page,
+	} ) => {
 		await page.goto( '/account/' );
 
 		// The whole point of the virtual page rather than a takeover.
-		await expect( page.locator( 'header.wp-block-template-part' ) ).toBeVisible();
-		await expect( page.locator( 'footer.wp-block-template-part' ) ).toBeVisible();
+		await expect(
+			page.locator( 'header.wp-block-template-part' )
+		).toBeVisible();
+		await expect(
+			page.locator( 'footer.wp-block-template-part' )
+		).toBeVisible();
 	} );
 
 	test( 'the page has exactly one h1', async ( { page } ) => {
@@ -67,7 +73,9 @@ test.describe( 'account area', () => {
 		} );
 	}
 
-	test( 'every section is reachable from the navigation', async ( { page } ) => {
+	test( 'every section is reachable from the navigation', async ( {
+		page,
+	} ) => {
 		await page.goto( '/account/' );
 
 		// Both navigations are in the markup and CSS picks one per width, so
@@ -79,7 +87,9 @@ test.describe( 'account area', () => {
 		await expect( links ).toHaveCount( 4 );
 	} );
 
-	test( 'the current section is marked as the current page', async ( { page } ) => {
+	test( 'the current section is marked as the current page', async ( {
+		page,
+	} ) => {
 		await page.goto( '/account/orders/' );
 
 		// Visible only, for the same reason. The hidden navigation carries its
@@ -91,7 +101,9 @@ test.describe( 'account area', () => {
 		await expect( current ).toContainText( 'Orders' );
 	} );
 
-	test( 'an unknown section is a real 404, not a soft one', async ( { page } ) => {
+	test( 'an unknown section is a real 404, not a soft one', async ( {
+		page,
+	} ) => {
 		const response = await page.goto( '/account/nothing-here/' );
 
 		// A "page not found" screen served with 200 is indexed as a live page.
@@ -107,7 +119,9 @@ test.describe( 'account area', () => {
 		expect( await page.locator( 'symbol' ).count() ).toBeGreaterThan( 0 );
 	} );
 
-	test( 'the empty state appears when there is nothing to show', async ( { page } ) => {
+	test( 'the empty state appears when there is nothing to show', async ( {
+		page,
+	} ) => {
 		// Signed in as somebody who holds nothing and has bought nothing. This
 		// used to use the admin's Orders, on the grounds that no orders could
 		// exist yet — true only until the payments table landed and the shop
@@ -121,14 +135,18 @@ test.describe( 'account area', () => {
 		await page.goto( '/account/orders/' );
 
 		// One box, at page level — never one per empty section.
-		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount( 1 );
+		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount(
+			1
+		);
 	} );
 
 	test( 'my access lists what the fixture granted', async ( { page } ) => {
 		await page.goto( '/account/' );
 
 		// Real rows, not the empty state — the resolver feeds the view now.
-		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount( 0 );
+		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount(
+			0
+		);
 		await expect( page.locator( '.gatedmedia-row' ).first() ).toBeVisible();
 		await expect( page.getByText( 'E2E Group' ) ).toBeVisible();
 	} );
@@ -153,12 +171,18 @@ test.describe( 'account area', () => {
 		await page.fill( '#gatedmedia-company', company );
 		await page.click( 'button[type="submit"]' );
 
-		await expect( page.locator( '.gatedmedia-notice--success' ) ).toBeVisible();
-		await expect( page.locator( '#gatedmedia-company' ) ).toHaveValue( company );
+		await expect(
+			page.locator( '.gatedmedia-notice--success' )
+		).toBeVisible();
+		await expect( page.locator( '#gatedmedia-company' ) ).toHaveValue(
+			company
+		);
 
 		// And it survives a fresh request, so it reached the database.
 		await page.goto( '/account/profile/' );
-		await expect( page.locator( '#gatedmedia-company' ) ).toHaveValue( company );
+		await expect( page.locator( '#gatedmedia-company' ) ).toHaveValue(
+			company
+		);
 	} );
 
 	test( 'the email field cannot be edited here', async ( { page } ) => {
@@ -189,7 +213,9 @@ test.describe( 'the one breakpoint', () => {
 		await signIn( page );
 	} );
 
-	test( 'the sidebar and the tab strip never both show', async ( { page }, testInfo ) => {
+	test( 'the sidebar and the tab strip never both show', async ( {
+		page,
+	}, testInfo ) => {
 		await page.goto( '/account/files/' );
 
 		const sidebar = page.locator( '.gatedmedia-account__sidebar' );
@@ -206,11 +232,15 @@ test.describe( 'the one breakpoint', () => {
 		}
 	} );
 
-	test( 'search stays at every width, and chips replace the select on narrow', async ( { page }, testInfo ) => {
+	test( 'search stays at every width, and chips replace the select on narrow', async ( {
+		page,
+	}, testInfo ) => {
 		await page.goto( '/account/files/' );
 
 		// §8 conflict 8 — search is never dropped.
-		await expect( page.locator( '.gatedmedia-filter__search input' ) ).toBeVisible();
+		await expect(
+			page.locator( '.gatedmedia-filter__search input' )
+		).toBeVisible();
 
 		const select = page.locator( '.gatedmedia-filter__type' );
 		const chips = page.locator( '.gatedmedia-type-chips' );
@@ -228,14 +258,18 @@ test.describe( 'the one breakpoint', () => {
 		await page.goto( '/account/' );
 
 		// §8 conflict 3 dropped it. It must not come back on an account view.
-		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount( 0 );
+		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount(
+			0
+		);
 	} );
 
 	test( 'nothing overflows the viewport horizontally', async ( { page } ) => {
 		await page.goto( '/account/files/' );
 
 		const overflow = await page.evaluate(
-			() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+			() =>
+				document.documentElement.scrollWidth -
+				document.documentElement.clientWidth
 		);
 
 		expect( overflow ).toBeLessThanOrEqual( 0 );

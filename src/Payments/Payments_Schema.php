@@ -27,7 +27,7 @@ class Payments_Schema implements Hookable {
 	public const OPTION_DB_VERSION = 'gatedmedia_db_version';
 
 	/** Bumped when the table below changes; dbDelta reconciles the rest. */
-	public const DB_VERSION = '1';
+	public const DB_VERSION = '2';
 
 	/**
 	 * Migrates on init, before anything queries the table.
@@ -79,6 +79,7 @@ class Payments_Schema implements Hookable {
 				created_at datetime NOT NULL,
 				completed_at datetime DEFAULT NULL,
 				refunded_at datetime DEFAULT NULL,
+				grant_error text,
 				PRIMARY KEY  (id),
 				UNIQUE KEY uuid (uuid),
 				KEY user_id (user_id),

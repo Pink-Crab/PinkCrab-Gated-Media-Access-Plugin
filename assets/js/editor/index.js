@@ -13,10 +13,9 @@
  */
 
 import { registerPlugin } from '@wordpress/plugins';
-import { PluginPostStatusInfo } from '@wordpress/editor';
+import { PluginPostStatusInfo, store as editorStore } from '@wordpress/editor';
 import { CheckboxControl, Notice } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { store as editorStore } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
 
 const GATED = 'gatedmedia_gated';

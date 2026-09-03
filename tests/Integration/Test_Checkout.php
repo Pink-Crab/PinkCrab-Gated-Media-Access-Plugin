@@ -304,6 +304,131 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @testdox A free product marked lifetime grants every item with no expiry.
+	 *
+	 * Lifetime is `-1` and nothing else. Everything falsey — '', '0', 0 —
+	 * used to be indistinguishable from an unset key, and the checkout and
+	 * the offer read them differently: `Product_Offer::term()` said
+	 * "Lifetime access" while `Checkout` handed 0 days to the writer,
+	 * `Access_Validator::validate()` refused anything below 1, and the
+	 * WP_Error was thrown away.
+	 */
+	public function test_a_lifetime_free_product_grants_with_no_expiry(): void {
+		$product = $this->product(
+			0,
+			array( "post:{$this->post_item}", "file:{$this->file_item}" ),
+			array( Product_Meta::META_DURATION => array( '-1' ) )
+		);
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id );
+
+		$records = $this->access_ids();
+
+		$this->assertCount( 2, $records, 'lifetime grants, it does not refuse' );
+
+		foreach ( $records as $record ) {
+			$this->assertSame(
+				'',
+				(string) get_post_meta( $record, Access_Writer::META_EXPIRES_AT, true ),
+				'lifetime access carries no expiry'
+			);
+		}
+	}
+
+	/**
+	 * @testdox A paid product marked lifetime grants from its snapshot with no expiry.
+	 *
+	 * The same reading on the payment path: the coupon takes the total to
+	 * zero, the row completes, and `grant_snapshot()` must land the items.
+	 */
+	public function test_a_lifetime_paid_product_grants_with_no_expiry(): void {
+		$product = $this->product(
+			1000,
+			array( "post:{$this->post_item}" ),
+			array( Product_Meta::META_DURATION => array( '-1' ) )
+		);
+		$this->coupon( 'freebie', 'percent', 100 );
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id, 'freebie' );
+
+		$records = $this->access_ids();
+
+		$this->assertCount( 1, $records, 'the payment completed, so its snapshot must have granted' );
+		$this->assertSame(
+			'',
+			(string) get_post_meta( $records[0], Access_Writer::META_EXPIRES_AT, true ),
+			'lifetime access carries no expiry'
+		);
+	}
+
+	/**
+	 * @testdox A product that never stored a duration reads the registered default, and grants lifetime.
+	 *
+	 * The unset key is the case `-1` exists to kill: `get_post_meta()` answers
+	 * `''` for a key with no row, which is why every falsey value used to be
+	 * ambiguous. `Product_Meta` registers `-1` as the default, so "nothing
+	 * stored" arrives as lifetime and not as an empty string.
+	 */
+	public function test_an_unset_duration_reads_the_lifetime_default(): void {
+		$product = $this->product( 0, array( "post:{$this->post_item}" ) );
+
+		$this->assertSame( '-1', (string) get_post_meta( $product, Product_Meta::META_DURATION, true ) );
+
+		$this->checkout( $this->fake_gateway() )->purchase( $product, $this->buyer_id );
+
+		$records = $this->access_ids();
+
+		$this->assertCount( 1, $records );
+		$this->assertSame( '', (string) get_post_meta( $records[0], Access_Writer::META_EXPIRES_AT, true ) );
+	}
+
+	/**
+	 * @testdox A zero-total checkout that fails to complete its row grants nothing and announces nothing.
+	 *
+	 * `mark_complete()` is documented as "true means we were first and the
+	 * caller grants access", and `Stripe_Webhook` honours it. The zero-total
+	 * path threw the answer away and granted regardless, so a failed update
+	 * left a pending row with access against it and a completion announced
+	 * for a payment that never completed.
+	 */
+	public function test_a_zero_total_that_cannot_complete_grants_nothing(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$this->coupon( 'freebie', 'percent', 100 );
+
+		$fired = array();
+		add_action(
+			'gatedmedia_payment_completed',
+			static function ( int $payment_id ) use ( &$fired ): void {
+				$fired[] = $payment_id;
+			}
+		);
+
+		$flow = new Checkout( $this->refusing_store(), $this->writer, $this->fake_gateway() );
+
+		$flow->purchase( $product, $this->buyer_id, 'freebie' );
+
+		$this->assertSame( array(), $this->access_ids(), 'the row never completed, so nothing may be granted' );
+		$this->assertSame( array(), $fired, 'nothing completed, so nothing may be announced' );
+	}
+
+	/**
+	 * A store whose completion never takes, standing in for a failed UPDATE.
+	 */
+	private function refusing_store(): Payment_Store {
+		return new class() extends Payment_Store {
+			/**
+			 * Refuses to move the row.
+			 *
+			 * @param string $uuid      Ignored.
+			 * @param string $intent_id Ignored.
+			 */
+			public function mark_complete( string $uuid, string $intent_id = '' ): bool {
+				return false;
+			}
+		};
+	}
+
+	/**
 	 * A product with a price, items and any extra meta.
 	 *
 	 * @param int                                $price Minor units.

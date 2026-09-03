@@ -271,10 +271,10 @@ class Product_Offer implements Hookable {
 	/**
 	 * How long the access lasts, in words.
 	 *
-	 * @param string $duration The stored days, '' for lifetime.
+	 * @param string $duration The stored days, `-1` for lifetime.
 	 */
 	private function term( string $duration ): string {
-		if ( '' === $duration || 0 === (int) $duration ) {
+		if ( Product_Meta::DURATION_LIFETIME === $duration ) {
 			return __( 'Lifetime access', 'gated-media-access' );
 		}
 

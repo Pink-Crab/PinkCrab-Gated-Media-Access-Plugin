@@ -7,7 +7,7 @@
  */
 
 import { SelectControl, TextControl } from '@wordpress/components';
-import { __, sprintf } from '@wordpress/i18n';
+import { __ } from '@wordpress/i18n';
 
 /**
  * The sprite symbols we ship, in assets/icons.svg.
@@ -116,7 +116,7 @@ export function currencyDigits( currency ) {
 			style: 'currency',
 			currency: ( currency || 'GBP' ).toUpperCase(),
 		} ).resolvedOptions().maximumFractionDigits;
-	} catch ( error ) {
+	} catch {
 		return 2;
 	}
 }
@@ -151,7 +151,7 @@ export function formatMinor( minorUnits, currency = 'GBP' ) {
 		return formatter.format(
 			minorUnits / 10 ** formatter.resolvedOptions().maximumFractionDigits
 		);
-	} catch ( error ) {
+	} catch {
 		return `${ code } ${ minorUnits }`;
 	}
 }
@@ -171,7 +171,13 @@ export function formatMinor( minorUnits, currency = 'GBP' ) {
  * @param {string}   props.help     Extra guidance.
  * @param {string}   props.currency ISO code — its digits drive the conversion.
  */
-export function MoneyControl( { label, value, onChange, help, currency = 'GBP' } ) {
+export function MoneyControl( {
+	label,
+	value,
+	onChange,
+	help,
+	currency = 'GBP',
+} ) {
 	const digits = currencyDigits( currency );
 	const major = ( ( value || 0 ) / 10 ** digits ).toFixed( digits );
 
@@ -183,9 +189,7 @@ export function MoneyControl( { label, value, onChange, help, currency = 'GBP' }
 			label={ label }
 			value={ major }
 			onChange={ ( next ) =>
-				onChange(
-					Math.round( parseFloat( next || 0 ) * 10 ** digits )
-				)
+				onChange( Math.round( parseFloat( next || 0 ) * 10 ** digits ) )
 			}
 			help={ help }
 			__nextHasNoMarginBottom

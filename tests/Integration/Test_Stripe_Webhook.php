@@ -220,6 +220,105 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * @testdox A grant that fails leaves the row pending and asks Stripe to deliver again.
+	 *
+	 * The row used to move to complete before anything was granted, and
+	 * `grant_snapshot()` threw away the writer's WP_Error. A snapshot item
+	 * deleted between purchase and confirmation therefore produced a paid,
+	 * complete payment with no access — and because the status move was the
+	 * replay guard, Stripe's retry returned early and could never repair it.
+	 *
+	 * Granting first is safe: the writer's per-item reference guard means a
+	 * redelivery writes nothing twice.
+	 */
+	public function test_a_failed_grant_keeps_the_row_pending_and_asks_for_a_retry(): void {
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		$doomed     = self::factory()->post->create();
+
+		$payment = $this->store->create_pending(
+			$this->buyer_id,
+			$product_id,
+			1000,
+			'GBP',
+			array( "post:{$this->post_item}", "post:{$doomed}" )
+		);
+
+		wp_delete_post( $doomed, true );
+
+		$body = (string) wp_json_encode( $this->completed_event( $payment->uuid ) );
+
+		$this->assertSame( 500, $this->deliver( $body )->get_status(), 'a 200 tells Stripe never to try again' );
+
+		$read = $this->store->find_by_uuid( $payment->uuid );
+
+		$this->assertSame( Payment::STATUS_PENDING, $read->status, 'the row must stay retryable' );
+		$this->assertNotSame( '', $read->grant_error, 'the cause must be recorded where an administrator can see it' );
+
+		// The item that could be granted still was.
+		$this->assertCount( 1, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+
+		// Stripe retries: the same failure, and the good item is not written twice.
+		$this->assertSame( 500, $this->deliver( $body )->get_status() );
+		$this->assertCount( 1, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
+	}
+
+	/**
+	 * @testdox A refusal tells an unauthenticated caller nothing about the site.
+	 *
+	 * The route is open on purpose — the signature is the authentication — so
+	 * anyone can post to it. It used to answer with the Stripe SDK's own
+	 * exception text, or with "The webhook secret is not configured.", which
+	 * between them tell a stranger the plugin is installed and whether Stripe
+	 * is set up. The detail belongs in the 500, which only a caller holding
+	 * the webhook secret can reach.
+	 */
+	public function test_a_refusal_gives_nothing_away(): void {
+		$payment = $this->pending_payment();
+		$body    = (string) wp_json_encode( $this->completed_event( $payment->uuid ) );
+
+		$refused = $this->deliver( $body, 't=1,v1=nonsense' );
+
+		$this->assertSame( 400, $refused->get_status() );
+		$this->assertSame(
+			array( 'error' => Stripe_Webhook::REFUSED ),
+			$refused->get_data(),
+			'the body must be one fixed token, whatever went wrong'
+		);
+
+		// An unconfigured shop answers exactly the same, so the two are not
+		// distinguishable from outside.
+		delete_option( Settings::OPTION );
+
+		$this->assertSame( array( 'error' => Stripe_Webhook::REFUSED ), $this->deliver( $body, 't=1,v1=nonsense' )->get_data() );
+	}
+
+	/**
+	 * @testdox A late confirmation cannot re-grant a payment that was refunded.
+	 *
+	 * Granting before the status move means the guard against re-granting is
+	 * the row's own status, not `mark_complete()`. Only a pending row grants.
+	 */
+	public function test_a_late_completion_cannot_regrant_a_refunded_payment(): void {
+		$payment = $this->pending_payment();
+
+		$this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid ) ) );
+		$this->deliver( (string) wp_json_encode( $this->event( 'charge.refunded', array( 'payment_intent' => 'pi_9' ), 'charge' ) ) );
+
+		$records = $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid );
+
+		$this->assertSame( Post_Types::STATUS_REVOKED, get_post_status( $records[0] ) );
+
+		$this->assertSame( 200, $this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid ) ) )->get_status() );
+
+		$this->assertSame( Payment::STATUS_REFUNDED, $this->store->find_by_uuid( $payment->uuid )->status );
+		$this->assertSame(
+			Post_Types::STATUS_REVOKED,
+			get_post_status( $records[0] ),
+			'a redelivery must not resurrect access that was refunded'
+		);
+	}
+
 	/** @testdox A confirmation for a payment that is not ours is acknowledged and ignored. */
 	public function test_unknown_payment_is_ignored(): void {
 		$body = (string) wp_json_encode( $this->completed_event( '00000000-0000-4000-8000-000000000000' ) );

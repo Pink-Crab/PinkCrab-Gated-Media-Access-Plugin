@@ -210,10 +210,9 @@
 // this view from §7.8's centred success state.
 // -----------------------------------------------------------------------------
 
-// Scoped to this view's own card rather than to `.gatedmedia-card`, which §7.5's
-// forced-completion state also wears — a rule on the shared class would land
-// there too.
+// Scoped to this view's card, not `.gatedmedia-card` which §7.5 also wears.
 .gatedmedia-auth-card {
+
 	> * + * {
 		margin-top: var(--gatedmedia-lg);
 	}
@@ -313,6 +312,7 @@
 // "Access this created" — a name on the left, its expiry chip on the right.
 // Narrow drops the chip to the line below the name.
 .gatedmedia-order-access {
+
 	&__row {
 		display: flex;
 		align-items: center;

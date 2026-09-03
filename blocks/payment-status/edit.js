@@ -6,7 +6,11 @@
  * wording follows the state unless it is overtyped, matching render.php.
  */
 
-import { useBlockProps, BlockControls, RichText } from '@wordpress/block-editor';
+import {
+	useBlockProps,
+	BlockControls,
+	RichText,
+} from '@wordpress/block-editor';
 import { ToolbarGroup, ToolbarDropdownMenu } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 

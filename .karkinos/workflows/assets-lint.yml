@@ -1,0 +1,30 @@
+name: Asset lint
+
+# The JS and SCSS have never been checked by anything. wp-6-9.yml runs the
+# three PHP linters and the suite; nothing looked at the front end, which is
+# how 58 eslint errors and 107 stylelint ones accumulated unseen.
+#
+# Both scripts name their own paths. Left bare, wp-scripts hands eslint and
+# stylelint a `.` glob that descends into node_modules and vendor and never
+# finishes.
+on:
+  pull_request:
+
+jobs:
+  assets:
+    name: JS and CSS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No setup-node: the runner image carries Node 22 and npm 10.
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: eslint
+        run: npm run lint:js
+
+      - name: stylelint
+        run: npm run lint:style

@@ -75,7 +75,7 @@ export default function initPaymentStatus( scope ) {
 			}
 
 			( { status } = await response.json() );
-		} catch ( error ) {
+		} catch {
 			// Offline, or navigated away mid-request. Neither is the buyer's
 			// problem and neither is worth a message.
 			stop();
