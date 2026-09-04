@@ -397,6 +397,9 @@ class Access_Writer implements Hookable {
 	 * A live lifetime record is left alone — there is no expiry to stack
 	 * onto — and the caller writes a fresh record instead.
 	 *
+	 * Fires `gatedmedia_access_rescheduled` when it extends one: the date
+	 * moved, and everything watching for that has to know.
+	 *
 	 * @param int    $user_id       Who holds it.
 	 * @param string $item_type     One of file, post, group.
 	 * @param string $item_id       The target's identifier.
@@ -429,6 +432,9 @@ class Access_Writer implements Hookable {
 				add_post_meta( $record_id, self::META_REFERENCE, $reference );
 				add_post_meta( $record_id, self::META_CONTRIBUTION, $source . '|' . $reference . '|' . $duration_days );
 			}
+
+			// The date moved, so it is announced, exactly as set_expiry() does.
+			do_action( 'gatedmedia_access_rescheduled', $record_id, $user_id );
 
 			return $record_id;
 		}

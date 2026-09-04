@@ -47,6 +47,9 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 	 */
 	private array $outbox = array();
 
+	/** Whether `wp_mail()` should report a failure. */
+	private bool $mail_fails = false;
+
 	public function set_up(): void {
 		parent::set_up();
 
@@ -69,7 +72,8 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 		);
 		$this->post_id = self::factory()->post->create( array( 'post_title' => 'Fading Post' ) );
 
-		$this->outbox = array();
+		$this->outbox     = array();
+		$this->mail_fails = false;
 		add_filter( 'pre_wp_mail', array( $this, 'capture_mail' ), 10, 2 );
 	}
 
@@ -103,6 +107,10 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 	 * @param array<string, mixed> $atts  The mail as compiled.
 	 */
 	public function capture_mail( ?bool $short, array $atts ): bool {
+		if ( $this->mail_fails ) {
+			return false;
+		}
+
 		$this->outbox[] = $atts;
 
 		return true;
@@ -130,6 +138,27 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 		$this->assertCount( 0, $this->outbox );
 	}
 
+	/**
+	 * The flag was written whatever the send returned, and the query skips
+	 * anything carrying it — so one transient mail failure meant that holder
+	 * was never warned at all, and nothing recorded it.
+	 *
+	 * @testdox A send that fails leaves the record unwarned, so the next run tries again.
+	 */
+	public function test_a_failed_send_is_not_marked_warned(): void {
+		$access_id = (int) $this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 3, 'admin' );
+
+		$this->mail_fails = true;
+
+		$this->assertSame( 0, $this->job->run() );
+		$this->assertSame( '', (string) get_post_meta( $access_id, Expiry_Warning::META_WARNED_AT, true ), 'a failed send is not a warning' );
+
+		$this->mail_fails = false;
+
+		$this->assertSame( 1, $this->job->run(), 'the next run warns them' );
+		$this->assertNotSame( '', (string) get_post_meta( $access_id, Expiry_Warning::META_WARNED_AT, true ) );
+	}
+
 	/** @testdox A warned record is not warned twice. */
 	public function test_warns_once(): void {
 		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 3, 'admin' );
@@ -147,6 +176,27 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 
 		$this->writer->set_expiry( $access_id, gmdate( 'Y-m-d H:i:s', time() + 2 * DAY_IN_SECONDS ) );
 		$this->job->forget_warning( $access_id );
+
+		$this->assertSame( 1, $this->job->run() );
+		$this->assertCount( 2, $this->outbox );
+	}
+
+	/**
+	 * Stacking moves the date without going through `set_expiry()`, so the
+	 * rescheduled action never fired and the flag from the old date stayed
+	 * put: a renewed holder was never warned about the new one.
+	 *
+	 * @testdox Stacking more time onto live access clears the warned flag, so the new date warns.
+	 */
+	public function test_stacking_clears_the_warned_flag(): void {
+		$access_id = (int) $this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 3, 'admin' );
+
+		$this->assertSame( 1, $this->job->run() );
+		$this->assertNotSame( '', (string) get_post_meta( $access_id, Expiry_Warning::META_WARNED_AT, true ) );
+
+		// Renewed: the same record, two more days on the end of it.
+		$this->assertSame( $access_id, $this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 2, 'admin' ) );
+		$this->assertSame( '', (string) get_post_meta( $access_id, Expiry_Warning::META_WARNED_AT, true ), 'a new date earns a new warning' );
 
 		$this->assertSame( 1, $this->job->run() );
 		$this->assertCount( 2, $this->outbox );

@@ -139,11 +139,16 @@ class Expiry_Warning implements Hookable {
 				)
 			);
 
+			// Flagged only on a send that worked: the flag is what the query
+			// skips on, so writing it after a failure means that holder is
+			// never warned. Left unflagged, tomorrow's run tries again.
+			if ( ! $sent ) {
+				continue;
+			}
+
 			update_post_meta( $access_id, self::META_WARNED_AT, gmdate( 'Y-m-d H:i:s' ) );
 
-			if ( $sent ) {
-				++$warned;
-			}
+			++$warned;
 		}
 
 		return $warned;
