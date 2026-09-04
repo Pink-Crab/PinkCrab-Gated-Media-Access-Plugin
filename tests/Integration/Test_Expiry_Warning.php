@@ -181,6 +181,27 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 		$this->assertCount( 2, $this->outbox );
 	}
 
+	/**
+	 * Stacking moves the date without going through `set_expiry()`, so the
+	 * rescheduled action never fired and the flag from the old date stayed
+	 * put: a renewed holder was never warned about the new one.
+	 *
+	 * @testdox Stacking more time onto live access clears the warned flag, so the new date warns.
+	 */
+	public function test_stacking_clears_the_warned_flag(): void {
+		$access_id = (int) $this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 3, 'admin' );
+
+		$this->assertSame( 1, $this->job->run() );
+		$this->assertNotSame( '', (string) get_post_meta( $access_id, Expiry_Warning::META_WARNED_AT, true ) );
+
+		// Renewed: the same record, two more days on the end of it.
+		$this->assertSame( $access_id, $this->writer->grant( $this->user_id, 'post', (string) $this->post_id, 2, 'admin' ) );
+		$this->assertSame( '', (string) get_post_meta( $access_id, Expiry_Warning::META_WARNED_AT, true ), 'a new date earns a new warning' );
+
+		$this->assertSame( 1, $this->job->run() );
+		$this->assertCount( 2, $this->outbox );
+	}
+
 	/** @testdox The lead window follows the expiry_warning_days setting. */
 	public function test_window_follows_the_setting(): void {
 		update_option( Settings::OPTION, array( 'expiry_warning_days' => '30' ) );
