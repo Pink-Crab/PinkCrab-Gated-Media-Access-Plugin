@@ -100,6 +100,46 @@ class Test_Product_Route extends WP_UnitTestCase {
 		$this->assertTrue( is_404() );
 	}
 
+	/**
+	 * @testdox A bare ?p= naming a product leaves core nothing to redirect to.
+	 *
+	 * The 404 alone is not the guarantee. Core's redirect_canonical reads `p`
+	 * off a 404 and 301s to get_permalink(), which this class rewrites to the
+	 * UUID URL — so the id has to be gone from the query, not merely refused.
+	 */
+	public function test_bare_id_access_leaves_no_id_to_redirect_to(): void {
+		$this->go_to( '/?p=' . $this->product_id );
+
+		$this->assertTrue( is_404() );
+		$this->assertSame( 0, (int) get_query_var( 'p' ) );
+	}
+
+	/** @testdox Core's REST search does not list products for the public. */
+	public function test_rest_search_excludes_products(): void {
+		wp_set_current_user( 0 );
+
+		$args = apply_filters(
+			'rest_post_search_query',
+			array( 'post_type' => array( 'post', Post_Types::PRODUCT ) ),
+			new \WP_REST_Request( 'GET', '/wp/v2/search' )
+		);
+
+		$this->assertNotContains( Post_Types::PRODUCT, $args['post_type'] );
+	}
+
+	/** @testdox A product manager's own REST search still finds them. */
+	public function test_rest_search_keeps_products_for_a_manager(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$args = apply_filters(
+			'rest_post_search_query',
+			array( 'post_type' => array( 'post', Post_Types::PRODUCT ) ),
+			new \WP_REST_Request( 'GET', '/wp/v2/search' )
+		);
+
+		$this->assertContains( Post_Types::PRODUCT, $args['post_type'] );
+	}
+
 	/** @testdox The permalink answers the UUID URL, so every redirect points the only way in. */
 	public function test_permalink_is_the_uuid_url(): void {
 		$permalink = get_permalink( $this->product_id );

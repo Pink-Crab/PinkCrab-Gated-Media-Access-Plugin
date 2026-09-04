@@ -231,8 +231,12 @@ class Product_Meta implements Hookable {
 			'auth_callback'     => $manager,
 		);
 
+		// Readable so the editor can show the URL, never writable: a manager
+		// posting another product's UUID would take its links.
+		$stamped_text = array_merge( $single_text, array( 'auth_callback' => '__return_false' ) );
+
 		return array(
-			self::META_UUID         => $single_text,
+			self::META_UUID         => $stamped_text,
 			self::META_PRICE        => array(
 				'type'              => 'integer',
 				'single'            => true,

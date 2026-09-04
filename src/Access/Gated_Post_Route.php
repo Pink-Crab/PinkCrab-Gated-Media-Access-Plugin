@@ -216,7 +216,16 @@ class Gated_Post_Route implements Hookable {
 		$post_id = (int) ( $query_vars['p'] ?? $query_vars['page_id'] ?? 0 );
 
 		if ( 0 === $post_id ) {
-			$name = (string) ( $query_vars['name'] ?? $query_vars['pagename'] ?? '' );
+			// pagename is parent/child, which no post_name can ever match.
+			$path = (string) ( $query_vars['pagename'] ?? '' );
+
+			if ( '' !== $path ) {
+				$page = get_page_by_path( $path, OBJECT, get_post_types( array( 'hierarchical' => true ) ) );
+
+				return $page instanceof \WP_Post && Post_Types::STATUS_GATED === $page->post_status;
+			}
+
+			$name = (string) ( $query_vars['name'] ?? '' );
 
 			if ( '' === $name ) {
 				return false;

@@ -172,8 +172,33 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'restricted', $html );
 	}
 
+	/**
+	 * @testdox Changing an item's groups needs the right to edit that item.
+	 *
+	 * Adding a group applies the restricted marker and, for an attachment,
+	 * physically moves the file — so holding manage_categories alone was
+	 * enough to restrict content the person cannot edit.
+	 */
+	public function test_apply_group_needs_edit_post(): void {
+		$post_id = self::factory()->post->create();
+		$term    = self::factory()->term->create_and_get( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'name' => 'Board' ) );
+		$uuid    = ( new Access_Taxonomy() )->uuid_for( $term->term_id );
+
+		$editor = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		get_role( 'subscriber' )->add_cap( 'manage_categories' );
+
+		wp_set_current_user( $editor );
+
+		$this->assertFalse( $this->metabox->apply_group( $post_id, $uuid, 'add' ) );
+		$this->assertNotContains( $term->slug, $this->object_slugs( $post_id ) );
+
+		get_role( 'subscriber' )->remove_cap( 'manage_categories' );
+	}
+
 	/** @testdox Adding to a group runs the restriction behaviours; removing leaves the restriction in place. */
 	public function test_apply_group_add_and_remove(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
 		$post_id = self::factory()->post->create();
 		$term    = self::factory()->term->create_and_get( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'name' => 'Members' ) );
 		$uuid    = ( new Access_Taxonomy() )->uuid_for( $term->term_id );
@@ -215,6 +240,8 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 
 	/** @testdox An unknown group or op applies nothing. */
 	public function test_apply_group_refuses_bad_input(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
 		$post_id = self::factory()->post->create();
 		$term    = self::factory()->term->create_and_get( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'name' => 'Members' ) );
 		$uuid    = ( new Access_Taxonomy() )->uuid_for( $term->term_id );
