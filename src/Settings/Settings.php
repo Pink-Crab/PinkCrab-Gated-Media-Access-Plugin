@@ -91,6 +91,22 @@ class Settings {
 	}
 
 	/**
+	 * Whether deleting the plugin also takes the payments table, the access
+	 * records, the products and the coupons. Off unless asked for.
+	 */
+	public function purge_on_uninstall(): bool {
+		$settings = get_option( self::OPTION );
+		$purge    = is_array( $settings ) && '1' === (string) ( $settings['purge_on_uninstall'] ?? '0' );
+
+		/**
+		 * Filters whether an uninstall takes the data with it.
+		 *
+		 * @param bool $purge The stored setting.
+		 */
+		return (bool) apply_filters( 'gatedmedia_purge_on_uninstall', $purge );
+	}
+
+	/**
 	 * The path segment a product's UUID URL lives under —
 	 * `/{segment}/{uuid}` is the only public way to a product. Default
 	 * `access`; filter `gatedmedia_product_path` has the last word.

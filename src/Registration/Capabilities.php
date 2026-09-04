@@ -41,7 +41,8 @@ class Capabilities implements Hookable {
 	/** Bumped when the grant below changes, so it runs again once. */
 	private const CAPS_VERSION = '1';
 
-	private const CAPS_OPTION = 'gatedmedia_caps_version';
+	/** Public so Lifecycle can delete it by name on uninstall. */
+	public const CAPS_OPTION = 'gatedmedia_caps_version';
 
 	/**
 	 * Grants on init.

@@ -31,6 +31,10 @@ use PinkCrab\Gated_Access\Support\Account_Url;
  * Secrets are never echoed back: a stored secret renders as an empty
  * password input with a saved marker, and an empty submit keeps what is
  * stored — retyping is only needed to change one.
+ *
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity") A settings screen is a
+ * list of fields, and every field is one more branch. Splitting it further
+ * buys nothing a reader wants.
  */
 class Settings_Page implements Hookable {
 
@@ -127,7 +131,12 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * The Settings form: mode, the six keys, and the revoke behaviour.
+	 * The Settings form: mode, the six keys, the revoke behaviour and the
+	 * uninstall choice.
+	 *
+	 * @SuppressWarnings("PHPMD.ExcessiveMethodLength") One form, read top to
+	 * bottom. Every other section is inline here; splitting one out would hide
+	 * it from the shape of the screen.
 	 */
 	public function render_settings(): void {
 		$mode      = $this->settings->stripe_mode();
@@ -213,6 +222,18 @@ class Settings_Page implements Hookable {
 						</select>
 						<p class="gatedmedia-admin-help"><?php esc_html_e( 'What the Revoke action on the Access list does.', 'gated-media-access' ); ?></p>
 					</div>
+
+					<div class="gatedmedia-admin-section-head">
+						<h2><?php esc_html_e( 'Uninstall', 'gated-media-access' ); ?></h2>
+						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'What deleting the plugin takes', 'gated-media-access' ); ?></span>
+					</div>
+
+					<div class="gatedmedia-admin-check">
+						<input type="hidden" name="<?php echo esc_attr( Settings::OPTION ); ?>[purge_on_uninstall]" value="0" />
+						<input type="checkbox" id="gatedmedia_purge_on_uninstall" name="<?php echo esc_attr( Settings::OPTION ); ?>[purge_on_uninstall]" value="1" <?php checked( true, $this->settings->purge_on_uninstall() ); ?> />
+						<label class="gatedmedia-admin-caps" for="gatedmedia_purge_on_uninstall"><?php esc_html_e( 'Delete all data on uninstall', 'gated-media-access' ); ?></label>
+					</div>
+					<p class="gatedmedia-admin-help"><?php esc_html_e( 'Settings, keys and capabilities always go. Tick this and the payments table, the access records, the products and the coupons go too. There is no undo.', 'gated-media-access' ); ?></p>
 					<?php endif; ?>
 				</div>
 			</form>
@@ -304,6 +325,10 @@ class Settings_Page implements Hookable {
 			$behaviour                 = (string) $input['revoke_behaviour'];
 			$known                     = array( Settings::REVOKE_BEHAVIOUR_REVOKE, Settings::REVOKE_BEHAVIOUR_EXPIRE, Settings::REVOKE_BEHAVIOUR_DELETE );
 			$clean['revoke_behaviour'] = in_array( $behaviour, $known, true ) ? $behaviour : Settings::REVOKE_BEHAVIOUR_REVOKE;
+		}
+
+		if ( isset( $input['purge_on_uninstall'] ) ) {
+			$clean['purge_on_uninstall'] = '1' === (string) $input['purge_on_uninstall'] ? '1' : '0';
 		}
 
 		$clean = $this->sanitize_keys( $input, $clean );
