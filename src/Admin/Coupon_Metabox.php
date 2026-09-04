@@ -14,6 +14,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Post_Types;
+use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
@@ -27,10 +28,10 @@ use PinkCrab\Gated_Access\Support\Money;
  * on top of that (`Coupon_Hold`), which is what stops buyers arriving together
  * from all passing the same limit.
  *
- * A fixed value is stored in minor units at two decimals. A fixed amount
- * has no currency of its own — it is taken off whatever currency the
- * product charges — and the `gatedmedia_coupon_discount` filter has the
- * last word at checkout either way.
+ * A fixed value is typed and stored in the shop currency's own minor units
+ * (`Settings::currency()`), because `Coupon_Pricing::discount()` subtracts it
+ * straight from a price held in those same units. The
+ * `gatedmedia_coupon_discount` filter has the last word at checkout either way.
  */
 class Coupon_Metabox implements Hookable {
 
@@ -42,6 +43,14 @@ class Coupon_Metabox implements Hookable {
 
 	/** The nonce field inside the editor form. */
 	public const NONCE_FIELD = 'gatedmedia_coupon_nonce';
+
+	/**
+	 * Holds the settings, for the currency a fixed amount is typed in.
+	 *
+	 * @param Settings $settings The shop settings.
+	 */
+	public function __construct( private Settings $settings ) {
+	}
 
 	/**
 	 * The keys, their protection, the box and its save.
@@ -220,12 +229,12 @@ class Coupon_Metabox implements Hookable {
 			return '';
 		}
 
-		return $is_percent ? $value : Money::to_decimal( (int) $value, 'GBP' );
+		return $is_percent ? $value : Money::to_decimal( (int) $value, $this->settings->currency() );
 	}
 
 	/**
 	 * The typed value to what is stored: whole percent capped at 100, or
-	 * minor units at two decimals.
+	 * minor units at the shop currency's own digits.
 	 *
 	 * @param bool   $is_percent Whether the coupon is percent-off.
 	 * @param string $value      The typed value.
@@ -235,7 +244,7 @@ class Coupon_Metabox implements Hookable {
 			return min( 100, absint( $value ) );
 		}
 
-		return max( 0, Money::to_minor( $value, 'GBP' ) );
+		return max( 0, Money::to_minor( $value, $this->settings->currency() ) );
 	}
 
 	/**

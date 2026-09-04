@@ -63,7 +63,8 @@ class Account_Route implements Hookable {
 	 */
 	private const REWRITE_VERSION = '2';
 
-	private const REWRITE_OPTION = 'gatedmedia_rewrite_version';
+	/** Public so Lifecycle can delete it by name on uninstall. */
+	public const REWRITE_OPTION = 'gatedmedia_rewrite_version';
 
 	/**
 	 * The section being viewed, once resolved.

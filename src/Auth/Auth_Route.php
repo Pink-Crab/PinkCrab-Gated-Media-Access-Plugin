@@ -49,7 +49,8 @@ class Auth_Route implements Hookable {
 	/** Bumped when the rule below changes shape. */
 	private const REWRITE_VERSION = '1';
 
-	private const REWRITE_OPTION = 'gatedmedia_auth_rewrites';
+	/** Public so Lifecycle can delete it by name on uninstall. */
+	public const REWRITE_OPTION = 'gatedmedia_auth_rewrites';
 
 	/**
 	 * Whether this request is ours, resolved once.

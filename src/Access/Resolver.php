@@ -25,9 +25,8 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  *
  * The allowed items are memoised per instance, and instances are shared
  * through the container, so a page asking once per image size pays for one
- * build. A grant or revocation forgets that holder's items, so a write is
- * visible to the rest of its own request. (A stacked expiry extension is not
- * — the writer fires nothing there, and the held item stays held either way.)
+ * build. A grant, a revocation or a stacked extension forgets that holder's
+ * items, so a write is visible to the rest of its own request.
  * Expiry is compared against now at read time — no sweep has to have run.
  */
 class Resolver implements Hookable {

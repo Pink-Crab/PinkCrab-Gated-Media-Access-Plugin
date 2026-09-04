@@ -43,7 +43,8 @@ class Product_Route implements Hookable {
 	/** Bumped when the rules below change shape. */
 	private const REWRITE_VERSION = '1';
 
-	private const REWRITE_OPTION = 'gatedmedia_product_rewrites';
+	/** Public so Lifecycle can delete it by name on uninstall. */
+	public const REWRITE_OPTION = 'gatedmedia_product_rewrites';
 
 	/**
 	 * The segment comes from settings.

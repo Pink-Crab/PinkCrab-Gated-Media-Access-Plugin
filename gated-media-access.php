@@ -22,6 +22,7 @@
 declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Plugin;
+use PinkCrab\Gated_Access\Registration\Lifecycle;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -31,6 +32,10 @@ define( 'GATEDMEDIA_DIR_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GATEDMEDIA_DIR_URL', plugin_dir_url( __FILE__ ) );
 
 require_once GATEDMEDIA_DIR_PATH . 'vendor/autoload.php';
+
+// Outside the boot below on purpose: the two daily events must be cleared even
+// if restrict-media-file-access has gone and we never booted.
+register_deactivation_hook( __FILE__, array( Lifecycle::class, 'deactivate' ) );
 
 /**
  * Boots the plugin, once restrict-media-file-access is confirmed present.
