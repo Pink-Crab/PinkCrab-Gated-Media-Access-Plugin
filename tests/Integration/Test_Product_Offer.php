@@ -103,7 +103,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		// The framework's tear_down unregisters every meta key. Product_Meta
 		// is registered here because the duration's default and sanitizer are
 		// the reason no falsey value can reach the offer.
-		( new Coupon_Metabox() )->register_meta();
+		( new Coupon_Metabox( new Settings() ) )->register_meta();
 		( new Product_Meta( new Settings(), $taxonomy ) )->register_meta();
 
 		wp_set_current_user( $this->user_id );

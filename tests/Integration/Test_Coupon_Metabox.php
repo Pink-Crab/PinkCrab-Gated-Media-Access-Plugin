@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
+use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
@@ -30,7 +31,7 @@ class Test_Coupon_Metabox extends WP_UnitTestCase {
 		parent::set_up();
 
 		// The framework's tear_down unregisters every meta key.
-		$this->metabox = new Coupon_Metabox();
+		$this->metabox = new Coupon_Metabox( new Settings() );
 		$this->metabox->register_meta();
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
@@ -45,6 +46,8 @@ class Test_Coupon_Metabox extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		$_POST = array();
+
+		delete_option( Settings::OPTION );
 
 		parent::tear_down();
 	}
@@ -87,6 +90,47 @@ class Test_Coupon_Metabox extends WP_UnitTestCase {
 
 		$this->assertSame( 'fixed', get_post_meta( $this->coupon_id, Coupon_Metabox::META_TYPE, true ) );
 		$this->assertSame( '500', get_post_meta( $this->coupon_id, Coupon_Metabox::META_VALUE, true ) );
+	}
+
+	/** @testdox A fixed coupon uses the shop currency's digits, not two — zero-decimal. */
+	public function test_save_fixed_in_a_zero_decimal_currency(): void {
+		update_option( Settings::OPTION, array( 'currency' => 'JPY' ) );
+
+		$this->submit(
+			array(
+				'gatedmedia_discount_type'  => 'fixed',
+				'gatedmedia_discount_value' => '500',
+			)
+		);
+
+		$this->assertSame( '500', get_post_meta( $this->coupon_id, Coupon_Metabox::META_VALUE, true ) );
+	}
+
+	/** @testdox A fixed coupon uses the shop currency's digits, not two — three-decimal. */
+	public function test_save_fixed_in_a_three_decimal_currency(): void {
+		update_option( Settings::OPTION, array( 'currency' => 'BHD' ) );
+
+		$this->submit(
+			array(
+				'gatedmedia_discount_type'  => 'fixed',
+				'gatedmedia_discount_value' => '12.500',
+			)
+		);
+
+		$this->assertSame( '12500', get_post_meta( $this->coupon_id, Coupon_Metabox::META_VALUE, true ) );
+	}
+
+	/** @testdox The box shows a stored fixed amount back in the shop currency's digits. */
+	public function test_render_shows_the_shop_currency(): void {
+		update_option( Settings::OPTION, array( 'currency' => 'JPY' ) );
+		update_post_meta( $this->coupon_id, Coupon_Metabox::META_TYPE, 'fixed' );
+		update_post_meta( $this->coupon_id, Coupon_Metabox::META_VALUE, '500' );
+
+		ob_start();
+		$this->metabox->render( get_post( $this->coupon_id ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'id="gatedmedia_discount_value" value="500"', $html );
 	}
 
 	/** @testdox Limits store empty for unlimited, and the count when set. */
