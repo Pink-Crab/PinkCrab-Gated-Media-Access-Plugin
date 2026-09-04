@@ -230,11 +230,13 @@ class Resolver implements Hookable {
 				continue;
 			}
 
-			// Attachments live at inherit; anything else must be published —
-			// a draft in a group is not viewable content for anyone.
-			$is_file = 'attachment' === $object->post_type;
+			// Attachments live at inherit; anything else must be published or
+			// gated — a draft in a group is not viewable content for anyone,
+			// but a gated post is exactly what a group is granted for.
+			$is_file  = 'attachment' === $object->post_type;
+			$readable = in_array( $object->post_status, array( 'publish', Post_Types::STATUS_GATED ), true );
 
-			if ( ( $is_file && 'inherit' === $object->post_status ) || ( ! $is_file && 'publish' === $object->post_status ) ) {
+			if ( ( $is_file && 'inherit' === $object->post_status ) || ( ! $is_file && $readable ) ) {
 				$contents[ $object_id ] = $is_file;
 			}
 		}

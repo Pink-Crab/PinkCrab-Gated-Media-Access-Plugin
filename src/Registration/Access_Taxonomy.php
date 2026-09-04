@@ -232,7 +232,9 @@ class Access_Taxonomy implements Hookable {
 		$found = get_posts(
 			array(
 				'post_type'      => self::object_types(),
-				'post_status'    => array( 'publish', 'inherit' ),
+				// Gated posts belong in a group's contents: the status is what
+				// the group is granted for, not a reason to drop them.
+				'post_status'    => array( 'publish', 'inherit', Post_Types::STATUS_GATED ),
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,

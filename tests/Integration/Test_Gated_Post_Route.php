@@ -87,6 +87,79 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 		return new Resolver( new Access_Taxonomy() );
 	}
 
+	/**
+	 * A group holding the given post, granted to the user.
+	 *
+	 * @param int $post_id What the group holds.
+	 * @return string The group's UUID.
+	 */
+	private function granted_group_holding( int $post_id ): string {
+		$term = wp_insert_term( 'Gated Group ' . wp_rand(), Access_Taxonomy::TAXONOMY );
+
+		wp_set_object_terms( $post_id, array( $term['term_id'] ), Access_Taxonomy::TAXONOMY, true );
+
+		$uuid = ( new Access_Taxonomy() )->uuid_for( $term['term_id'] );
+
+		$this->writer->grant( $this->user_id, 'group', $uuid, null, 'admin' );
+
+		return $uuid;
+	}
+
+	/**
+	 * The gated status is a status, so every reader that admits only `publish`
+	 * drops the post — and the group holder is 404ed at the one URL that was
+	 * meant to work.
+	 *
+	 * @testdox A gated post inside a granted group is reachable at its UUID.
+	 */
+	public function test_a_group_holder_reaches_a_gated_post(): void {
+		[ $post_id, $uuid ] = $this->make_gated_post();
+
+		$this->granted_group_holding( $post_id );
+
+		wp_set_current_user( $this->user_id );
+
+		$this->assertTrue( $this->resolver()->can_see( $this->user_id, 'post', (string) $post_id ), 'the group holds it' );
+
+		$this->go_to( home_url( '/gated/' . $uuid . '/' ) );
+
+		$this->assertFalse( is_404() );
+		$this->assertSame( $post_id, (int) get_queried_object_id() );
+	}
+
+	/** @testdox An opened group lists the gated posts it holds, rather than counting them and omitting them. */
+	public function test_an_opened_group_lists_its_gated_posts(): void {
+		[ $post_id ] = $this->make_gated_post();
+
+		$group_uuid = $this->granted_group_holding( $post_id );
+
+		// The page is opened by the holder: to everyone else the marker term
+		// keeps it out of every query, which is Restriction doing its job.
+		wp_set_current_user( $this->user_id );
+
+		$this->assertContains( $post_id, ( new Access_Taxonomy() )->contents( $group_uuid ) );
+	}
+
+	/** @testdox A directly granted gated post appears in My Access. */
+	public function test_a_gated_post_appears_in_my_access(): void {
+		[ $post_id ] = $this->make_gated_post();
+
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, null, 'admin' );
+
+		wp_set_current_user( $this->user_id );
+
+		$data = apply_filters(
+			'gatedmedia_my_access_data',
+			array(
+				'groups' => array(),
+				'posts'  => array(),
+				'files'  => array(),
+			)
+		);
+
+		$this->assertCount( 1, $data['posts'] );
+	}
+
 	/** @testdox The status is registered, and is the one that belongs to content rather than to a record. */
 	public function test_the_status_is_registered(): void {
 		$status = get_post_status_object( Post_Types::STATUS_GATED );
