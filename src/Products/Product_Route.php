@@ -65,6 +65,7 @@ class Product_Route implements Hookable {
 		$loader->filter( 'request', array( $this, 'route_request' ) );
 		$loader->filter( 'post_type_link', array( $this, 'product_link' ), 2 );
 		$loader->filter( 'rest_request_before_callbacks', array( $this, 'guard_product_rest' ), 3 );
+		$loader->filter( 'rest_post_search_query', array( $this, 'exclude_from_rest_search' ), 2 );
 		$loader->filter( 'rest_prepare_' . Post_Types::PRODUCT, array( $this, 'ensure_block' ), 3 );
 	}
 
@@ -186,7 +187,39 @@ class Product_Route implements Hookable {
 			return array( 'error' => '404' );
 		}
 
+		// Dropping the id too, or redirect_canonical 301s the 404 to the UUID.
+		$post_id = (int) ( $query_vars['p'] ?? $query_vars['page_id'] ?? 0 );
+
+		if ( 0 !== $post_id && '' === (string) ( $query_vars[ self::VIA_FLAG ] ?? '' ) && Post_Types::PRODUCT === get_post_type( $post_id ) ) {
+			return array( 'error' => '404' );
+		}
+
 		return $query_vars;
+	}
+
+	/**
+	 * Keeps products out of core's `/wp/v2/search`, which answers with the
+	 * UUID URL and which `exclude_from_search` does not reach.
+	 *
+	 * @param array<string, mixed> $args The search query core built.
+	 * @return array<string, mixed>
+	 */
+	public function exclude_from_rest_search( array $args ): array {
+		if ( current_user_can( \PinkCrab\Gated_Access\Registration\Capabilities::manage_products() ) ) {
+			return $args;
+		}
+
+		$types = (array) ( $args['post_type'] ?? array() );
+		$types = array_values( array_diff( array_map( 'strval', $types ), array( Post_Types::PRODUCT ) ) );
+
+		$args['post_type'] = $types;
+
+		// An empty post_type falls back to `post`, so say the emptiness.
+		if ( array() === $types ) {
+			$args['post__in'] = array( 0 );
+		}
+
+		return $args;
 	}
 
 	/**

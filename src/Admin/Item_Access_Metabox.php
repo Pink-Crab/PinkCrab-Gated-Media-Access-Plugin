@@ -297,6 +297,12 @@ class Item_Access_Metabox implements Hookable {
 			return false;
 		}
 
+		// Adding a group restricts the item and moves an attachment's file,
+		// so it needs the right to edit that item, not just the taxonomy.
+		if ( ! current_user_can( 'edit_post', $item_id ) ) {
+			return false;
+		}
+
 		if ( 'add' === $operation ) {
 			return is_array( wp_set_object_terms( $item_id, array( $term->term_id ), Access_Taxonomy::TAXONOMY, true ) );
 		}

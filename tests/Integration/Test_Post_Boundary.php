@@ -195,6 +195,67 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @testdox Refusing a singular cancels core's canonical redirect.
+	 *
+	 * Setting the 404 is not enough on its own: redirect_canonical runs at
+	 * priority 10, reads `p` off the 404 and 301s to the pretty slug, which
+	 * tells the guesser the post is there and what it is called.
+	 */
+	public function test_refusal_cancels_the_canonical_redirect(): void {
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( $this->user_id );
+
+		$this->go_to( '/?p=' . $post_id );
+		$this->boundary()->refuse_singular();
+
+		$this->assertTrue( is_404() );
+		$this->assertFalse( apply_filters( 'redirect_canonical', home_url( '/a-slug/' ), home_url( '/?p=' . $post_id ) ) );
+	}
+
+	/**
+	 * @testdox An admin-ajax listing still excludes restricted posts from a visitor.
+	 *
+	 * is_admin() is true for admin-ajax.php, including the wp_ajax_nopriv_*
+	 * handlers themes use for load-more and live search.
+	 */
+	public function test_admin_ajax_still_excludes_for_a_visitor(): void {
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( $this->user_id );
+		set_current_screen( 'edit.php' );
+		add_filter( 'wp_doing_ajax', '__return_true' );
+
+		$ids = $this->queried_ids( array( 'post_type' => 'post' ) );
+
+		remove_filter( 'wp_doing_ajax', '__return_true' );
+		set_current_screen( 'front' );
+
+		$this->assertNotContains( $post_id, $ids );
+	}
+
+	/**
+	 * @testdox An admin-ajax listing for someone who can grant access is untouched.
+	 *
+	 * Picker_Search is exactly this: an admin-ajax search whose whole job is
+	 * to find restricted items so access can be given to them.
+	 */
+	public function test_admin_ajax_is_untouched_for_a_granter(): void {
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		set_current_screen( 'edit.php' );
+		add_filter( 'wp_doing_ajax', '__return_true' );
+
+		$ids = $this->queried_ids( array( 'post_type' => 'post' ) );
+
+		remove_filter( 'wp_doing_ajax', '__return_true' );
+		set_current_screen( 'front' );
+
+		$this->assertContains( $post_id, $ids );
+	}
+
+	/**
 	 * IDs a front-of-site query returns, through the booted pre_get_posts hook.
 	 *
 	 * @param array<string, mixed> $args The query.

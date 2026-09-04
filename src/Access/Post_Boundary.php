@@ -15,6 +15,7 @@ use WP_Error;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
  * A restricted post with no access is a hard 404 with no clues, absent from
@@ -80,7 +81,7 @@ class Post_Boundary implements Hookable {
 	 * @param WP_Query $query The query being prepared.
 	 */
 	public function exclude_from_queries( WP_Query $query ): void {
-		if ( is_admin() || $query->is_singular() ) {
+		if ( $query->is_singular() || $this->is_own_admin_request() ) {
 			return;
 		}
 
@@ -94,6 +95,18 @@ class Post_Boundary implements Hookable {
 		$existing = is_array( $existing ) ? array_map( 'intval', $existing ) : array();
 
 		$query->set( 'post__not_in', array_values( array_unique( array_merge( $existing, $blocked ) ) ) );
+	}
+
+	/**
+	 * Our own admin screens. `is_admin()` alone is not that question: it is
+	 * true for admin-ajax too, including `wp_ajax_nopriv_*` handlers.
+	 */
+	private function is_own_admin_request(): bool {
+		if ( ! is_admin() ) {
+			return false;
+		}
+
+		return ! wp_doing_ajax() || current_user_can( Capabilities::give_access() );
 	}
 
 	/**
@@ -115,6 +128,9 @@ class Post_Boundary implements Hookable {
 		$wp_query->set_404();
 		status_header( 404 );
 		nocache_headers();
+
+		// Or redirect_canonical 301s the 404 to the pretty slug — a clue.
+		add_filter( 'redirect_canonical', '__return_false' );
 	}
 
 	/**

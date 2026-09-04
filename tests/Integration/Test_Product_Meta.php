@@ -112,6 +112,27 @@ class Test_Product_Meta extends WP_UnitTestCase {
 		$this->assertSame( '30', (string) get_post_meta( $this->product_id, Product_Meta::META_DURATION, true ) );
 	}
 
+	/**
+	 * @testdox The UUID is readable over REST but never writable, even by a manager.
+	 *
+	 * The class docblock says the server stamps what the client must not
+	 * choose. It was registered with the same write permission as every other
+	 * key, so a manager could post another product's UUID and take its links.
+	 */
+	public function test_the_uuid_is_not_rest_writable(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->meta->register_meta();
+
+		$registered = get_registered_meta_keys( 'post', Post_Types::PRODUCT );
+
+		$this->assertArrayHasKey( Product_Meta::META_UUID, $registered );
+		$this->assertTrue( $registered[ Product_Meta::META_UUID ]['show_in_rest'] );
+		$this->assertFalse(
+			call_user_func( $registered[ Product_Meta::META_UUID ]['auth_callback'], false, Product_Meta::META_UUID, $this->product_id, get_current_user_id(), 'edit_post_meta', array() )
+		);
+	}
+
 	/** @testdox Saving stamps the identity once and the shop currency every time. */
 	public function test_stamp(): void {
 		$this->meta->stamp( $this->product_id );

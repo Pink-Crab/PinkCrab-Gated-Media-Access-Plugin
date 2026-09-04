@@ -239,6 +239,46 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 		$this->assertTrue( is_404() );
 	}
 
+	/**
+	 * @testdox A gated child page's slug is a 404 too, path and all.
+	 *
+	 * A hierarchical page arrives as pagename=parent/child, and a post_name
+	 * lookup can never match a two-segment path — so the whole refusal was
+	 * skipped and the child page opened at its ordinary URL.
+	 */
+	public function test_a_gated_child_page_slug_is_a_404(): void {
+		$parent_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'handbook',
+			)
+		);
+
+		$child_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+				'post_name'   => 'salaries',
+				'post_parent' => $parent_id,
+			)
+		);
+
+		wp_update_post(
+			array(
+				'ID'          => $child_id,
+				'post_status' => Post_Types::STATUS_GATED,
+			)
+		);
+
+		$this->writer->grant( $this->user_id, 'post', (string) $child_id, null, 'admin' );
+		wp_set_current_user( $this->user_id );
+
+		$this->go_to( home_url( '/handbook/salaries/' ) );
+
+		$this->assertTrue( is_404() );
+	}
+
 	/** @testdox A UUID nobody holds still resolves to the post, and the boundary is what refuses it. */
 	public function test_the_route_resolves_and_the_boundary_refuses(): void {
 		[ $post_id, $uuid ] = $this->make_gated_post();

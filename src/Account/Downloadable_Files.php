@@ -9,12 +9,10 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Account;
 
-use WP_Term;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Resolver;
-use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Access_Row;
 
@@ -35,13 +33,11 @@ class Downloadable_Files implements Hookable {
 	/**
 	 * Reads, never writes.
 	 *
-	 * @param Resolver        $resolver What this person is allowed to see.
-	 * @param Access_Taxonomy $taxonomy Group contents, for a lapsed group's files.
-	 * @param Access_Row      $rows     One file as a row.
+	 * @param Resolver   $resolver What this person is allowed to see.
+	 * @param Access_Row $rows     One file as a row.
 	 */
 	public function __construct(
 		private Resolver $resolver,
-		private Access_Taxonomy $taxonomy,
 		private Access_Row $rows,
 	) {
 	}
@@ -136,40 +132,12 @@ class Downloadable_Files implements Hookable {
 			$item_type = (string) get_post_meta( $access_id, Access_Writer::META_ITEM_TYPE, true );
 			$item_id   = (string) get_post_meta( $access_id, Access_Writer::META_ITEM_ID, true );
 
+			// Files only: a lapsed group would expand to its contents today.
 			if ( 'file' === $item_type ) {
 				$file_ids[] = (int) $item_id;
-			} elseif ( 'group' === $item_type ) {
-				$file_ids = array_merge( $file_ids, $this->group_file_ids( $item_id ) );
 			}
 		}
 
 		return array_values( array_unique( $file_ids ) );
-	}
-
-	/**
-	 * The attachments a group contains right now.
-	 *
-	 * @param string $uuid The group.
-	 * @return array<int, int>
-	 */
-	private function group_file_ids( string $uuid ): array {
-		$term = $this->taxonomy->find_group( $uuid );
-
-		if ( ! $term instanceof WP_Term ) {
-			return array();
-		}
-
-		$object_ids = get_objects_in_term( $term->term_id, Access_Taxonomy::TAXONOMY );
-
-		if ( ! is_array( $object_ids ) ) {
-			return array();
-		}
-
-		return array_values(
-			array_filter(
-				array_map( 'intval', $object_ids ),
-				static fn ( int $object_id ): bool => 'attachment' === get_post_type( $object_id )
-			)
-		);
 	}
 }
