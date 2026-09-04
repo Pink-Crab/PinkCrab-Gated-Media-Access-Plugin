@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Support;
 
 use WP_Term;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
  * A group, a post or a file turned into the keys the row block declares:
@@ -75,7 +76,9 @@ class Access_Row {
 	public function post( int $post_id, ?int $expires_at ): ?array {
 		$post = get_post( $post_id );
 
-		if ( null === $post || 'publish' !== $post->post_status ) {
+		// Gated counts as readable: the status is the whole point of the
+		// grant, and its permalink is already the UUID URL.
+		if ( null === $post || ! in_array( $post->post_status, array( 'publish', Post_Types::STATUS_GATED ), true ) ) {
 			return null;
 		}
 
