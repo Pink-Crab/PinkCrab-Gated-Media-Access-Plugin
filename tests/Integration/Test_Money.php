@@ -65,6 +65,12 @@ class Test_Money extends WP_UnitTestCase {
 		$this->assertSame( '12.500', Money::to_decimal( 12500, 'BHD' ) );
 	}
 
+	/** @testdox One formatter is built per locale and currency, not one per call. */
+	public function test_the_formatter_is_reused(): void {
+		$this->assertSame( Money::formatter( 'GBP' ), Money::formatter( 'GBP' ) );
+		$this->assertNotSame( Money::formatter( 'GBP' ), Money::formatter( 'JPY' ) );
+	}
+
 	/** @testdox The gatedmedia_format_price filter has the last word. */
 	public function test_display_is_filterable(): void {
 		add_filter( 'gatedmedia_format_price', static fn (): string => 'a tenner' );

@@ -10,6 +10,8 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Payments;
 
 use WP_Error;
+use Stripe\ApiRequestor;
+use Stripe\HttpClient\CurlClient;
 use Stripe\StripeClient;
 use Stripe\Webhook;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -35,6 +37,53 @@ class Stripe_Gateway {
 	}
 
 	/**
+	 * What the SDK's HTTP client is pinned to.
+	 *
+	 * The call runs inline in the buyer's request, so a Stripe stall would
+	 * otherwise hold a PHP worker for the SDK's own 80 second default.
+	 *
+	 * @return array<string, int>
+	 */
+	public function client_config(): array {
+		$config = array(
+			'timeout'             => 10,
+			'connect_timeout'     => 5,
+			'max_network_retries' => 2,
+		);
+
+		/**
+		 * Filters the Stripe client's timeouts and retry count.
+		 *
+		 * @param array<string, int> $config Seconds, and how many retries.
+		 */
+		return array_map( 'absint', (array) apply_filters( 'gatedmedia_stripe_client_config', $config ) );
+	}
+
+	/**
+	 * The SDK client, with its timeouts applied.
+	 *
+	 * @param string $secret The API key.
+	 */
+	private function client( string $secret ): StripeClient {
+		$config = $this->client_config();
+
+		// The retries are the client's own; the timeouts belong to the curl
+		// client, which the SDK reaches through ApiRequestor.
+		$curl = new CurlClient();
+		$curl->setTimeout( $config['timeout'] );
+		$curl->setConnectTimeout( $config['connect_timeout'] );
+
+		ApiRequestor::setHttpClient( $curl );
+
+		return new StripeClient(
+			array(
+				'api_key'             => $secret,
+				'max_network_retries' => $config['max_network_retries'],
+			)
+		);
+	}
+
+	/**
 	 * Creates the hosted checkout session for a pending payment.
 	 *
 	 * The uuid rides as client_reference_id, which is how the webhook's
@@ -55,7 +104,7 @@ class Stripe_Gateway {
 		}
 
 		try {
-			$session = ( new StripeClient( $secret ) )->checkout->sessions->create(
+			$session = $this->client( $secret )->checkout->sessions->create(
 				array(
 					'mode'                => 'payment',
 					'client_reference_id' => $payment->uuid,

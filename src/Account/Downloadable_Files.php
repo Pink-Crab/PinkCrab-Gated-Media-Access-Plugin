@@ -65,6 +65,11 @@ class Downloadable_Files implements Hookable {
 		}
 
 		$allowed = $this->resolver->allowed_for( $user_id );
+		$expired = $this->expired_file_ids( $user_id );
+
+		// Each row reads the post and its attached-file meta, so prime both
+		// for every row at once rather than a pair of queries each.
+		_prime_post_caches( array_merge( array_keys( $allowed->files() ), $expired ), false, true );
 
 		foreach ( $allowed->files() as $file_id => $expires_at ) {
 			$item = $this->rows->file( $file_id, $expires_at );
@@ -74,7 +79,7 @@ class Downloadable_Files implements Hookable {
 			}
 		}
 
-		foreach ( $this->expired_file_ids( $user_id ) as $file_id ) {
+		foreach ( $expired as $file_id ) {
 			// Still reachable another way — a live group, a fresh grant — is
 			// not past.
 			if ( $allowed->has_file( $file_id ) ) {

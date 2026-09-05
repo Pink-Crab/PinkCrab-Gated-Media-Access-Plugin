@@ -44,6 +44,47 @@ use Symfony\Component\Intl\Currencies;
 class Money {
 
 	/**
+	 * One formatter per locale and currency, for this request.
+	 *
+	 * @var array<string, \NumberFormatter|null>
+	 */
+	private static array $formatters = array();
+
+	/**
+	 * The ICU formatter for a currency, or null where the extension is absent.
+	 *
+	 * Built once per locale and currency: constructing one loads ICU locale
+	 * data, and `format()` used to build two of them for every price on a page.
+	 *
+	 * @param string $currency ISO code.
+	 */
+	public static function formatter( string $currency ): ?\NumberFormatter {
+		$currency = strtoupper( $currency );
+		$locale   = get_locale();
+		$key      = $locale . '|' . $currency;
+
+		if ( array_key_exists( $key, self::$formatters ) ) {
+			return self::$formatters[ $key ];
+		}
+
+		// The extension, not the class: `symfony/polyfill-intl-icu` defines
+		// \NumberFormatter too, but its constructor takes only the locale `en`
+		// and `setTextAttribute()` throws unconditionally.
+		if ( ! extension_loaded( 'intl' ) ) {
+			self::$formatters[ $key ] = null;
+
+			return null;
+		}
+
+		$formatter = new \NumberFormatter( $locale, \NumberFormatter::CURRENCY );
+		$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
+
+		self::$formatters[ $key ] = $formatter;
+
+		return $formatter;
+	}
+
+	/**
 	 * Formats an amount for display.
 	 *
 	 * Zero is the word "Free" and never a zero amount — the one display rule
@@ -106,14 +147,9 @@ class Money {
 	 * @param int    $digits   Its fraction digits.
 	 */
 	private static function render( float $amount, string $currency, int $digits ): string {
-		// The extension, not the class: `symfony/polyfill-intl-icu` defines
-		// \NumberFormatter too, but its constructor takes only the locale `en`
-		// and `setTextAttribute()` throws unconditionally — so `class_exists()`
-		// answers yes and the next line fatals.
-		if ( extension_loaded( 'intl' ) ) {
-			$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
-			$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
+		$formatter = self::formatter( $currency );
 
+		if ( null !== $formatter ) {
 			$formatted = $formatter->formatCurrency( $amount, $currency );
 
 			if ( false !== $formatted ) {
@@ -133,11 +169,9 @@ class Money {
 	 * @param string $currency ISO code, already uppercased.
 	 */
 	private static function digits( string $currency ): int {
-		// As in render(): the polyfill's stub would throw here.
-		if ( extension_loaded( 'intl' ) ) {
-			$formatter = new \NumberFormatter( get_locale(), \NumberFormatter::CURRENCY );
-			$formatter->setTextAttribute( \NumberFormatter::CURRENCY_CODE, $currency );
+		$formatter = self::formatter( $currency );
 
+		if ( null !== $formatter ) {
 			$digits = $formatter->getAttribute( \NumberFormatter::FRACTION_DIGITS );
 
 			if ( false !== $digits ) {
