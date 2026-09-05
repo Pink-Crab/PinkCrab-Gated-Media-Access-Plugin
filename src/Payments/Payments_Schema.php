@@ -26,8 +26,8 @@ class Payments_Schema implements Hookable {
 	/** The option holding the installed schema version. */
 	public const OPTION_DB_VERSION = 'gatedmedia_db_version';
 
-	/** Bumped when the table below changes; dbDelta reconciles the rest. */
-	public const DB_VERSION = '2';
+	/** The current schema version. */
+	public const DB_VERSION = '1';
 
 	/**
 	 * Migrates on init, before anything queries the table.
@@ -83,7 +83,7 @@ class Payments_Schema implements Hookable {
 				PRIMARY KEY  (id),
 				UNIQUE KEY uuid (uuid),
 				KEY user_id (user_id),
-				KEY stripe_payment_intent_id (stripe_payment_intent_id),
+				KEY stripe_payment_intent_id (stripe_payment_intent_id(190)),
 				KEY coupon_status (coupon_id,status)
 			) {$collate};"
 		);
