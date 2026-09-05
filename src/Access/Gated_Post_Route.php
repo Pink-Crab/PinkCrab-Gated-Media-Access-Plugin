@@ -49,6 +49,9 @@ class Gated_Post_Route implements Hookable {
 	/** Public so Lifecycle can delete it by name on uninstall. */
 	public const REWRITE_OPTION = 'gatedmedia_gated_rewrites';
 
+	/** Autoloaded, so a site with nothing gated answers from memory. */
+	public const ANY_GATED_OPTION = 'gatedmedia_any_gated_post';
+
 	/**
 	 * Owns the marker term the status applies.
 	 *
@@ -191,6 +194,11 @@ class Gated_Post_Route implements Hookable {
 	 * @param WP_Post $post       The post.
 	 */
 	public function mark_on_transition( string $new_status, string $old_status, WP_Post $post ): void {
+		// Either direction changes whether the site has any gated post.
+		if ( Post_Types::STATUS_GATED === $new_status || Post_Types::STATUS_GATED === $old_status ) {
+			delete_option( self::ANY_GATED_OPTION );
+		}
+
 		if ( Post_Types::STATUS_GATED !== $new_status || $new_status === $old_status ) {
 			return;
 		}
@@ -208,11 +216,44 @@ class Gated_Post_Route implements Hookable {
 	}
 
 	/**
+	 * Whether the site holds a gated post at all, remembered in an option.
+	 */
+	private function any_gated_post(): bool {
+		$stored = get_option( self::ANY_GATED_OPTION, '' );
+
+		if ( '' !== $stored ) {
+			return '1' === $stored;
+		}
+
+		$found = get_posts(
+			array(
+				'post_type'      => 'any',
+				'post_status'    => Post_Types::STATUS_GATED,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+
+		$any = array() !== $found;
+
+		update_option( self::ANY_GATED_OPTION, $any ? '1' : '0', true );
+
+		return $any;
+	}
+
+	/**
 	 * Whether these query vars would land on a gated post.
 	 *
 	 * @param array<string, mixed> $query_vars The main request's vars.
 	 */
 	private function names_gated_post( array $query_vars ): bool {
+		// Every pretty permalink on the site reaches here, so a site with
+		// nothing gated must not pay a lookup to find that out again.
+		if ( ! $this->any_gated_post() ) {
+			return false;
+		}
+
 		$post_id = (int) ( $query_vars['p'] ?? $query_vars['page_id'] ?? 0 );
 
 		if ( 0 === $post_id ) {

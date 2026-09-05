@@ -39,6 +39,13 @@ class Quick_Edit_Grant implements Hookable {
 	public const NONCE = 'gatedmedia_quick_grant';
 
 	/**
+	 * Holder counts for the rows already looked up, keyed by post id.
+	 *
+	 * @var array<int, int>
+	 */
+	private array $counts = array();
+
+	/**
 	 * Grants go through the writer, nothing else.
 	 *
 	 * @param Access_Writer $writer The one writer of access records.
@@ -94,7 +101,7 @@ class Quick_Edit_Grant implements Hookable {
 			return;
 		}
 
-		$count = count( $this->holder_ids( $post_id ) );
+		$count = $this->holder_count( $post_id );
 
 		echo esc_html(
 			0 === $count
@@ -189,13 +196,41 @@ class Quick_Edit_Grant implements Hookable {
 	}
 
 	/**
-	 * The active direct records for one item.
+	 * How many holders one row has, looking up the whole screen at once.
 	 *
-	 * @param int $post_id The item.
+	 * @param int $post_id The row being drawn.
+	 */
+	private function holder_count( int $post_id ): int {
+		$rows = $this->rows_on_screen();
+
+		// Only the table's own rows are cached, and only for the one pass it
+		// draws them in. Anything else is asked for directly, so answer it
+		// directly rather than from a memo a write could have made stale.
+		if ( ! in_array( $post_id, $rows, true ) ) {
+			return $this->look_up( array( $post_id ) )[ $post_id ] ?? 0;
+		}
+
+		if ( array() === $this->counts ) {
+			$this->counts = $this->look_up( $rows );
+		}
+
+		return $this->counts[ $post_id ] ?? 0;
+	}
+
+	/**
+	 * Counts every given row in one query, zero included.
+	 *
+	 * @param array<int, int> $rows The post ids to answer for.
 	 * @return array<int, int>
 	 */
-	private function holder_ids( int $post_id ): array {
-		$ids = get_posts(
+	private function look_up( array $rows ): array {
+		$counts = array();
+
+		foreach ( $rows as $row_id ) {
+			$counts[ $row_id ] = 0;
+		}
+
+		$records = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
 				// Named, never 'any' — ours are excluded from 'any'.
@@ -203,20 +238,49 @@ class Quick_Edit_Grant implements Hookable {
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- An admin list cell; direct records only.
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One query for the whole screen; direct records only.
 				'meta_query'     => array(
 					array(
 						'key'   => Access_Writer::META_ITEM_TYPE,
 						'value' => 'post',
 					),
 					array(
-						'key'   => Access_Writer::META_ITEM_ID,
-						'value' => (string) $post_id,
+						'key'     => Access_Writer::META_ITEM_ID,
+						'value'   => array_map( 'strval', $rows ),
+						'compare' => 'IN',
 					),
 				),
 			)
 		);
 
-		return array_map( 'intval', $ids );
+		update_postmeta_cache( array_map( 'intval', $records ) );
+
+		foreach ( array_map( 'intval', $records ) as $record_id ) {
+			$item_id = (int) get_post_meta( $record_id, Access_Writer::META_ITEM_ID, true );
+
+			$counts[ $item_id ] = ( $counts[ $item_id ] ?? 0 ) + 1;
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * The post ids the list table is drawing.
+	 *
+	 * @return array<int, int>
+	 */
+	private function rows_on_screen(): array {
+		$query = $GLOBALS['wp_query'] ?? null;
+		$posts = $query instanceof \WP_Query ? $query->posts : array();
+
+		return array_values(
+			array_filter(
+				array_map(
+					static fn ( $post ): int => $post instanceof \WP_Post ? (int) $post->ID : (int) $post,
+					is_array( $posts ) ? $posts : array()
+				),
+				static fn ( int $post_id ): bool => $post_id > 0
+			)
+		);
 	}
 }

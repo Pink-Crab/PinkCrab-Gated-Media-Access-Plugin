@@ -221,8 +221,12 @@ class Resolver implements Hookable {
 		}
 
 		$contents = array();
+		$members  = array_map( 'intval', $object_ids );
 
-		foreach ( array_map( 'intval', $object_ids ) as $object_id ) {
+		// One query for the lot, or get_post() below is one each.
+		_prime_post_caches( $members, false, false );
+
+		foreach ( $members as $object_id ) {
 			$object = get_post( $object_id );
 
 			if ( null === $object ) {

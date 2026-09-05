@@ -194,13 +194,24 @@ class Access_Lookup {
 	 * a product page says "your access to this ended" rather than offering it
 	 * as though it had never been bought.
 	 *
-	 * @param int    $user_id   Whose access.
-	 * @param string $item_type group, post or file.
-	 * @param string $item_id   The item's identifier.
+	 * @param int                                     $user_id Who held them.
+	 * @param array<int, array{0: string, 1: string}> $items   Type and identifier pairs.
 	 * @return array<int, int>
 	 */
-	public function past_records_for_item( int $user_id, string $item_type, string $item_id ): array {
-		$ids = get_posts(
+	public function past_records_for_items( int $user_id, array $items ): array {
+		if ( array() === $items ) {
+			return array();
+		}
+
+		$types = array();
+		$ids   = array();
+
+		foreach ( $items as list( $item_type, $item_id ) ) {
+			$types[] = $item_type;
+			$ids[]   = $item_id;
+		}
+
+		$found = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
 				'post_status'    => array( Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
@@ -208,21 +219,23 @@ class Access_Lookup {
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One product page view; the item pair is the whole condition.
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One query for the whole product; the item pair is the condition.
 				'meta_query'     => array(
 					array(
-						'key'   => Access_Writer::META_ITEM_TYPE,
-						'value' => $item_type,
+						'key'     => Access_Writer::META_ITEM_TYPE,
+						'value'   => array_values( array_unique( $types ) ),
+						'compare' => 'IN',
 					),
 					array(
-						'key'   => Access_Writer::META_ITEM_ID,
-						'value' => $item_id,
+						'key'     => Access_Writer::META_ITEM_ID,
+						'value'   => array_values( array_unique( $ids ) ),
+						'compare' => 'IN',
 					),
 				),
 			)
 		);
 
-		return array_map( 'intval', $ids );
+		return array_map( 'intval', $found );
 	}
 
 	/**

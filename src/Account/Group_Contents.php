@@ -107,9 +107,13 @@ class Group_Contents implements Hookable {
 	 * @return array<int, array<string, string>>
 	 */
 	private function items( string $uuid ): array {
-		$items = array();
+		$items    = array();
+		$contents = $this->taxonomy->contents( $uuid );
 
-		foreach ( $this->taxonomy->contents( $uuid ) as $object_id ) {
+		// contents() answers ids, so each row below would be its own query.
+		_prime_post_caches( $contents, false, false );
+
+		foreach ( $contents as $object_id ) {
 			$title = (string) get_the_title( $object_id );
 
 			if ( '' === $title ) {

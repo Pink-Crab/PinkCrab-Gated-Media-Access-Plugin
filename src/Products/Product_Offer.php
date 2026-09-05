@@ -216,19 +216,17 @@ class Product_Offer implements Hookable {
 	 * @param array<int, string> $items   Its `type:identifier` entries.
 	 */
 	private function held_before( int $user_id, array $items ): bool {
+		$pairs = array();
+
 		foreach ( $items as $entry ) {
 			list( $type, $identifier ) = Item_Label::split( $entry );
 
-			if ( '' === $type ) {
-				continue;
-			}
-
-			if ( array() !== $this->lookup->past_records_for_item( $user_id, $type, $identifier ) ) {
-				return true;
+			if ( '' !== $type ) {
+				$pairs[] = array( $type, $identifier );
 			}
 		}
 
-		return false;
+		return array() !== $this->lookup->past_records_for_items( $user_id, $pairs );
 	}
 
 	/**
