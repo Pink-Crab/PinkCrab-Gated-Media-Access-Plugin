@@ -26,6 +26,11 @@ const PASSWORD = process.env.WP_PASSWORD || 'password';
  */
 async function signIn( page ) {
 	await page.goto( '/wp-login.php' );
+	// Core focuses and selects a field 200ms in, which lands a fill in the wrong box.
+	await page.waitForFunction( () => {
+		const field = document.getElementById( 'user_login' );
+		return field && field.ownerDocument.activeElement === field;
+	} );
 	await page.fill( '#user_login', USER );
 	await page.fill( '#user_pass', PASSWORD );
 	await page.click( '#wp-submit' );

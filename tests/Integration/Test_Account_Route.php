@@ -145,6 +145,37 @@ class Test_Account_Route extends WP_UnitTestCase {
 		$this->assertSame( 'files', (string) get_query_var( Account_Route::QUERY_SECTION ) );
 	}
 
+	/** @testdox Moving the slug flushes the rules by itself, with no permalinks save. */
+	public function test_changing_the_slug_flushes_the_rules(): void {
+		global $wp_rewrite;
+
+		$wp_rewrite->rules = array();
+		$this->account_route()->register_rewrites();
+
+		add_filter( 'gatedmedia_account_slug', static fn(): string => 'members-area' );
+
+		$wp_rewrite->rules = array();
+		$this->account_route()->register_rewrites();
+
+		$this->go_to( home_url( '/members-area/files/' ) );
+
+		$this->assertSame( '1', (string) get_query_var( Account_Route::QUERY_FLAG ) );
+		$this->assertSame( 'files', (string) get_query_var( Account_Route::QUERY_SECTION ) );
+	}
+
+	/**
+	 * The route with its real collaborators.
+	 */
+	private function account_route(): Account_Route {
+		return new Account_Route(
+			new Section_Registry(),
+			new Account_Renderer(),
+			new Asset_Loader(),
+			new Sprite(),
+			new Settings()
+		);
+	}
+
 	/** @testdox A signed-in user gets a real page rather than a 404. */
 	public function test_a_signed_in_user_gets_a_page(): void {
 		wp_set_current_user( self::factory()->user->create() );

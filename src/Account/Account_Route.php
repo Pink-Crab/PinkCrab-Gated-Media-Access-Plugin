@@ -174,12 +174,14 @@ class Account_Route implements Hookable {
 	 * "are our rules present".
 	 */
 	private function flush_once(): void {
-		if ( get_option( self::REWRITE_OPTION ) === self::REWRITE_VERSION ) {
+		$stamp = self::REWRITE_VERSION . ':' . $this->slug();
+
+		if ( get_option( self::REWRITE_OPTION ) === $stamp ) {
 			return;
 		}
 
 		flush_rewrite_rules( false );
-		update_option( self::REWRITE_OPTION, self::REWRITE_VERSION, true );
+		update_option( self::REWRITE_OPTION, $stamp, true );
 	}
 
 	/**

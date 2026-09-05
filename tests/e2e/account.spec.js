@@ -19,6 +19,11 @@ const PASSWORD = process.env.WP_PASSWORD || 'password';
  */
 async function signIn( page ) {
 	await page.goto( '/wp-login.php' );
+	// Core focuses and selects a field 200ms in, which lands a fill in the wrong box.
+	await page.waitForFunction( () => {
+		const field = document.getElementById( 'user_login' );
+		return field && field.ownerDocument.activeElement === field;
+	} );
 	await page.fill( '#user_login', USER );
 	await page.fill( '#user_pass', PASSWORD );
 	await page.click( '#wp-submit' );
@@ -127,10 +132,19 @@ test.describe( 'account area', () => {
 		// exist yet — true only until the payments table landed and the shop
 		// fixture began creating one. An empty state needs an empty account,
 		// not a feature that has not been built.
-		await page.goto( '/wp-login.php?loggedout=true' );
+		// Dropped, not just navigated away from: for a signed-in visitor core pre-fills the username and empties the password box 200ms later.
+		await page.context().clearCookies();
+
+		await page.goto( '/wp-login.php' );
+		// Core focuses and selects a field 200ms in, which lands a fill in the wrong box.
+		await page.waitForFunction( () => {
+			const field = document.getElementById( 'user_login' );
+			return field && field.ownerDocument.activeElement === field;
+		} );
 		await page.fill( '#user_login', 'e2e-empty' );
 		await page.fill( '#user_pass', 'e2e-empty-password' );
 		await page.click( '#wp-submit' );
+		await page.waitForURL( /wp-admin/ );
 
 		await page.goto( '/account/orders/' );
 
