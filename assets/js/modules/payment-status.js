@@ -11,9 +11,9 @@
  * put "You're in" above a pending pill and no access.
  *
  * **It never reports a failure.** The buyer has paid either way, so running out
- * of attempts changes the wording and nothing else. The route answers the same
- * 404 for a stranger's payment and one that never existed, so an error stops
- * the polling quietly and leaves the page exactly as the server drew it.
+ * of attempts changes the wording and nothing else. A request that fails is
+ * simply tried again until the ceiling: one proxy hiccup used to end the
+ * watching for good and leave them on a spinner that would never resolve.
  *
  * Everything it needs is on the panel: PHP renders no attributes at all unless
  * the payment is pending, owned and real, so there is nothing here to decide.
@@ -58,6 +58,17 @@ export default function initPaymentStatus( scope ) {
 		}
 	};
 
+	/** Nothing came back. Try again, or stand down if that was the last go. */
+	const retry = () => {
+		if ( attempts >= ceiling ) {
+			stop();
+			standDown();
+			return;
+		}
+
+		timer = window.setTimeout( ask, interval );
+	};
+
 	const ask = async () => {
 		attempts += 1;
 
@@ -70,15 +81,15 @@ export default function initPaymentStatus( scope ) {
 			} );
 
 			if ( ! response.ok ) {
-				stop();
+				retry();
 				return;
 			}
 
 			( { status } = await response.json() );
 		} catch {
-			// Offline, or navigated away mid-request. Neither is the buyer's
-			// problem and neither is worth a message.
-			stop();
+			// A proxy hiccup or a second offline. The payment is unaffected,
+			// so the panel keeps watching rather than freezing on the spinner.
+			retry();
 			return;
 		}
 
