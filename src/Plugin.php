@@ -147,8 +147,29 @@ class Plugin {
 	/**
 	 * Builds each service, lets the hookable ones register, then attaches
 	 * everything to WordPress in one pass.
+	 *
+	 * The migration runs first and its result is honoured: a site whose
+	 * payments table is not there would take payments it cannot record, so
+	 * nothing is attached and the administrator is told instead.
+	 *
+	 * @return bool Whether the plugin booted in full.
 	 */
-	public function boot(): void {
+	public function boot(): bool {
+		( new Payments_Schema() )->migrate();
+
+		if ( ! Payments_Schema::table_exists() ) {
+			add_action( 'admin_notices', array( self::class, 'render_missing_table_notice' ) );
+
+			return false;
+		}
+
+		return $this->boot_services();
+	}
+
+	/**
+	 * Attaches every service.
+	 */
+	private function boot_services(): bool {
 		// Shared by default, which for a list of services is the only sane
 		// reading: without it Dice hands out a fresh instance per resolution,
 		// so a service holding state — the sprite knowing it has been asked
@@ -167,6 +188,8 @@ class Plugin {
 		}
 
 		$loader->register_hooks();
+
+		return true;
 	}
 
 	/**
@@ -202,6 +225,28 @@ class Plugin {
 				'Gated Media Access needs the Restrict Media File Access plugin, which is not active. Until it is, no files are protected and nothing else in this plugin runs.',
 				'gated-media-access'
 			),
+			esc_url( admin_url( 'plugins.php' ) ),
+			esc_html__( 'Go to Plugins', 'gated-media-access' )
+		);
+	}
+
+	/**
+	 * The notice shown when the payments table could not be created.
+	 *
+	 * Nothing else of ours runs in that state, because a checkout that cannot
+	 * be recorded is worse than one that never starts.
+	 */
+	public static function render_missing_table_notice(): void {
+		printf(
+			'<div class="notice notice-error"><p>%s</p><p>%s</p><p><a href="%s">%s</a></p></div>',
+			esc_html(
+				sprintf(
+					/* translators: %s: the database table name. */
+					__( 'Gated Media Access could not create its payments table (%s), so nothing in the plugin is running.', 'gated-media-access' ),
+					Payments_Schema::table_name()
+				)
+			),
+			esc_html__( 'The database user usually needs permission to create tables. Once that is granted, deactivate and reactivate the plugin to try again.', 'gated-media-access' ),
 			esc_url( admin_url( 'plugins.php' ) ),
 			esc_html__( 'Go to Plugins', 'gated-media-access' )
 		);
