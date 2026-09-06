@@ -88,6 +88,22 @@ class Payments_Schema implements Hookable {
 			) {$collate};"
 		);
 
-		update_option( self::OPTION_DB_VERSION, self::DB_VERSION, true );
+		// Stamped only on a table that is really there: dbDelta neither throws
+		// nor reports, so recording a failure as done retries nothing, ever.
+		if ( self::table_exists() ) {
+			update_option( self::OPTION_DB_VERSION, self::DB_VERSION, true );
+		}
+	}
+
+	/**
+	 * Whether the payments table is actually in the database.
+	 */
+	public static function table_exists(): bool {
+		global $wpdb;
+
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Asked once per request, before anything is cached.
+		return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 	}
 }
