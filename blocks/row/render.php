@@ -102,8 +102,14 @@ if ( 'unavailable' !== $gatedmedia_state && '' !== (string) ( $attributes['actio
 		)
 	);
 }
+// What the type filter matches on (§6.11); absent on rows that have no type.
+$gatedmedia_wrapper = array( 'class' => implode( ' ', $gatedmedia_classes ) );
+
+if ( '' !== (string) ( $attributes['filterType'] ?? '' ) ) {
+	$gatedmedia_wrapper['data-gatedmedia-type'] = (string) $attributes['filterType'];
+}
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => implode( ' ', $gatedmedia_classes ) ) ) ); ?>>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( $gatedmedia_wrapper ) ); ?>>
 	<div class="gatedmedia-row__main">
 		<?php if ( '' !== $gatedmedia_href ) : ?>
 		<p class="gatedmedia-row__title"><a href="<?php echo esc_url( $gatedmedia_href ); ?>"><?php echo esc_html( $gatedmedia_title ); ?></a></p>

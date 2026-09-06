@@ -11,8 +11,10 @@
 import { onReady } from './shared/dom';
 import initNotices from './modules/notices';
 import initPaymentStatus from './modules/payment-status';
+import initFilter from './modules/filter';
 
 onReady( () => {
 	initNotices( document );
 	initPaymentStatus( document );
+	initFilter( document );
 } );

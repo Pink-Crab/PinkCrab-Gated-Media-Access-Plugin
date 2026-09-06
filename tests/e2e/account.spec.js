@@ -171,6 +171,59 @@ test.describe( 'account area', () => {
 		await expect( page.getByText( 'Granted file' ).first() ).toBeVisible();
 	} );
 
+	test( 'the files search hides what does not match and brings it back', async ( {
+		page,
+	} ) => {
+		await page.goto( '/account/files/' );
+
+		const row = page.locator( '.gatedmedia-row' ).first();
+		const search = page.locator(
+			'[data-gatedmedia-filter="search"] input'
+		);
+
+		await expect( row ).toBeVisible();
+
+		await search.fill( 'zzzz-no-such-file' );
+		await expect( row ).toBeHidden();
+
+		await search.fill( 'Granted' );
+		await expect( row ).toBeVisible();
+	} );
+
+	test( 'the files type filter hides what is not that type', async ( {
+		page,
+	} ) => {
+		await page.goto( '/account/files/' );
+
+		const row = page.locator( '.gatedmedia-row' ).first();
+		const select = page.locator( '[data-gatedmedia-filter="type"]' );
+		const video = page.locator( '[data-gatedmedia-chip="video"]' );
+		const pdf = page.locator( '[data-gatedmedia-chip="pdf"]' );
+
+		await expect( row ).toBeVisible();
+		await expect( row ).toHaveAttribute( 'data-gatedmedia-type', 'pdf' );
+
+		// The select is the wide control and the chips the narrow one, so the
+		// same behaviour is asserted through whichever is on screen.
+		const wide = await select.isVisible();
+
+		if ( wide ) {
+			await select.selectOption( 'video' );
+		} else {
+			await video.click();
+		}
+
+		await expect( row ).toBeHidden();
+
+		if ( wide ) {
+			await select.selectOption( 'pdf' );
+		} else {
+			await pdf.click();
+		}
+
+		await expect( row ).toBeVisible();
+	} );
+
 	test( 'a profile edit saves and comes back', async ( { page } ) => {
 		await page.goto( '/account/profile/' );
 

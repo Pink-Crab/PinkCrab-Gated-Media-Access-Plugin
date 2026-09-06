@@ -110,6 +110,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 				'title'            => (string) ( $item['title'] ?? '' ),
 				'meta'             => (string) ( $item['meta'] ?? '' ),
 				'state'            => 'unavailable',
+				'filterType'       => (string) ( $item['type'] ?? '' ),
 				'unavailableLabel' => __( 'No longer available', 'gated-media-access' ),
 			)
 		);
@@ -145,6 +146,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 		array(
 			'title'       => (string) ( $item['title'] ?? '' ),
 			'meta'        => (string) ( $item['meta'] ?? '' ),
+			'filterType'  => (string) ( $item['type'] ?? '' ),
 			'actionLabel' => 'available' === $section ? __( 'Download', 'gated-media-access' ) : '',
 			'actionHref'  => (string) ( $item['href'] ?? '' ),
 			'actionIcon'  => 'i-download',
