@@ -78,9 +78,7 @@ class Test_Access_Filters extends WP_UnitTestCase {
 		$this->filters->render_filters( Post_Types::ACCESS, 'top' );
 		$html = (string) ob_get_clean();
 
-		// Core ships a screen-reader-text label for each of its own toolbar
-		// controls. A placeholder is not a label: it disappears on typing and
-		// assistive technology announces an unlabelled field.
+		// A placeholder is not a label: it goes as soon as anything is typed.
 		$this->assertMatchesRegularExpression(
 			sprintf( '/<label[^>]*\bfor="%s"[^>]*>/', preg_quote( $id, '/' ) ),
 			$html,

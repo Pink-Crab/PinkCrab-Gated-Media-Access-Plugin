@@ -168,9 +168,7 @@
 		}
 	}
 
-	// The full-width action replaces the aside's own control rather than
-	// joining it: both point at the same href, so a row composed with each
-	// drew Download twice on a phone.
+	// The full-width action replaces the aside's control, never joins it.
 	@include narrow {
 
 		&:has(.gatedmedia-row__action) .gatedmedia-row__aside .gatedmedia-button {

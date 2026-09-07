@@ -247,9 +247,7 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->page->render();
 		$html = (string) ob_get_clean();
 
-		// Search_Picker gives the typed box `{id}_search` and the hidden id
-		// field `{id}`, so a label pointing at the latter focuses nothing and
-		// leaves the search box unlabelled to assistive technology.
+		// Search_Picker gives the typed box `{id}_search`, the hidden `{id}`.
 		$this->assertStringContainsString(
 			sprintf( '<label for="%s_search">%s</label>', $element_id, $label ),
 			$html

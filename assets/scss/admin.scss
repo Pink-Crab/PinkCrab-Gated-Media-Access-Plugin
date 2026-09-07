@@ -197,9 +197,7 @@
 		color: $ink;
 		box-shadow: none;
 
-		// §6.3 — "Never removed, never replaced with a colour change alone."
-		// The border shift is the resting treatment; the ring is what a
-		// keyboard user actually sees.
+		// §6.3: focus is never removed, and never a colour change alone.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;

@@ -463,8 +463,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 			get_posts(
 				array(
 					'post_type'      => Post_Types::ACCESS,
-					// Named, never 'any': the access statuses are excluded
-					// from search, so 'any' does not see them.
+					// Named, never 'any': these statuses are search-excluded.
 					'post_status'    => array(
 						Post_Types::STATUS_ACTIVE,
 						Post_Types::STATUS_EXPIRED,
@@ -530,8 +529,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 			);
 		}
 
-		// The days field has to exist under that id for the label to mean
-		// anything.
+		// The field has to exist under that id for the label to mean anything.
 		$this->assertStringContainsString(
 			sprintf( 'id="gatedmedia_metabox_days_%d"', $post_id ),
 			$html

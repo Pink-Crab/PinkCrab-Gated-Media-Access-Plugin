@@ -101,8 +101,7 @@ test.describe( 'the settings screen', () => {
 	test( 'a focused textarea draws a visible focus indicator', async ( {
 		page,
 	} ) => {
-		// The templates live on the Notifications tab, which is where the only
-		// textarea on these screens is.
+		// The only textarea on these screens is on the Notifications tab.
 		await page.goto(
 			'/wp-admin/admin.php?page=gatedmedia-settings&section=notifications'
 		);
@@ -120,8 +119,7 @@ test.describe( 'the settings screen', () => {
 } );
 
 test.describe( 'the product editor', () => {
-	// The block is pinned into every product by the post type's template, so
-	// a new product draws it from the first paint. The canvas is an iframe.
+	// The post type's template pins the block in. The canvas is an iframe.
 	test.beforeEach( async ( { page } ) => {
 		await signIn( page );
 
@@ -149,8 +147,7 @@ test.describe( 'the product editor', () => {
 
 		await expect( block ).toBeVisible( { timeout: 30_000 } );
 
-		// 'group', 'post' and 'file' are the halves of a stored row key
-		// ("group:12"), never labels, and they never went through __().
+		// 'group', 'post' and 'file' are row key halves, never labels.
 		for ( const label of [ 'Group', 'Post', 'File' ] ) {
 			await expect(
 				block.getByRole( 'button', { name: label, exact: true } )
@@ -206,9 +203,7 @@ test.describe( 'the product editor', () => {
 	test( 'a failed request clears the results rather than leaving stale ones', async ( {
 		page,
 	} ) => {
-		// The picker chained .json() with no .catch and no ok check, so a
-		// failed request never reached setResults and the previous term's
-		// matches stayed on screen under the new term.
+		// A failed request never reached setResults, so stale rows stayed.
 		await searchAnswers( page, { status: 502, body: 'nope' } );
 
 		const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
@@ -226,8 +221,7 @@ test.describe( 'the product editor', () => {
 	} );
 
 	test( 'a stale nonce answer clears the results too', async ( { page } ) => {
-		// check_ajax_referer answers a dead nonce with the bare string "-1"
-		// and a 200, which is not JSON: response.json() rejects.
+		// A dead nonce answers 200 with "-1", which is not JSON.
 		await searchAnswers( page, { status: 200, body: '-1' } );
 
 		const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
@@ -247,8 +241,7 @@ test.describe( 'the product editor', () => {
 	test( 'a slow earlier search cannot overwrite a newer one', async ( {
 		page,
 	} ) => {
-		// The early term answers late, and with a different row. Without the
-		// ordering guard its answer lands last and replaces the newer list.
+		// The early term answers late, with a row of its own.
 		await page.route( '**/admin-ajax.php**', async ( route ) => {
 			const url = route.request().url();
 

@@ -199,9 +199,7 @@ test.describe( 'account area', () => {
 
 		await expect( row ).toBeVisible();
 
-		// The aside carries a secondary Download and the narrow-only __action
-		// carries a primary one. Both are for the same href, and nothing hid
-		// the aside below the breakpoint, so a phone drew the control twice.
+		// The aside and the narrow-only __action both drew one, same href.
 		const onScreen = row.locator( 'a:visible', { hasText: 'Download' } );
 
 		await expect( onScreen ).toHaveCount( 1 );
@@ -220,8 +218,7 @@ test.describe( 'account area', () => {
 		await expect( row ).toBeVisible();
 		await expect( row ).toHaveAttribute( 'data-gatedmedia-type', 'pdf' );
 
-		// The select is the wide control and the chips the narrow one, so the
-		// same behaviour is asserted through whichever is on screen.
+		// Select is the wide control, chips the narrow one.
 		const wide = await select.isVisible();
 
 		if ( wide ) {

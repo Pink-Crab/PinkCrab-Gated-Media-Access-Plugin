@@ -471,8 +471,7 @@ test.describe( 'orders', () => {
 
 		let served = 0;
 
-		// A proxy hiccup or a second offline. The buyer has paid either way,
-		// so the panel must keep watching rather than freeze on the spinner.
+		// A blip. The buyer has paid, so the panel must keep watching.
 		await page.route( `**/payment/${ uuid }**`, async ( route ) => {
 			served += 1;
 

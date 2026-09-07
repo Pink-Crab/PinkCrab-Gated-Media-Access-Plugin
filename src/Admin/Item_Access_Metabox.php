@@ -129,9 +129,7 @@ class Item_Access_Metabox implements Hookable {
 					esc_html( $holder['name'] ),
 					esc_html( $holder['expires'] ),
 					esc_url( Revoke_Action::url_for( $access_id ) ),
-					// The same word the Access list and the settings page use:
-					// this runs the site's revoke behaviour, up to deleting
-					// the record outright, which "Remove" does not suggest.
+					// The word the Access list and the settings page use.
 					esc_html__( 'Revoke', 'gated-media-access' )
 				);
 			}
@@ -153,10 +151,7 @@ class Item_Access_Metabox implements Hookable {
 	private function render_grant( int $item_id ): void {
 		echo '<div class="gatedmedia-inline-grant">';
 
-		// Labelled rather than left to the placeholders: this sits inside the
-		// editor, where the surrounding fields all carry one, and a
-		// placeholder is gone as soon as anything is typed. The ids carry the
-		// item so two metaboxes on one screen never collide.
+		// Ids carry the item, so two boxes on one screen cannot collide.
 		$days_id = 'gatedmedia_metabox_days_' . $item_id;
 		$user_id = 'gatedmedia_metabox_user_' . $item_id . '_search';
 

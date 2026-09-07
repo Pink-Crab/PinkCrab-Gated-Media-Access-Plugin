@@ -59,8 +59,7 @@ const ENDPOINTS = {
 	file: 'gatedmedia_search_files',
 };
 
-// The values are storage, not wording — a stored row is "group:12" — so they
-// were being printed onto the screen untranslated as tab and row labels.
+// Values are storage ("group:12"), labels are what the screen shows.
 const ITEM_TYPES = [
 	{ value: 'group', label: __( 'Group', 'gated-media-access' ) },
 	{ value: 'post', label: __( 'Post', 'gated-media-access' ) },
@@ -184,9 +183,7 @@ const STYLES = {
 		alignSelf: 'center',
 	},
 	input: {
-		// No `outline: none`. The wrap draws the border, but taking the
-		// browser's own ring away leaves a keyboard user with nothing at all
-		// — §6.3, "never removed, never replaced with a colour change alone".
+		// No `outline: none`: §6.3 says focus is never removed.
 		border: 'none',
 		background: 'transparent',
 		height: '100%',
@@ -360,8 +357,7 @@ export default function Edit() {
 	const [ query, setQuery ] = useState( '' );
 	const [ results, setResults ] = useState( [] );
 
-	// Which search is the newest. An earlier one that answers late must not
-	// put stale matches back on screen.
+	// Which search is newest, so a late answer is discarded.
 	const latest = useRef( 0 );
 	const [ labels, setLabels ] = useState( {} );
 	const [ emailDraft, setEmailDraft ] = useState( '' );
@@ -403,8 +399,7 @@ export default function Edit() {
 		const trimmed = ( term || '' ).trim();
 		const action = ENDPOINTS[ type ];
 
-		// Counts as a search either way, so clearing the box cannot be undone
-		// by a late answer.
+		// Counts either way, so a late answer cannot undo an empty box.
 		latest.current += 1;
 		const mine = latest.current;
 
@@ -424,9 +419,7 @@ export default function Edit() {
 				} )
 			);
 
-			// check_ajax_referer answers a stale nonce with the bare string
-			// "-1", which is not JSON, so this used to reject unhandled and
-			// leave the previous term's matches on screen.
+			// A stale nonce answers "-1", which is not JSON.
 			found = response.ok ? await response.json() : [];
 		} catch {
 			found = [];

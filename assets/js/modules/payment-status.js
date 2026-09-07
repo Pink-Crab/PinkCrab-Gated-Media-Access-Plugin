@@ -87,8 +87,7 @@ export default function initPaymentStatus( scope ) {
 
 			( { status } = await response.json() );
 		} catch {
-			// A proxy hiccup or a second offline. The payment is unaffected,
-			// so the panel keeps watching rather than freezing on the spinner.
+			// A blip. The payment is unaffected, so keep watching.
 			retry();
 			return;
 		}
