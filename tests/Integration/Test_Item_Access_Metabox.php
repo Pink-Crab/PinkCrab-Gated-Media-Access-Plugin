@@ -252,6 +252,51 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @testdox The inline grant's user box and days box are both labelled.
+	 *
+	 * The metabox gave the picker and the days field a placeholder and nothing
+	 * else, so both were announced as unlabelled edit fields — and the days
+	 * field carried no id at all, which no label could have targeted.
+	 */
+	public function test_the_inline_grant_controls_are_labelled(): void {
+		$post_id = self::factory()->post->create();
+		$html    = $this->render( $post_id );
+
+		foreach ( array(
+			'gatedmedia_metabox_user_' . $post_id . '_search',
+			'gatedmedia_metabox_days_' . $post_id,
+		) as $id ) {
+			$this->assertMatchesRegularExpression(
+				sprintf( '/<label[^>]*\bfor="%s"[^>]*>/', preg_quote( $id, '/' ) ),
+				$html,
+				sprintf( 'No label targets %s.', $id )
+			);
+		}
+
+		// The days field has to exist under that id for the label to mean
+		// anything.
+		$this->assertStringContainsString(
+			sprintf( 'id="gatedmedia_metabox_days_%d"', $post_id ),
+			$html
+		);
+	}
+
+	/** @testdox Two items on one screen do not share the days field's id. */
+	public function test_the_days_field_id_is_per_item(): void {
+		$first  = self::factory()->post->create();
+		$second = self::factory()->post->create();
+
+		$this->assertStringContainsString(
+			sprintf( 'id="gatedmedia_metabox_days_%d"', $first ),
+			$this->render( $first )
+		);
+		$this->assertStringContainsString(
+			sprintf( 'id="gatedmedia_metabox_days_%d"', $second ),
+			$this->render( $second )
+		);
+	}
+
+	/**
 	 * What the metabox renders for one item.
 	 *
 	 * @param int $post_id The post or attachment.

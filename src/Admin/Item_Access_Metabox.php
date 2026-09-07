@@ -128,12 +128,28 @@ class Item_Access_Metabox implements Hookable {
 	private function render_grant( int $item_id ): void {
 		echo '<div class="gatedmedia-inline-grant">';
 
+		// Labelled rather than left to the placeholders: this sits inside the
+		// editor, where the surrounding fields all carry one, and a
+		// placeholder is gone as soon as anything is typed. The ids carry the
+		// item so two metaboxes on one screen never collide.
+		$days_id = 'gatedmedia_metabox_days_' . $item_id;
+		$user_id = 'gatedmedia_metabox_user_' . $item_id . '_search';
+
+		printf(
+			'<label class="screen-reader-text" for="%s">%s</label>',
+			esc_attr( $user_id ),
+			esc_html__( 'User to give access to', 'gated-media-access' )
+		);
+
 		( new User_Picker( 'gatedmedia_metabox_user', 'gatedmedia_metabox_user_' . $item_id ) )->render();
 
 		printf(
-			'<input type="number" min="1" placeholder="%s" class="gatedmedia-inline-grant-days" />
-			<button type="button" class="button gatedmedia-grant-access" data-gatedmedia-url="%s">%s</button>
-			<p class="description">%s</p>',
+			'<label class="screen-reader-text" for="%1$s">%2$s</label>
+			<input type="number" min="1" id="%1$s" placeholder="%3$s" class="gatedmedia-inline-grant-days" />
+			<button type="button" class="button gatedmedia-grant-access" data-gatedmedia-url="%4$s">%5$s</button>
+			<p class="description">%6$s</p>',
+			esc_attr( $days_id ),
+			esc_html__( 'Days of access, or empty for lifetime', 'gated-media-access' ),
 			esc_attr__( 'Days', 'gated-media-access' ),
 			esc_url(
 				wp_nonce_url(
