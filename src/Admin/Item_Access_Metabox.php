@@ -107,7 +107,10 @@ class Item_Access_Metabox implements Hookable {
 					esc_html( $holder['name'] ),
 					esc_html( $holder['expires'] ),
 					esc_url( Revoke_Action::url_for( $access_id ) ),
-					esc_html__( 'Remove', 'gated-media-access' )
+					// The same word the Access list and the settings page use:
+					// this runs the site's revoke behaviour, up to deleting
+					// the record outright, which "Remove" does not suggest.
+					esc_html__( 'Revoke', 'gated-media-access' )
 				);
 			}
 

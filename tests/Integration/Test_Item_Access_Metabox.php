@@ -67,8 +67,8 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertSame( array(), $wp_meta_boxes );
 	}
 
-	/** @testdox A direct holder renders with their expiry and a nonced remove link through the revoke action. */
-	public function test_renders_direct_holders_with_remove_links(): void {
+	/** @testdox A direct holder renders with their expiry and a nonced revoke link through the revoke action. */
+	public function test_renders_direct_holders_with_revoke_links(): void {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
 		$post_id   = self::factory()->post->create();
@@ -81,7 +81,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Lifetime', $html );
 		$this->assertStringContainsString( 'gatedmedia_revoke_access', $html );
 		$this->assertStringContainsString( 'access=' . $access_id, $html );
-		$this->assertStringContainsString( 'Remove', $html );
+		$this->assertStringContainsString( 'Revoke', $html );
 	}
 
 	/** @testdox A user holding the item only through a group is not a direct holder, and is not listed. */
@@ -249,6 +249,31 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertFalse( $this->metabox->apply_group( $post_id, wp_generate_uuid4(), 'add' ) );
 		$this->assertFalse( $this->metabox->apply_group( $post_id, $uuid, 'obliterate' ) );
 		$this->assertFalse( $this->metabox->apply_group( 999999, $uuid, 'add' ) );
+	}
+
+	/**
+	 * @testdox A holder's link is named Revoke, the same as on the Access list.
+	 *
+	 * Both links go to Revoke_Action, whose effect is whatever the
+	 * revoke_behaviour setting says, up to deleting the record outright.
+	 * "Remove" beside a name reads as taking that person off a list, and the
+	 * settings page calls the whole concept "Revoking access".
+	 */
+	public function test_the_holder_link_is_named_revoke(): void {
+		$user_id = self::factory()->user->create(
+			array(
+				'role'         => 'subscriber',
+				'display_name' => 'Dale Holder',
+			)
+		);
+		$post_id = self::factory()->post->create();
+
+		$this->assertIsInt( $this->writer->grant( $user_id, 'post', (string) $post_id, 30, 'admin' ) );
+
+		$html = $this->render( $post_id );
+
+		$this->assertStringContainsString( '>Revoke</a>', $html );
+		$this->assertStringNotContainsString( '>Remove</a>', $html );
 	}
 
 	/**
