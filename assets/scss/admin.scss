@@ -197,10 +197,14 @@
 		color: $ink;
 		box-shadow: none;
 
+		// §6.3 — "Never removed, never replaced with a colour change alone."
+		// The border shift is the resting treatment; the ring is what a
+		// keyboard user actually sees.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;
-			outline: none;
+			outline: 2px solid $ink;
+			outline-offset: 1px;
 		}
 	}
 
@@ -215,10 +219,12 @@
 		color: $ink;
 		box-shadow: none;
 
+		// §6.3, as above.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;
-			outline: none;
+			outline: 2px solid $ink;
+			outline-offset: 1px;
 		}
 	}
 

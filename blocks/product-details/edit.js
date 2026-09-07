@@ -160,8 +160,10 @@ const STYLES = {
 		alignSelf: 'center',
 	},
 	input: {
+		// No `outline: none`. The wrap draws the border, but taking the
+		// browser's own ring away leaves a keyboard user with nothing at all
+		// — §6.3, "never removed, never replaced with a colour change alone".
 		border: 'none',
-		outline: 'none',
 		background: 'transparent',
 		height: '100%',
 		width: '100%',
