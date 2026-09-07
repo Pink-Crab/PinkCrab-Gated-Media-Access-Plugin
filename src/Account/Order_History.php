@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
+use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Expiry;
 use PinkCrab\Gated_Access\Support\Item_Label;
@@ -187,10 +188,25 @@ class Order_History implements Hookable {
 	 * An empty value is lifetime, which is what the writer stores for access
 	 * that never ends.
 	 *
+	 * The status is read first. This is the one view that lists records
+	 * whatever state they are in, and neither a revoke nor the sweep touches
+	 * the stored date — so a refunded lifetime record would otherwise read
+	 * "Lifetime" and a lapsed one "Expires in 1 day".
+	 *
 	 * @param int $access_id The access record.
 	 * @return array{state: string, label: string}
 	 */
 	private function expiry( int $access_id ): array {
+		$status = (string) get_post_status( $access_id );
+
+		if ( Post_Types::STATUS_REVOKED === $status ) {
+			return Expiry::withdrawn();
+		}
+
+		if ( Post_Types::STATUS_EXPIRED === $status ) {
+			return Expiry::ended();
+		}
+
 		$stored = (string) get_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, true );
 
 		if ( '' === $stored ) {
