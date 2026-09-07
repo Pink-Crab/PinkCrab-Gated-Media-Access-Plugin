@@ -118,3 +118,49 @@ test.describe( 'the settings screen', () => {
 		).toBe( true );
 	} );
 } );
+
+test.describe( 'the product editor', () => {
+	// The block is pinned into every product by the post type's template, so
+	// a new product draws it from the first paint. The canvas is an iframe.
+	test.beforeEach( async ( { page } ) => {
+		await signIn( page );
+
+		// The welcome guide covers the canvas on a fresh install.
+		await page.addInitScript( () => {
+			window.localStorage.setItem(
+				'WP_PREFERENCES_USER_GLOBAL',
+				JSON.stringify( {
+					'core/edit-post': { welcomeGuide: false },
+					core: { welcomeGuide: false },
+				} )
+			);
+		} );
+
+		await page.goto(
+			'/wp-admin/post-new.php?post_type=gatedmedia_product'
+		);
+	} );
+
+	test( 'the item type tabs are named, not printed as storage keys', async ( {
+		page,
+	} ) => {
+		const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
+		const block = canvas.locator( '.gatedmedia-product-details' );
+
+		await expect( block ).toBeVisible( { timeout: 30_000 } );
+
+		// 'group', 'post' and 'file' are the halves of a stored row key
+		// ("group:12"), never labels, and they never went through __().
+		for ( const label of [ 'Group', 'Post', 'File' ] ) {
+			await expect(
+				block.getByRole( 'button', { name: label, exact: true } )
+			).toBeVisible();
+		}
+
+		for ( const key of [ 'group', 'post', 'file' ] ) {
+			await expect(
+				block.getByRole( 'button', { name: key, exact: true } )
+			).toHaveCount( 0 );
+		}
+	} );
+} );

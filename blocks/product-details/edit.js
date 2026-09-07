@@ -25,6 +25,8 @@ import { CheckboxControl } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { currencyDigits } from '../../assets/js/editor/controls';
+import { createItemSearch } from '../../assets/js/editor/item-search';
+import { ITEM_TYPES, typeLabel } from '../../assets/js/editor/item-types';
 
 const META = {
 	uuid: 'gatedmedia_uuid',
@@ -335,6 +337,15 @@ export default function Edit() {
 	const [ itemType, setItemType ] = useState( 'group' );
 	const [ query, setQuery ] = useState( '' );
 	const [ results, setResults ] = useState( [] );
+
+	// One per editor instance, so its ordering guard is its own.
+	const [ askItems ] = useState( () =>
+		createItemSearch( {
+			ajaxurl: window.ajaxurl,
+			nonce: shop.nonce,
+			endpoints: ENDPOINTS,
+		} )
+	);
 	const [ labels, setLabels ] = useState( {} );
 	const [ emailDraft, setEmailDraft ] = useState( '' );
 
@@ -372,28 +383,13 @@ export default function Edit() {
 	const search = ( term, type ) => {
 		setQuery( term );
 
-		if ( ! term || term.length < 2 ) {
-			setResults( [] );
-			return;
-		}
-
-		window
-			.fetch(
-				`${ window.ajaxurl }?action=${
-					ENDPOINTS[ type ]
-				}&_ajax_nonce=${ shop.nonce }&term=${ encodeURIComponent(
-					term
-				) }`
-			)
-			.then( ( response ) => response.json() )
-			.then( ( found ) =>
-				setResults(
-					found.map( ( result ) => ( {
-						id: String( result.id ),
-						label: result.label,
-					} ) )
-				)
-			);
+		// null means a newer search has already been asked for, so this
+		// answer is stale and must not replace what is on screen.
+		askItems( term, type ).then( ( found ) => {
+			if ( null !== found ) {
+				setResults( found );
+			}
+		} );
 	};
 
 	const addItem = ( result ) => {
@@ -586,17 +582,17 @@ export default function Edit() {
 							flex: '0 0 auto',
 						} }
 					>
-						{ [ 'group', 'post', 'file' ].map( ( type ) => (
+						{ ITEM_TYPES.map( ( type ) => (
 							<button
-								key={ type }
+								key={ type.value }
 								type="button"
-								style={ STYLES.tab( itemType === type ) }
+								style={ STYLES.tab( itemType === type.value ) }
 								onClick={ () => {
-									setItemType( type );
-									search( query, type );
+									setItemType( type.value );
+									search( query, type.value );
 								} }
 							>
-								{ type }
+								{ type.label }
 							</button>
 						) ) }
 					</span>
@@ -675,7 +671,7 @@ export default function Edit() {
 								>
 									<span style={ STYLES.typeCell }>
 										<span style={ STYLES.caps }>
-											{ part.type }
+											{ typeLabel( part.type ) }
 										</span>
 									</span>
 									<span style={ STYLES.nameCell }>
