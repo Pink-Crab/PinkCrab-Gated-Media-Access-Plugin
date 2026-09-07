@@ -195,7 +195,7 @@ if ( '' === $gatedmedia_body ) {
 	);
 }
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-view gatedmedia-view--files' ) ) ); ?>>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia gatedmedia-view gatedmedia-view--files' ) ) ); ?>>
 	<?php
 	echo $gatedmedia_filter; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the filter block.
 	echo $gatedmedia_body;   // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the blocks that produced it.
