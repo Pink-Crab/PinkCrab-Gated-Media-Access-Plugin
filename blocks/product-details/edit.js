@@ -17,16 +17,15 @@
  * canvas, whose content styles are the wrong scale for a form.
  */
 
-import { useState } from '@wordpress/element';
+import { useRef, useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { useBlockProps } from '@wordpress/block-editor';
 import { CheckboxControl } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
+import { addQueryArgs } from '@wordpress/url';
 
 import { currencyDigits } from '../../assets/js/editor/controls';
-import { createItemSearch } from '../../assets/js/editor/item-search';
-import { ITEM_TYPES, typeLabel } from '../../assets/js/editor/item-types';
 
 const META = {
 	uuid: 'gatedmedia_uuid',
@@ -59,6 +58,29 @@ const ENDPOINTS = {
 	post: 'gatedmedia_search_posts',
 	file: 'gatedmedia_search_files',
 };
+
+// The values are storage, not wording — a stored row is "group:12" — so they
+// were being printed onto the screen untranslated as tab and row labels.
+const ITEM_TYPES = [
+	{ value: 'group', label: __( 'Group', 'gated-media-access' ) },
+	{ value: 'post', label: __( 'Post', 'gated-media-access' ) },
+	{ value: 'file', label: __( 'File', 'gated-media-access' ) },
+];
+
+/**
+ * What one item type is called. An unknown one reads as itself.
+ *
+ * @param {string} value The stored type.
+ * @return {string} Its label.
+ */
+function typeLabel( value ) {
+	const known = ITEM_TYPES.find( ( type ) => type.value === value );
+
+	return known ? known.label : value;
+}
+
+/** Below this, a search matches too much to be worth asking for. */
+const MIN_TERM = 2;
 
 const INK = '#333235';
 const INK_SOFT = '#605e61';
@@ -338,14 +360,9 @@ export default function Edit() {
 	const [ query, setQuery ] = useState( '' );
 	const [ results, setResults ] = useState( [] );
 
-	// One per editor instance, so its ordering guard is its own.
-	const [ askItems ] = useState( () =>
-		createItemSearch( {
-			ajaxurl: window.ajaxurl,
-			nonce: shop.nonce,
-			endpoints: ENDPOINTS,
-		} )
-	);
+	// Which search is the newest. An earlier one that answers late must not
+	// put stale matches back on screen.
+	const latest = useRef( 0 );
 	const [ labels, setLabels ] = useState( {} );
 	const [ emailDraft, setEmailDraft ] = useState( '' );
 
@@ -380,16 +397,53 @@ export default function Edit() {
 		setEmailDraft( '' );
 	};
 
-	const search = ( term, type ) => {
+	const search = async ( term, type ) => {
 		setQuery( term );
 
-		// null means a newer search has already been asked for, so this
-		// answer is stale and must not replace what is on screen.
-		askItems( term, type ).then( ( found ) => {
-			if ( null !== found ) {
-				setResults( found );
-			}
-		} );
+		const trimmed = ( term || '' ).trim();
+		const action = ENDPOINTS[ type ];
+
+		// Counts as a search either way, so clearing the box cannot be undone
+		// by a late answer.
+		latest.current += 1;
+		const mine = latest.current;
+
+		if ( trimmed.length < MIN_TERM || ! action ) {
+			setResults( [] );
+			return;
+		}
+
+		let found;
+
+		try {
+			const response = await window.fetch(
+				addQueryArgs( window.ajaxurl, {
+					action,
+					_ajax_nonce: shop.nonce,
+					term: trimmed,
+				} )
+			);
+
+			// check_ajax_referer answers a stale nonce with the bare string
+			// "-1", which is not JSON, so this used to reject unhandled and
+			// leave the previous term's matches on screen.
+			found = response.ok ? await response.json() : [];
+		} catch {
+			found = [];
+		}
+
+		if ( mine !== latest.current ) {
+			return;
+		}
+
+		setResults(
+			Array.isArray( found )
+				? found.map( ( result ) => ( {
+						id: String( result.id ),
+						label: result.label,
+				  } ) )
+				: []
+		);
 	};
 
 	const addItem = ( result ) => {

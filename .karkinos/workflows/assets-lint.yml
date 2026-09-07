@@ -28,9 +28,3 @@ jobs:
 
       - name: stylelint
         run: npm run lint:style
-
-      # The editor's own logic — the item-type vocabulary and the picker's
-      # request handling. Here rather than in a workflow of its own: it needs
-      # the same node_modules and finishes in a second.
-      - name: Unit tests
-        run: npm run test:unit

@@ -163,4 +163,137 @@ test.describe( 'the product editor', () => {
 			).toHaveCount( 0 );
 		}
 	} );
+
+	/**
+	 * The block's item search box, inside the editor canvas.
+	 *
+	 * @param {import('@playwright/test').Page} page The page.
+	 */
+	function itemSearch( page ) {
+		return page
+			.frameLocator( 'iframe[name="editor-canvas"]' )
+			.getByRole( 'textbox', { name: 'Search for an item to add' } );
+	}
+
+	/**
+	 * Answers the first term with one row, and the second however the test says.
+	 *
+	 * @param {import('@playwright/test').Page} page   The page.
+	 * @param {Object}                          broken How the second answers.
+	 */
+	async function searchAnswers( page, broken ) {
+		await page.route( '**/admin-ajax.php**', async ( route ) => {
+			const url = route.request().url();
+
+			if ( ! url.includes( 'gatedmedia_search_' ) ) {
+				await route.continue();
+				return;
+			}
+
+			if ( url.includes( 'term=aaab' ) ) {
+				await route.fulfill( broken );
+				return;
+			}
+
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [ { id: 901, label: 'FIRST HIT' } ] ),
+			} );
+		} );
+	}
+
+	test( 'a failed request clears the results rather than leaving stale ones', async ( {
+		page,
+	} ) => {
+		// The picker chained .json() with no .catch and no ok check, so a
+		// failed request never reached setResults and the previous term's
+		// matches stayed on screen under the new term.
+		await searchAnswers( page, { status: 502, body: 'nope' } );
+
+		const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
+		const search = itemSearch( page );
+
+		await search.fill( 'aaa' );
+		await expect(
+			canvas.getByRole( 'button', { name: 'FIRST HIT' } )
+		).toBeVisible();
+
+		await search.fill( 'aaab' );
+		await expect(
+			canvas.getByRole( 'button', { name: 'FIRST HIT' } )
+		).toHaveCount( 0 );
+	} );
+
+	test( 'a stale nonce answer clears the results too', async ( { page } ) => {
+		// check_ajax_referer answers a dead nonce with the bare string "-1"
+		// and a 200, which is not JSON: response.json() rejects.
+		await searchAnswers( page, { status: 200, body: '-1' } );
+
+		const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
+		const search = itemSearch( page );
+
+		await search.fill( 'aaa' );
+		await expect(
+			canvas.getByRole( 'button', { name: 'FIRST HIT' } )
+		).toBeVisible();
+
+		await search.fill( 'aaab' );
+		await expect(
+			canvas.getByRole( 'button', { name: 'FIRST HIT' } )
+		).toHaveCount( 0 );
+	} );
+
+	test( 'a slow earlier search cannot overwrite a newer one', async ( {
+		page,
+	} ) => {
+		// The early term answers late, and with a different row. Without the
+		// ordering guard its answer lands last and replaces the newer list.
+		await page.route( '**/admin-ajax.php**', async ( route ) => {
+			const url = route.request().url();
+
+			if ( ! url.includes( 'gatedmedia_search_' ) ) {
+				await route.continue();
+				return;
+			}
+
+			const stale =
+				url.includes( 'term=aa' ) && ! url.includes( 'term=aab' );
+
+			if ( stale ) {
+				await new Promise( ( resolve ) => setTimeout( resolve, 3000 ) );
+			}
+
+			await route.fulfill( {
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify( [
+					{
+						id: stale ? 991 : 992,
+						label: stale ? 'STALE ANSWER' : 'FRESH ANSWER',
+					},
+				] ),
+			} );
+		} );
+
+		const canvas = page.frameLocator( 'iframe[name="editor-canvas"]' );
+		const search = itemSearch( page );
+
+		await search.fill( 'aa' );
+		await search.fill( 'aab' );
+
+		await expect(
+			canvas.getByRole( 'button', { name: 'FRESH ANSWER' } )
+		).toBeVisible();
+
+		// Long enough for the delayed answer to arrive and be discarded.
+		await page.waitForTimeout( 4000 );
+
+		await expect(
+			canvas.getByRole( 'button', { name: 'STALE ANSWER' } )
+		).toHaveCount( 0 );
+		await expect(
+			canvas.getByRole( 'button', { name: 'FRESH ANSWER' } )
+		).toBeVisible();
+	} );
 } );

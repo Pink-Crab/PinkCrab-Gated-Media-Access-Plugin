@@ -16,7 +16,6 @@
 		"lint:js": "wp-scripts lint-js blocks assets/js tests/e2e",
 		"lint:style": "wp-scripts lint-style \"assets/scss/**/*.scss\"",
 		"format": "wp-scripts format",
-		"test:unit": "wp-scripts test-unit-js --config tests/js/jest.config.js",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui"
 	},
@@ -34,6 +33,7 @@
 		"@wordpress/i18n": "^6.26.0",
 		"@wordpress/plugins": "^7.54.0",
 		"@wordpress/scripts": "^34.1.0",
+		"@wordpress/url": "^4.54.0",
 		"@wordpress/server-side-render": "^6.29.0",
 		"webpack-remove-empty-scripts": "^1.1.1"
 	}
