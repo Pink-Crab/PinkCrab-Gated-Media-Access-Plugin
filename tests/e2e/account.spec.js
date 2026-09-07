@@ -190,6 +190,23 @@ test.describe( 'account area', () => {
 		await expect( row ).toBeVisible();
 	} );
 
+	test( 'an available file offers one Download control, not two', async ( {
+		page,
+	} ) => {
+		await page.goto( '/account/files/' );
+
+		const row = page.locator( '.gatedmedia-row' ).first();
+
+		await expect( row ).toBeVisible();
+
+		// The aside carries a secondary Download and the narrow-only __action
+		// carries a primary one. Both are for the same href, and nothing hid
+		// the aside below the breakpoint, so a phone drew the control twice.
+		const onScreen = row.locator( 'a:visible', { hasText: 'Download' } );
+
+		await expect( onScreen ).toHaveCount( 1 );
+	} );
+
 	test( 'the files type filter hides what is not that type', async ( {
 		page,
 	} ) => {
