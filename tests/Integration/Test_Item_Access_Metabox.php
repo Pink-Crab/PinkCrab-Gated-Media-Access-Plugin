@@ -15,6 +15,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
  * The item's edit screen shows who holds it directly, removable through the
@@ -125,7 +126,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertSame( 'file', get_post_meta( (int) $records[0], Access_Writer::META_ITEM_TYPE, true ) );
 	}
 
-	/** @testdox The inline grant renders: user picker, days, a nonced grant button. */
+	/** @testdox The inline grant renders: user picker, days, and the nonce its save is checked against. */
 	public function test_inline_grant_renders(): void {
 		$post_id = self::factory()->post->create();
 
@@ -133,10 +134,8 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'gatedmedia-inline-grant', $html );
 		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_users"', $html );
-		$this->assertStringContainsString( 'gatedmedia-grant-access', $html );
-		$this->assertStringContainsString( 'gatedmedia_item_grant', $html );
-		$this->assertStringContainsString( 'item=' . $post_id, $html );
-		$this->assertStringContainsString( '_wpnonce', $html );
+		$this->assertStringContainsString( 'gatedmedia-inline-grant-days', $html );
+		$this->assertStringContainsString( Item_Access_Metabox::SAVE_NONCE, $html );
 	}
 
 	/** @testdox An inline grant for nobody writes nothing. */
@@ -164,8 +163,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'group=' . $in_uuid, $html );
 		// The group picker is the same searchable pattern as every other.
 		$this->assertStringContainsString( 'data-gatedmedia-picker="gatedmedia_search_groups"', $html );
-		$this->assertStringContainsString( 'gatedmedia-add-to-group', $html );
-		$this->assertStringContainsString( '_wpnonce', $html );
+		$this->assertStringContainsString( sprintf( 'name="%s"', Item_Access_Metabox::FIELD_GROUP ), $html );
 		// The out-group is not listed as a membership.
 		$this->assertStringNotContainsString( 'group=' . $out_uuid, $html );
 		// The restricted marker is never listed as a group.
@@ -249,6 +247,240 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertFalse( $this->metabox->apply_group( $post_id, wp_generate_uuid4(), 'add' ) );
 		$this->assertFalse( $this->metabox->apply_group( $post_id, $uuid, 'obliterate' ) );
 		$this->assertFalse( $this->metabox->apply_group( 999999, $uuid, 'add' ) );
+	}
+
+	/**
+	 * @testdox An inline grant is staged in the form, not fired the moment it is pressed.
+	 *
+	 * The button set window.location to an admin-post URL, so pressing it left
+	 * the editor mid-edit: whatever had been typed and not saved was lost, and
+	 * the access was written against a post the administrator might then never
+	 * save. The box carries its own fields inside the editor's form instead.
+	 */
+	public function test_the_grant_is_staged_in_the_form(): void {
+		$post_id = self::factory()->post->create();
+		$html    = $this->render( $post_id );
+
+		$this->assertStringContainsString(
+			sprintf( 'name="%s"', Item_Access_Metabox::FIELD_USER ),
+			$html
+		);
+		$this->assertStringContainsString(
+			sprintf( 'name="%s"', Item_Access_Metabox::FIELD_DAYS ),
+			$html
+		);
+		$this->assertStringContainsString( Item_Access_Metabox::SAVE_NONCE, $html );
+
+		// Nothing may navigate away from the editor any more.
+		$this->assertStringNotContainsString( 'admin-post.php', $html );
+		$this->assertStringNotContainsString( 'data-gatedmedia-url', $html );
+	}
+
+	/** @testdox Rendering the box grants nothing by itself. */
+	public function test_rendering_grants_nothing(): void {
+		$post_id = self::factory()->post->create();
+
+		$this->render( $post_id );
+
+		$this->assertSame( array(), $this->records_for( $post_id ) );
+	}
+
+	/** @testdox Saving the post applies the staged grant. */
+	public function test_saving_applies_the_staged_grant(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+
+		$this->stage_grant( $post_id, $this->user_id, '30' );
+
+		$this->metabox->save_item( $post_id );
+
+		$records = $this->records_for( $post_id );
+
+		$this->assertCount( 1, $records );
+		$this->assertSame(
+			$this->user_id,
+			(int) get_post_field( 'post_author', $records[0] )
+		);
+	}
+
+	/** @testdox An empty days box stages lifetime access, as the description says. */
+	public function test_an_empty_days_box_grants_lifetime(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+
+		$this->stage_grant( $post_id, $this->user_id, '' );
+		$this->metabox->save_item( $post_id );
+
+		$records = $this->records_for( $post_id );
+
+		$this->assertCount( 1, $records );
+		$this->assertSame(
+			'',
+			(string) get_post_meta( $records[0], Access_Writer::META_EXPIRES_AT, true )
+		);
+	}
+
+	/** @testdox A save carrying no staged user grants nothing. */
+	public function test_a_save_without_a_user_grants_nothing(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+
+		$this->stage_grant( $post_id, 0, '30' );
+		$this->metabox->save_item( $post_id );
+
+		$this->assertSame( array(), $this->records_for( $post_id ) );
+	}
+
+	/** @testdox A save with no nonce grants nothing, whoever is signed in. */
+	public function test_a_save_without_the_nonce_grants_nothing(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+
+		$this->stage_grant( $post_id, $this->user_id, '30' );
+		unset( $_POST[ Item_Access_Metabox::SAVE_NONCE ] );
+
+		$this->metabox->save_item( $post_id );
+
+		$this->assertSame( array(), $this->records_for( $post_id ) );
+	}
+
+	/** @testdox A save by somebody who may not give access grants nothing. */
+	public function test_a_save_without_the_capability_grants_nothing(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+
+		$this->stage_grant( $post_id, $this->user_id, '30' );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+
+		$this->metabox->save_item( $post_id );
+
+		$this->assertSame( array(), $this->records_for( $post_id ) );
+	}
+
+	/**
+	 * @testdox An autosave grants nothing: it is not the administrator pressing Update.
+	 *
+	 * In its own process: DOING_AUTOSAVE is a constant, and a constant defined
+	 * here would stay defined for every test after it, so every later save
+	 * would return at the first line and pass for the wrong reason.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_an_autosave_grants_nothing(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+
+		$this->stage_grant( $post_id, $this->user_id, '30' );
+
+		define( 'DOING_AUTOSAVE', true );
+		$this->metabox->save_item( $post_id );
+
+		$this->assertSame( array(), $this->records_for( $post_id ) );
+	}
+
+	/** @testdox Adding to a group is staged in the form too, not fired on the press. */
+	public function test_the_group_add_is_staged_in_the_form(): void {
+		$post_id = self::factory()->post->create();
+		$html    = $this->render( $post_id );
+
+		$this->assertStringContainsString(
+			sprintf( 'name="%s"', Item_Access_Metabox::FIELD_GROUP ),
+			$html
+		);
+	}
+
+	/** @testdox Saving the post puts the item in the staged group. */
+	public function test_saving_applies_the_staged_group(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+		$term    = self::factory()->term->create_and_get(
+			array(
+				'taxonomy' => Access_Taxonomy::TAXONOMY,
+				'name'     => 'Briefings',
+			)
+		);
+		$uuid = ( new Access_Taxonomy() )->uuid_for( $term->term_id );
+
+		$this->stage_grant( $post_id, 0, '' );
+		$_POST[ Item_Access_Metabox::FIELD_GROUP ] = $uuid;
+
+		$this->metabox->save_item( $post_id );
+
+		$this->assertContains( $term->slug, $this->object_slugs( $post_id ) );
+	}
+
+	/** @testdox A save with no staged group leaves the item's groups alone. */
+	public function test_a_save_without_a_group_changes_nothing(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$post_id = self::factory()->post->create();
+		$term    = self::factory()->term->create_and_get(
+			array(
+				'taxonomy' => Access_Taxonomy::TAXONOMY,
+				'name'     => 'Left alone',
+			)
+		);
+
+		wp_set_object_terms( $post_id, array( $term->term_id ), Access_Taxonomy::TAXONOMY );
+
+		$this->stage_grant( $post_id, 0, '' );
+		$this->metabox->save_item( $post_id );
+
+		$this->assertContains( $term->slug, $this->object_slugs( $post_id ) );
+	}
+
+	/**
+	 * Puts one pending grant into the request, as the metabox's own fields do.
+	 *
+	 * @param int    $post_id The item being edited.
+	 * @param int    $user_id Who is to gain access, 0 for nobody chosen.
+	 * @param string $days    Days, or '' for lifetime.
+	 */
+	private function stage_grant( int $post_id, int $user_id, string $days ): void {
+		$_POST[ Item_Access_Metabox::SAVE_NONCE ] = wp_create_nonce( Item_Access_Metabox::SAVE_ACTION . '_' . $post_id );
+		$_POST[ Item_Access_Metabox::FIELD_USER ] = (string) $user_id;
+		$_POST[ Item_Access_Metabox::FIELD_DAYS ] = $days;
+	}
+
+	/**
+	 * The access records pointing at one item.
+	 *
+	 * @param int $post_id The item.
+	 * @return array<int, int>
+	 */
+	private function records_for( int $post_id ): array {
+		return array_map(
+			'intval',
+			get_posts(
+				array(
+					'post_type'      => Post_Types::ACCESS,
+					// Named, never 'any': the access statuses are excluded
+					// from search, so 'any' does not see them.
+					'post_status'    => array(
+						Post_Types::STATUS_ACTIVE,
+						Post_Types::STATUS_EXPIRED,
+						Post_Types::STATUS_REVOKED,
+					),
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Test assertion.
+						array(
+							'key'   => Access_Writer::META_ITEM_ID,
+							'value' => (string) $post_id,
+						),
+					),
+				)
+			)
+		);
 	}
 
 	/**

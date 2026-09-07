@@ -37,6 +37,13 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  *
  * Direct records only in the holders list. A user holding a group that
  * contains this item is the group's business.
+ *
+ * Over phpmd's class ceiling, and the score is markup rather than logic:
+ * three sections are printed here, each with its own empty state and its own
+ * list. Issue #54 moves the admin views to templates, which is where that
+ * belongs; splitting the class would scatter one screen across several.
+ *
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 class Item_Access_Metabox implements Hookable {
 
@@ -45,6 +52,21 @@ class Item_Access_Metabox implements Hookable {
 
 	/** The admin-post action granting a user this item, inline. */
 	public const GRANT_ACTION = 'gatedmedia_item_grant';
+
+	/** What the box's own nonce protects. */
+	public const SAVE_ACTION = 'gatedmedia_item_access_save';
+
+	/** The nonce field carrying it. */
+	public const SAVE_NONCE = 'gatedmedia_item_access_nonce';
+
+	/** Who the pending grant is for. */
+	public const FIELD_USER = 'gatedmedia_grant_user';
+
+	/** How many days it runs for, empty for lifetime. */
+	public const FIELD_DAYS = 'gatedmedia_grant_days';
+
+	/** The group the item is to join, by UUID. */
+	public const FIELD_GROUP = 'gatedmedia_join_group';
 
 	/**
 	 * Groups resolve through the taxonomy's UUID identity; grants are the
@@ -64,7 +86,7 @@ class Item_Access_Metabox implements Hookable {
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->admin_action( 'add_meta_boxes', array( $this, 'register_metabox' ) );
 		$loader->action( 'admin_post_' . self::GROUP_ACTION, array( $this, 'handle_group' ) );
-		$loader->action( 'admin_post_' . self::GRANT_ACTION, array( $this, 'handle_grant' ) );
+		$loader->action( 'save_post', array( $this, 'save_item' ) );
 		$loader->admin_action( 'admin_notices', array( $this, 'render_notices' ) );
 	}
 
@@ -144,61 +166,78 @@ class Item_Access_Metabox implements Hookable {
 			esc_html__( 'User to give access to', 'gated-media-access' )
 		);
 
-		( new User_Picker( 'gatedmedia_metabox_user', 'gatedmedia_metabox_user_' . $item_id ) )->render();
+		( new User_Picker( self::FIELD_USER, 'gatedmedia_metabox_user_' . $item_id ) )->render();
 
 		printf(
 			'<label class="screen-reader-text" for="%1$s">%2$s</label>
-			<input type="number" min="1" id="%1$s" placeholder="%3$s" class="gatedmedia-inline-grant-days" />
-			<button type="button" class="button gatedmedia-grant-access" data-gatedmedia-url="%4$s">%5$s</button>
-			<p class="description">%6$s</p>',
+			<input type="number" min="1" id="%1$s" name="%3$s" placeholder="%4$s" class="gatedmedia-inline-grant-days" />
+			<p class="description">%5$s</p>',
 			esc_attr( $days_id ),
 			esc_html__( 'Days of access, or empty for lifetime', 'gated-media-access' ),
+			esc_attr( self::FIELD_DAYS ),
 			esc_attr__( 'Days', 'gated-media-access' ),
-			esc_url(
-				wp_nonce_url(
-					add_query_arg(
-						array(
-							'action' => self::GRANT_ACTION,
-							'item'   => $item_id,
-						),
-						admin_url( 'admin-post.php' )
-					),
-					self::GRANT_ACTION . '_' . $item_id
-				)
-			),
-			esc_html__( 'Grant access', 'gated-media-access' ),
-			esc_html__( 'Empty days means lifetime.', 'gated-media-access' )
+			esc_html__( 'Empty days means lifetime. Access is given when you save.', 'gated-media-access' )
 		);
+
+		wp_nonce_field( self::SAVE_ACTION . '_' . $item_id, self::SAVE_NONCE );
 
 		echo '</div>';
 	}
 
 	/**
-	 * Guards the click, grants through the writer, returns to the editor.
+	 * Applies a staged grant when the item itself is saved.
 	 *
-	 * The `exit` is required: a redirect that does not halt emits a body
-	 * alongside the Location header (the `Profile_Writer::handle()` note).
+	 * The button used to set `window.location` to an admin-post URL the moment
+	 * it was pressed, which left the editor mid-edit: unsaved work went, and
+	 * the access was written against a post that might never be saved. The box
+	 * carries its own fields inside the editor's form, and this reads them.
+	 *
+	 * @param int $item_id The post or attachment being saved.
 	 */
-	public function handle_grant(): void {
-		$item_id = isset( $_GET['item'] ) ? absint( $_GET['item'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The id names which nonce to check; check_admin_referer runs on the next line.
-
-		check_admin_referer( self::GRANT_ACTION . '_' . $item_id );
-
-		if ( ! current_user_can( Capabilities::give_access() ) ) {
-			wp_die( esc_html__( 'You are not allowed to give access.', 'gated-media-access' ), '', 403 );
+	public function save_item( int $item_id ): void {
+		if ( ! $this->may_save( $item_id ) ) {
+			return;
 		}
 
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Verified above.
-		$user_id = isset( $_GET['user'] ) ? absint( $_GET['user'] ) : 0;
-		$days    = isset( $_GET['days'] ) ? absint( $_GET['days'] ) : 0;
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified above.
+		$user_id = isset( $_POST[ self::FIELD_USER ] ) ? absint( $_POST[ self::FIELD_USER ] ) : 0;
+		$days    = isset( $_POST[ self::FIELD_DAYS ] ) ? absint( $_POST[ self::FIELD_DAYS ] ) : 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-		$granted = $this->apply_grant( $item_id, $user_id, $days );
+		if ( 0 !== $user_id ) {
+			$this->apply_grant( $item_id, $user_id, $days );
+		}
 
-		wp_safe_redirect(
-			add_query_arg( 'gatedmedia_granted', $granted ? '1' : '0', (string) get_edit_post_link( $item_id, 'url' ) )
-		);
-		exit;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified above.
+		$group = isset( $_POST[ self::FIELD_GROUP ] ) ? sanitize_text_field( wp_unslash( $_POST[ self::FIELD_GROUP ] ) ) : '';
+
+		if ( '' !== $group ) {
+			$this->apply_group( $item_id, $group, 'add' );
+		}
+	}
+
+	/**
+	 * Whether this save is the administrator's own, on this very item.
+	 *
+	 * An autosave is not: it fires while they are still typing, and would
+	 * grant against a post they have not finished.
+	 *
+	 * @param int $item_id The post or attachment being saved.
+	 */
+	private function may_save( int $item_id ): bool {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return false;
+		}
+
+		$nonce = isset( $_POST[ self::SAVE_NONCE ] )
+			? sanitize_text_field( wp_unslash( $_POST[ self::SAVE_NONCE ] ) )
+			: '';
+
+		if ( false === wp_verify_nonce( $nonce, self::SAVE_ACTION . '_' . $item_id ) ) {
+			return false;
+		}
+
+		return current_user_can( Capabilities::give_access() );
 	}
 
 	/**
@@ -262,12 +301,17 @@ class Item_Access_Metabox implements Hookable {
 			echo '</ul>';
 		}
 
-		( new Group_Picker( 'gatedmedia_metabox_group', 'gatedmedia_metabox_group_' . $item_id ) )->render();
+		$group_id = 'gatedmedia_metabox_group_' . $item_id;
+
 		printf(
-			' <button type="button" class="button gatedmedia-add-to-group" data-gatedmedia-url="%s">%s</button>',
-			esc_url( add_query_arg( 'op', 'add', $this->group_url( $item_id ) ) ),
-			esc_html__( 'Add to group', 'gated-media-access' )
+			'<label class="screen-reader-text" for="%s_search">%s</label>',
+			esc_attr( $group_id ),
+			esc_html__( 'Group to add this item to', 'gated-media-access' )
 		);
+
+		( new Group_Picker( self::FIELD_GROUP, $group_id ) )->render();
+
+		printf( '<p class="description">%s</p>', esc_html__( 'The item joins the group when you save.', 'gated-media-access' ) );
 	}
 
 	/**

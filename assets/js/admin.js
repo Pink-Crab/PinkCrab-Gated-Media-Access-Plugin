@@ -125,47 +125,6 @@ onReady( () => {
 		} );
 	}
 
-	// The item metabox's buttons: each turns its picker's choice into a
-	// navigation to the nonced admin-post URL — no form inside the
-	// editor's form.
-	document.addEventListener( 'click', ( event ) => {
-		const addToGroup = event.target.closest?.( '.gatedmedia-add-to-group' );
-
-		if ( addToGroup ) {
-			const hidden = addToGroup.parentElement.querySelector(
-				'input[type="hidden"]'
-			);
-
-			if ( hidden?.value ) {
-				window.location =
-					addToGroup.dataset.gatedmediaUrl +
-					'&group=' +
-					encodeURIComponent( hidden.value );
-			}
-
-			return;
-		}
-
-		const grant = event.target.closest?.( '.gatedmedia-grant-access' );
-
-		if ( ! grant ) {
-			return;
-		}
-
-		const wrap = grant.closest( '.gatedmedia-inline-grant' );
-		const user = wrap?.querySelector( 'input[type="hidden"]' );
-		const days = wrap?.querySelector( '.gatedmedia-inline-grant-days' );
-
-		if ( user?.value ) {
-			window.location =
-				grant.dataset.gatedmediaUrl +
-				'&user=' +
-				encodeURIComponent( user.value ) +
-				'&days=' +
-				encodeURIComponent( days?.value || '' );
-		}
-	} );
-
 	// The Notifications page's template panels: the enabled checkbox sits in
 	// the <summary>, and ticking it must not also fold the panel.
 	document
