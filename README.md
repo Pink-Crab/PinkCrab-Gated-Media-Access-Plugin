@@ -38,16 +38,6 @@ this one supplies the access decision. Without it, Gated Media Access shows a
 notice and does nothing at all, because a plugin that looks alive while files
 are served unprotected is worse than one that says plainly it is not working.
 
-## Install
-
-```bash
-composer install
-nvm use 22 && npm install && npm run build
-```
-
-The build is not optional: the blocks that draw every screen are registered
-from `build/`, so without it the account area has nothing to render.
-
 ## Restricting content
 
 Add a post, a page or a file to a group and it is restricted. Nothing else is
@@ -159,13 +149,14 @@ access would still work exactly the same.
 
 ## Extending it
 
-Everything is filtered, and the four that matter most:
+Forty-one filters and twelve actions, all documented with examples in
+[`docs/hooks.md`](docs/hooks.md). The four that matter most:
 
 | | |
 |---|---|
-| `gatedmedia_user_can_access` | The last word on any access decision |
+| `gatedmedia_user_can_access` | The last word on any access decision, asked by every boundary |
 | `gatedmedia_account_sections` | Add a page to the account area |
-| `gatedmedia_product_eligibility` | Decide who may buy a product |
+| `gatedmedia_product_eligibility` | Decide who may buy a product, asked again on submit |
 | `gatedmedia_notification_recipients` | Take over sending, or stop it |
 
 A section is a slug, a title, a block and a position:
