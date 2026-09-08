@@ -215,6 +215,92 @@ class Test_Order_History extends WP_UnitTestCase {
 		$this->assertSame( 'lifetime', $access[0]['expiry_state'] );
 	}
 
+	/**
+	 * @testdox A record the sweep expired reads as expired, not as one day left.
+	 *
+	 * `Expiry::describe()` floors a past date at one day, because in every
+	 * other view it is only ever asked about live access. Order detail lists
+	 * records whatever their status, so a lapsed one came back as
+	 * "Expires in 1 day" — a live-looking chip on access that has gone.
+	 */
+	public function test_an_expired_record_reads_as_expired(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Last quarter' ) );
+		$payment = $this->completed_payment( array( 'post:' . $post_id ) );
+
+		$access_id = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, Checkout::SOURCE_STRIPE, $payment->uuid );
+
+		$this->assertIsInt( $access_id );
+
+		// Backdate it and move it the way the sweep does.
+		update_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
+		wp_update_post(
+			array(
+				'ID'          => $access_id,
+				'post_status' => Post_Types::STATUS_EXPIRED,
+			)
+		);
+
+		$access = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['access'];
+
+		$this->assertCount( 1, $access );
+		$this->assertSame( 'expired', $access[0]['expiry_state'] );
+		$this->assertStringNotContainsString( 'Expires in', $access[0]['expiry_label'] );
+	}
+
+	/**
+	 * @testdox A revoked lifetime record says it was withdrawn rather than Lifetime.
+	 *
+	 * A refund revokes without touching the date, so a lifetime record kept
+	 * reading "Lifetime" and a dated one kept its future date, both on access
+	 * the customer no longer has.
+	 */
+	public function test_a_revoked_record_reads_as_withdrawn(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'The whole archive' ) );
+		$payment = $this->completed_payment( array( 'post:' . $post_id ) );
+
+		$access_id = $this->writer->grant( $this->user_id, 'post', (string) $post_id, null, Checkout::SOURCE_STRIPE, $payment->uuid );
+
+		$this->assertIsInt( $access_id );
+		$this->assertTrue( $this->writer->revoke( $access_id ) );
+
+		$access = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['access'];
+
+		$this->assertCount( 1, $access );
+		$this->assertSame( 'expired', $access[0]['expiry_state'] );
+		$this->assertNotSame( 'Lifetime', $access[0]['expiry_label'] );
+	}
+
+	/** @testdox A revoked dated record does not keep advertising its old date. */
+	public function test_a_revoked_dated_record_drops_its_date(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Analyst briefings' ) );
+		$payment = $this->completed_payment( array( 'post:' . $post_id ) );
+
+		$access_id = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, Checkout::SOURCE_STRIPE, $payment->uuid );
+
+		$this->assertIsInt( $access_id );
+		$this->assertTrue( $this->writer->revoke( $access_id ) );
+
+		$access = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['access'];
+
+		$this->assertSame( 'expired', $access[0]['expiry_state'] );
+		$this->assertStringNotContainsString(
+			wp_date( (string) get_option( 'date_format' ), time() + ( 30 * DAY_IN_SECONDS ) ),
+			$access[0]['expiry_label']
+		);
+	}
+
+	/** @testdox Live access is unaffected: a dated record still reports its date. */
+	public function test_a_live_record_still_reports_its_date(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Still running' ) );
+		$payment = $this->completed_payment( array( 'post:' . $post_id ) );
+
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, Checkout::SOURCE_STRIPE, $payment->uuid );
+
+		$access = $this->data->orders( self::DEFAULTS, $payment->uuid )['detail']['access'];
+
+		$this->assertSame( 'dated', $access[0]['expiry_state'] );
+	}
+
 	/** @testdox The thank-you shows only when the query arg names this very order. */
 	public function test_is_new_only_for_the_named_order(): void {
 		$payment = $this->completed_payment();

@@ -61,3 +61,13 @@ define( 'NONCE_SALT',       'phpunit-salt' );
 
 define( 'WPLANG',   '' );
 define( 'WP_DEBUG', true );
+
+// Core calls wp_is_block_theme before the theme directory is registered, which
+// is a notice PHPUnit turns into an error in a test running in its own process.
+// @see https://core.trac.wordpress.org/ticket/63086
+set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Test bootstrap.
+	function ( $errno, $errstr ) {
+		return E_USER_NOTICE === $errno && false !== strpos( $errstr, 'wp_is_block_theme' );
+	},
+	E_USER_NOTICE
+);

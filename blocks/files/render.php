@@ -110,6 +110,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 				'title'            => (string) ( $item['title'] ?? '' ),
 				'meta'             => (string) ( $item['meta'] ?? '' ),
 				'state'            => 'unavailable',
+				'filterType'       => (string) ( $item['type'] ?? '' ),
 				'unavailableLabel' => __( 'No longer available', 'gated-media-access' ),
 			)
 		);
@@ -145,6 +146,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 		array(
 			'title'       => (string) ( $item['title'] ?? '' ),
 			'meta'        => (string) ( $item['meta'] ?? '' ),
+			'filterType'  => (string) ( $item['type'] ?? '' ),
 			'actionLabel' => 'available' === $section ? __( 'Download', 'gated-media-access' ) : '',
 			'actionHref'  => (string) ( $item['href'] ?? '' ),
 			'actionIcon'  => 'i-download',
@@ -193,7 +195,7 @@ if ( '' === $gatedmedia_body ) {
 	);
 }
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-view gatedmedia-view--files' ) ) ); ?>>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia gatedmedia-view gatedmedia-view--files' ) ) ); ?>>
 	<?php
 	echo $gatedmedia_filter; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the filter block.
 	echo $gatedmedia_body;   // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the blocks that produced it.

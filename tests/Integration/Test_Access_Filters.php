@@ -66,6 +66,51 @@ class Test_Access_Filters extends WP_UnitTestCase {
 		$this->assertSame( '', (string) ob_get_clean() );
 	}
 
+	/**
+	 * @testdox Every filter control is labelled, not left to a placeholder.
+	 *
+	 * @dataProvider filter_controls
+	 *
+	 * @param string $id The control's id attribute.
+	 */
+	public function test_every_filter_control_has_a_label( string $id ): void {
+		ob_start();
+		$this->filters->render_filters( Post_Types::ACCESS, 'top' );
+		$html = (string) ob_get_clean();
+
+		// A placeholder is not a label: it goes as soon as anything is typed.
+		$this->assertMatchesRegularExpression(
+			sprintf( '/<label[^>]*\bfor="%s"[^>]*>/', preg_quote( $id, '/' ) ),
+			$html,
+			sprintf( 'No label targets %s.', $id )
+		);
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function filter_controls(): array {
+		return array(
+			'holder search' => array( 'gatedmedia_filter_holder_search' ),
+			'item type'     => array( 'gatedmedia_filter_item_type' ),
+			'item search'   => array( 'gatedmedia_filter_item_search' ),
+			'source'        => array( 'gatedmedia_filter_source' ),
+		);
+	}
+
+	/** @testdox Those labels are hidden from sight, so the toolbar still reads as one row. */
+	public function test_the_filter_labels_are_screen_reader_only(): void {
+		ob_start();
+		$this->filters->render_filters( Post_Types::ACCESS, 'top' );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame(
+			4,
+			substr_count( $html, 'class="screen-reader-text"' ),
+			'Each of the four controls needs its own hidden label.'
+		);
+	}
+
 	/** @testdox The chosen filters become meta clauses on the list query, and touch no other query. */
 	public function test_filters_shape_the_query(): void {
 		$_GET['gatedmedia_item_type'] = 'post';

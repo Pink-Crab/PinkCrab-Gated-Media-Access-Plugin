@@ -464,6 +464,32 @@ test.describe( 'orders', () => {
 		).toHaveCount( 0 );
 	} );
 
+	test( 'one failed request does not end the poll', async ( { page } ) => {
+		const uuid = process.env.GATEDMEDIA_PENDING_UUID;
+
+		test.skip( ! uuid, 'The shop fixture did not run.' );
+
+		let served = 0;
+
+		// A blip. The buyer has paid, so the panel must keep watching.
+		await page.route( `**/payment/${ uuid }**`, async ( route ) => {
+			served += 1;
+
+			if ( 1 === served ) {
+				await route.fulfill( { status: 502, body: 'nope' } );
+				return;
+			}
+
+			await route.continue();
+		} );
+
+		await page.goto( `/account/orders/${ uuid }/?new_order=${ uuid }` );
+
+		await expect
+			.poll( () => served, { timeout: 20_000 } )
+			.toBeGreaterThan( 1 );
+	} );
+
 	test( "somebody else's order reads as one that never existed", async ( {
 		page,
 	} ) => {

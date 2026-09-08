@@ -196,4 +196,91 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'Access revoked.', $revoked );
 	}
+
+	/**
+	 * @testdox A refused grant is explained in a sentence, never as its error code.
+	 *
+	 * @dataProvider refusal_codes
+	 *
+	 * @param string $code     The WP_Error code the redirect carries.
+	 * @param string $expected Wording the administrator should read.
+	 */
+	public function test_a_refusal_reads_as_a_sentence( string $code, string $expected ): void {
+		$_GET['gatedmedia_error'] = $code;
+
+		ob_start();
+		$this->page->render_notices();
+		$notice = (string) ob_get_clean();
+
+		unset( $_GET['gatedmedia_error'] );
+
+		$this->assertStringContainsString( 'notice-error', $notice );
+		$this->assertStringContainsString( $expected, $notice );
+		$this->assertStringNotContainsString( $code, $notice );
+	}
+
+	/**
+	 * Every code Access_Validator can refuse with.
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public static function refusal_codes(): array {
+		return array(
+			'no such user'      => array( 'gatedmedia_invalid_user', 'user' ),
+			'bad item type'     => array( 'gatedmedia_invalid_item_type', 'file, post or group' ),
+			'bad duration'      => array( 'gatedmedia_invalid_duration', 'days' ),
+			'missing source'    => array( 'gatedmedia_invalid_source', 'where' ),
+			'item not found'    => array( 'gatedmedia_invalid_item', 'could not be found' ),
+		);
+	}
+
+	/**
+	 * @testdox Every picker's label points at the box a person actually types in.
+	 *
+	 * @dataProvider picker_rows
+	 *
+	 * @param string $element_id The picker's element id.
+	 * @param string $label      The visible label text.
+	 */
+	public function test_each_picker_label_targets_its_visible_input( string $element_id, string $label ): void {
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+
+		// Search_Picker gives the typed box `{id}_search`, the hidden `{id}`.
+		$this->assertStringContainsString(
+			sprintf( '<label for="%s_search">%s</label>', $element_id, $label ),
+			$html
+		);
+		$this->assertStringNotContainsString(
+			sprintf( '<label for="%s">%s</label>', $element_id, $label ),
+			$html
+		);
+	}
+
+	/**
+	 * @return array<string, array{string, string}>
+	 */
+	public static function picker_rows(): array {
+		return array(
+			'user'  => array( 'gatedmedia_user', 'User' ),
+			'group' => array( 'gatedmedia_group', 'Group' ),
+			'post'  => array( 'gatedmedia_post', 'Post' ),
+			'file'  => array( 'gatedmedia_file', 'File' ),
+		);
+	}
+
+	/** @testdox A code nobody recognises still reads as a sentence rather than the raw string. */
+	public function test_an_unknown_refusal_still_reads_as_a_sentence(): void {
+		$_GET['gatedmedia_error'] = 'gatedmedia_something_new';
+
+		ob_start();
+		$this->page->render_notices();
+		$notice = (string) ob_get_clean();
+
+		unset( $_GET['gatedmedia_error'] );
+
+		$this->assertStringNotContainsString( 'gatedmedia_something_new', $notice );
+		$this->assertStringContainsString( 'notice-error', $notice );
+	}
 }

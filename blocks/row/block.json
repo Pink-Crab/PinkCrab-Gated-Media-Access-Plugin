@@ -53,6 +53,10 @@
 		"unavailableLabel": {
 			"type": "string",
 			"default": ""
+		},
+		"filterType": {
+			"type": "string",
+			"default": ""
 		}
 	},
 	"supports": {

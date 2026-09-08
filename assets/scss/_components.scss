@@ -168,6 +168,14 @@
 		}
 	}
 
+	// The full-width action replaces the aside's control, never joins it.
+	@include narrow {
+
+		&:has(.gatedmedia-row__action) .gatedmedia-row__aside .gatedmedia-button {
+			display: none;
+		}
+	}
+
 	// The title is struck through; the row itself is dimmed by `is-unavailable`.
 	&.is-unavailable &__title {
 		text-decoration: line-through;

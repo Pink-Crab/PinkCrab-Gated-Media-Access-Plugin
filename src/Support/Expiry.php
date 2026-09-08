@@ -57,4 +57,35 @@ class Expiry {
 			'label' => sprintf( __( 'Expires %s', 'gated-media-access' ), wp_date( (string) get_option( 'date_format' ), $expires_at ) ),
 		);
 	}
+
+	/**
+	 * Access that ran out.
+	 *
+	 * `describe()` floors a past date at one day, because everywhere it is
+	 * asked about live access that is the only sensible reading. A view that
+	 * lists records whatever their status asks for this instead.
+	 *
+	 * @return array{state: string, label: string}
+	 */
+	public static function ended(): array {
+		return array(
+			'state' => 'expired',
+			'label' => __( 'Expired', 'gated-media-access' ),
+		);
+	}
+
+	/**
+	 * Access taken back, which is not the same as access that ran out.
+	 *
+	 * A revoke leaves the stored date alone, so the date is never the thing to
+	 * report here: a refunded lifetime record would read "Lifetime".
+	 *
+	 * @return array{state: string, label: string}
+	 */
+	public static function withdrawn(): array {
+		return array(
+			'state' => 'expired',
+			'label' => __( 'Withdrawn', 'gated-media-access' ),
+		);
+	}
 }

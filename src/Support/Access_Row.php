@@ -121,10 +121,35 @@ class Access_Row {
 			'meta'         => self::joined( array( $type, $size ) ),
 			'href'         => (string) wp_get_attachment_url( $file_id ),
 			'state'        => 'normal',
+			'type'         => self::filter_type( $mime ),
 			'action_label' => __( 'Download', 'gated-media-access' ),
 			'expiry_state' => $expiry['state'],
 			'expiry_label' => $expiry['label'],
 		);
+	}
+
+	/**
+	 * Which of the Files view's type filters a file answers to (§6.11).
+	 *
+	 * Anything outside the list answers to none of them, so it shows only
+	 * under All — the filter names four kinds, not every kind.
+	 *
+	 * @param string $mime The attachment's mime type.
+	 */
+	public static function filter_type( string $mime ): string {
+		if ( str_starts_with( $mime, 'video/' ) ) {
+			return 'video';
+		}
+
+		if ( str_starts_with( $mime, 'audio/' ) ) {
+			return 'audio';
+		}
+
+		if ( 'application/pdf' === $mime ) {
+			return 'pdf';
+		}
+
+		return in_array( $mime, array( 'application/zip', 'application/x-zip-compressed' ), true ) ? 'zip' : '';
 	}
 
 	/**

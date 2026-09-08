@@ -197,10 +197,12 @@
 		color: $ink;
 		box-shadow: none;
 
+		// §6.3: focus is never removed, and never a colour change alone.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;
-			outline: none;
+			outline: 2px solid $ink;
+			outline-offset: 1px;
 		}
 	}
 
@@ -215,10 +217,12 @@
 		color: $ink;
 		box-shadow: none;
 
+		// §6.3, as above.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;
-			outline: none;
+			outline: 2px solid $ink;
+			outline-offset: 1px;
 		}
 	}
 

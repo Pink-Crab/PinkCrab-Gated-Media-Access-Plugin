@@ -17,12 +17,13 @@
  * canvas, whose content styles are the wrong scale for a form.
  */
 
-import { useState } from '@wordpress/element';
+import { useRef, useState } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { useBlockProps } from '@wordpress/block-editor';
 import { CheckboxControl } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
+import { addQueryArgs } from '@wordpress/url';
 
 import { currencyDigits } from '../../assets/js/editor/controls';
 
@@ -57,6 +58,28 @@ const ENDPOINTS = {
 	post: 'gatedmedia_search_posts',
 	file: 'gatedmedia_search_files',
 };
+
+// Values are storage ("group:12"), labels are what the screen shows.
+const ITEM_TYPES = [
+	{ value: 'group', label: __( 'Group', 'gated-media-access' ) },
+	{ value: 'post', label: __( 'Post', 'gated-media-access' ) },
+	{ value: 'file', label: __( 'File', 'gated-media-access' ) },
+];
+
+/**
+ * What one item type is called. An unknown one reads as itself.
+ *
+ * @param {string} value The stored type.
+ * @return {string} Its label.
+ */
+function typeLabel( value ) {
+	const known = ITEM_TYPES.find( ( type ) => type.value === value );
+
+	return known ? known.label : value;
+}
+
+/** Below this, a search matches too much to be worth asking for. */
+const MIN_TERM = 2;
 
 const INK = '#333235';
 const INK_SOFT = '#605e61';
@@ -160,8 +183,8 @@ const STYLES = {
 		alignSelf: 'center',
 	},
 	input: {
+		// No `outline: none`: §6.3 says focus is never removed.
 		border: 'none',
-		outline: 'none',
 		background: 'transparent',
 		height: '100%',
 		width: '100%',
@@ -333,6 +356,9 @@ export default function Edit() {
 	const [ itemType, setItemType ] = useState( 'group' );
 	const [ query, setQuery ] = useState( '' );
 	const [ results, setResults ] = useState( [] );
+
+	// Which search is newest, so a late answer is discarded.
+	const latest = useRef( 0 );
 	const [ labels, setLabels ] = useState( {} );
 	const [ emailDraft, setEmailDraft ] = useState( '' );
 
@@ -367,31 +393,50 @@ export default function Edit() {
 		setEmailDraft( '' );
 	};
 
-	const search = ( term, type ) => {
+	const search = async ( term, type ) => {
 		setQuery( term );
 
-		if ( ! term || term.length < 2 ) {
+		const trimmed = ( term || '' ).trim();
+		const action = ENDPOINTS[ type ];
+
+		// Counts either way, so a late answer cannot undo an empty box.
+		latest.current += 1;
+		const mine = latest.current;
+
+		if ( trimmed.length < MIN_TERM || ! action ) {
 			setResults( [] );
 			return;
 		}
 
-		window
-			.fetch(
-				`${ window.ajaxurl }?action=${
-					ENDPOINTS[ type ]
-				}&_ajax_nonce=${ shop.nonce }&term=${ encodeURIComponent(
-					term
-				) }`
-			)
-			.then( ( response ) => response.json() )
-			.then( ( found ) =>
-				setResults(
-					found.map( ( result ) => ( {
+		let found;
+
+		try {
+			const response = await window.fetch(
+				addQueryArgs( window.ajaxurl, {
+					action,
+					_ajax_nonce: shop.nonce,
+					term: trimmed,
+				} )
+			);
+
+			// A stale nonce answers "-1", which is not JSON.
+			found = response.ok ? await response.json() : [];
+		} catch {
+			found = [];
+		}
+
+		if ( mine !== latest.current ) {
+			return;
+		}
+
+		setResults(
+			Array.isArray( found )
+				? found.map( ( result ) => ( {
 						id: String( result.id ),
 						label: result.label,
-					} ) )
-				)
-			);
+				  } ) )
+				: []
+		);
 	};
 
 	const addItem = ( result ) => {
@@ -584,17 +629,17 @@ export default function Edit() {
 							flex: '0 0 auto',
 						} }
 					>
-						{ [ 'group', 'post', 'file' ].map( ( type ) => (
+						{ ITEM_TYPES.map( ( type ) => (
 							<button
-								key={ type }
+								key={ type.value }
 								type="button"
-								style={ STYLES.tab( itemType === type ) }
+								style={ STYLES.tab( itemType === type.value ) }
 								onClick={ () => {
-									setItemType( type );
-									search( query, type );
+									setItemType( type.value );
+									search( query, type.value );
 								} }
 							>
-								{ type }
+								{ type.label }
 							</button>
 						) ) }
 					</span>
@@ -673,7 +718,7 @@ export default function Edit() {
 								>
 									<span style={ STYLES.typeCell }>
 										<span style={ STYLES.caps }>
-											{ part.type }
+											{ typeLabel( part.type ) }
 										</span>
 									</span>
 									<span style={ STYLES.nameCell }>

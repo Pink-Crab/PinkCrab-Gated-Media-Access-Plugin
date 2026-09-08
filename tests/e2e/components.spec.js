@@ -152,4 +152,60 @@ test.describe( 'a component on an ordinary page', () => {
 			} )
 		).toHaveCount( 1 );
 	} );
+
+	// _base.scss scopes its rules under `.gatedmedia`; these views lacked it.
+	for ( const view of [ 'my-access', 'files', 'orders', 'profile' ] ) {
+		test( `the ${ view } view carries the gatedmedia root class`, async ( {
+			page,
+		} ) => {
+			await expect(
+				page.locator( `.gatedmedia-view--${ view }` )
+			).toHaveClass( /(?:^|\s)gatedmedia(?:\s|$)/ );
+		} );
+	}
+
+	test( 'a hidden row inside a section view is really hidden', async ( {
+		page,
+	} ) => {
+		// .gatedmedia-row sets display, which beats the UA's [hidden] rule.
+		const display = await page.evaluate( () => {
+			const row = document.querySelector(
+				'.gatedmedia-view--files .gatedmedia-row'
+			);
+
+			if ( ! row ) {
+				return 'no-row';
+			}
+
+			row.hidden = true;
+
+			return window.getComputedStyle( row ).display;
+		} );
+
+		expect( display ).toBe( 'none' );
+	} );
+
+	test( 'a spent order inside a section view is dimmed', async ( {
+		page,
+	} ) => {
+		// .is-spent is scoped under .gatedmedia too.
+		const opacity = await page.evaluate( () => {
+			const view = document.querySelector( '.gatedmedia-view--orders' );
+
+			if ( ! view ) {
+				return 'no-view';
+			}
+
+			const probe = document.createElement( 'div' );
+			probe.className = 'is-spent';
+			view.appendChild( probe );
+
+			const value = window.getComputedStyle( probe ).opacity;
+			probe.remove();
+
+			return value;
+		} );
+
+		expect( parseFloat( opacity ) ).toBeLessThan( 1 );
+	} );
 } );

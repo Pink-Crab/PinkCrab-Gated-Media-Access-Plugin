@@ -171,6 +171,72 @@ test.describe( 'account area', () => {
 		await expect( page.getByText( 'Granted file' ).first() ).toBeVisible();
 	} );
 
+	test( 'the files search hides what does not match and brings it back', async ( {
+		page,
+	} ) => {
+		await page.goto( '/account/files/' );
+
+		const row = page.locator( '.gatedmedia-row' ).first();
+		const search = page.locator(
+			'[data-gatedmedia-filter="search"] input'
+		);
+
+		await expect( row ).toBeVisible();
+
+		await search.fill( 'zzzz-no-such-file' );
+		await expect( row ).toBeHidden();
+
+		await search.fill( 'Granted' );
+		await expect( row ).toBeVisible();
+	} );
+
+	test( 'an available file offers one Download control, not two', async ( {
+		page,
+	} ) => {
+		await page.goto( '/account/files/' );
+
+		const row = page.locator( '.gatedmedia-row' ).first();
+
+		await expect( row ).toBeVisible();
+
+		// The aside and the narrow-only __action both drew one, same href.
+		const onScreen = row.locator( 'a:visible', { hasText: 'Download' } );
+
+		await expect( onScreen ).toHaveCount( 1 );
+	} );
+
+	test( 'the files type filter hides what is not that type', async ( {
+		page,
+	} ) => {
+		await page.goto( '/account/files/' );
+
+		const row = page.locator( '.gatedmedia-row' ).first();
+		const select = page.locator( '[data-gatedmedia-filter="type"]' );
+
+		await expect( row ).toBeVisible();
+
+		// Whatever the fixture's file is, video is not it.
+		const ownType = await row.getAttribute( 'data-gatedmedia-type' );
+		expect( ownType ).not.toBe( 'video' );
+
+		// Select is the wide control, chips the narrow one.
+		const wide = await select.isVisible();
+		const pick = async ( type ) => {
+			if ( wide ) {
+				await select.selectOption( type );
+				return;
+			}
+
+			await page.locator( `[data-gatedmedia-chip="${ type }"]` ).click();
+		};
+
+		await pick( 'video' );
+		await expect( row ).toBeHidden();
+
+		await pick( 'all' );
+		await expect( row ).toBeVisible();
+	} );
+
 	test( 'a profile edit saves and comes back', async ( { page } ) => {
 		await page.goto( '/account/profile/' );
 

@@ -133,7 +133,7 @@ $gatedmedia_actions = Block::render(
 	)
 );
 ?>
-<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-view gatedmedia-view--profile' ) ) ); ?>>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia gatedmedia-view gatedmedia-view--profile' ) ) ); ?>>
 	<?php echo $gatedmedia_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the notice block. ?>
 
 	<form

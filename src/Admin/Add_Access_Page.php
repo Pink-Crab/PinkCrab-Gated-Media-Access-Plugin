@@ -102,7 +102,7 @@ class Add_Access_Page implements Hookable {
 						</td>
 					</tr>
 					<tr data-gatedmedia-row="group">
-						<th scope="row"><label for="gatedmedia_group"><?php esc_html_e( 'Group', 'gated-media-access' ); ?></label></th>
+						<th scope="row"><label for="gatedmedia_group_search"><?php esc_html_e( 'Group', 'gated-media-access' ); ?></label></th>
 						<td><?php ( new Group_Picker( 'gatedmedia_group', 'gatedmedia_group' ) )->render(); ?></td>
 					</tr>
 					<tr data-gatedmedia-row="post">
@@ -274,9 +274,32 @@ class Add_Access_Page implements Hookable {
 			printf(
 				'<div class="notice notice-error"><p>%s %s</p></div>',
 				esc_html__( 'Access was not granted:', 'gated-media-access' ),
-				esc_html( sanitize_text_field( wp_unslash( $_GET['gatedmedia_error'] ) ) )
+				esc_html( self::refusal( sanitize_key( wp_unslash( $_GET['gatedmedia_error'] ) ) ) )
 			);
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * What a refusal reads as, for a person.
+	 *
+	 * The redirect carries `WP_Error::get_error_code()`, which is a machine
+	 * name: an administrator was reading "Access was not granted:
+	 * gatedmedia_invalid_user". The codes come from `Access_Validator`;
+	 * anything it grows later falls through to the general wording rather than
+	 * leaking its name onto the screen.
+	 *
+	 * @param string $code The error code the redirect carried.
+	 */
+	private static function refusal( string $code ): string {
+		$messages = array(
+			'gatedmedia_invalid_user'      => __( 'that user does not exist.', 'gated-media-access' ),
+			'gatedmedia_invalid_item_type' => __( 'access is given to a file, post or group.', 'gated-media-access' ),
+			'gatedmedia_invalid_duration'  => __( 'the duration is a number of days, or empty for lifetime.', 'gated-media-access' ),
+			'gatedmedia_invalid_source'    => __( 'every record has to say where it came from.', 'gated-media-access' ),
+			'gatedmedia_invalid_item'      => __( 'that item could not be found.', 'gated-media-access' ),
+		);
+
+		return $messages[ $code ] ?? __( 'something about it was not valid.', 'gated-media-access' );
 	}
 }

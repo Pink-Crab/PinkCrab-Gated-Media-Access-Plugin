@@ -112,6 +112,8 @@ class Access_Filters implements Hookable {
 		$author = isset( $_GET['author'] ) ? absint( $_GET['author'] ) : 0;
 		$holder = 0 === $author ? false : get_userdata( $author );
 
+		self::hidden_label( 'gatedmedia_filter_holder_search', __( 'Filter by holder', 'gated-media-access' ) );
+
 		( new User_Picker(
 			'author',
 			'gatedmedia_filter_holder',
@@ -121,12 +123,29 @@ class Access_Filters implements Hookable {
 	}
 
 	/**
+	 * A label only assistive technology reads, as core's own toolbar does.
+	 *
+	 * The toolbar is one row of controls whose meaning is carried by their
+	 * first option — "All sources" and so on — so a visible label would say
+	 * the same thing twice. A placeholder is not a label: it goes as soon as
+	 * anything is typed.
+	 *
+	 * @param string $control_id The control's id.
+	 * @param string $text       What the control is.
+	 */
+	private static function hidden_label( string $control_id, string $text ): void {
+		printf( '<label class="screen-reader-text" for="%s">%s</label>', esc_attr( $control_id ), esc_html( $text ) );
+	}
+
+	/**
 	 * The item type select, and the item search that follows it.
 	 */
 	private function render_item_filters(): void {
 		$wanted    = $this->wanted();
 		$item_type = $wanted[ Access_Writer::META_ITEM_TYPE ];
 		$item      = $wanted[ Access_Writer::META_ITEM_ID ];
+
+		self::hidden_label( 'gatedmedia_filter_item_type', __( 'Filter by item type', 'gated-media-access' ) );
 
 		printf( '<select name="gatedmedia_item_type" id="gatedmedia_filter_item_type">' );
 		printf( '<option value="">%s</option>', esc_html__( 'All item types', 'gated-media-access' ) );
@@ -140,6 +159,8 @@ class Access_Filters implements Hookable {
 		}
 
 		echo '</select>';
+
+		self::hidden_label( 'gatedmedia_filter_item_search', __( 'Filter by item', 'gated-media-access' ) );
 
 		printf(
 			'<input type="text" class="gatedmedia-picker" id="gatedmedia_filter_item_search" data-gatedmedia-picker="%s" data-gatedmedia-target="gatedmedia_filter_item" value="%s" placeholder="%s" autocomplete="off" />
@@ -156,6 +177,8 @@ class Access_Filters implements Hookable {
 	 */
 	private function render_source_filter(): void {
 		$source = $this->wanted()[ Access_Writer::META_SOURCE ];
+
+		self::hidden_label( 'gatedmedia_filter_source', __( 'Filter by source', 'gated-media-access' ) );
 
 		printf( '<select name="gatedmedia_source" id="gatedmedia_filter_source">' );
 		printf( '<option value="">%s</option>', esc_html__( 'All sources', 'gated-media-access' ) );
