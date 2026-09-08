@@ -7,10 +7,11 @@
  * forced state already uses. The theme's own header and footer stay, as with
  * every other view.
  *
- * **The h1 is the theme's.** `Auth_Route` titles the virtual page from the
- * state, so the theme has already printed the heading; this draws the sub-line
- * beneath it and nothing more. `Account_Renderer::page_header()` handles the
- * account area the same way, per §2 conflict 4.
+ * **The h1 is this block's, not the theme's.** The virtual page carries no
+ * title, so this draws the heading inside the card with the sub-line beneath
+ * it. `Auth_Route::title_for()` says why this view is the exception;
+ * `Account_Renderer::page_header()` still leaves the account area's h1 to the
+ * theme, per §2 conflict 4.
  *
  * **Reset link sent replaces the fields and the button entirely** with a
  * bordered confirmation box, and never confirms whether the address exists.

@@ -6,18 +6,15 @@ payment, by an administrator, or by webhook.
 A general WordPress plugin, distributed for use on other people's sites. It is
 not a shop — payment is one of three ways in.
 
-**Status: the admin screens are in.** Underneath them, in build order: the
-boot loop, QA tooling and CI; the account area (route, sections, the twenty
+**Status: everything documented below is built.** In build order: the boot
+loop, QA tooling and CI; the account area (route, sections, the twenty
 blocks); the registrations (post types, statuses, the `gatedmedia_access`
 taxonomy, capabilities); `Access_Writer` and the resolver; the restriction
-and the file/post boundary. This round adds the Access list screen, the Add
-Access form, the per-item metabox, quick edit grants, the profile section,
-revoke with its three behaviours, and the daily expiry sweep.
-
-Still not built: Stripe and the webhook (with the payments table),
-notifications, and the Settings screen's fields — the screen itself is an
-empty page, and the one live setting (`revoke_behaviour`) ships UI-less with
-a filter until it gets its control there.
+and the file/post boundary; the admin screens (Access list, Add Access, the
+per-item metabox, quick edit grants, the profile section, revoke with its
+three behaviours, the daily expiry sweep); Stripe checkout with the webhook
+and the payments table; the six notification emails; and the Settings screen
+with its fields, `revoke_behaviour` control included.
 
 ## Requires
 

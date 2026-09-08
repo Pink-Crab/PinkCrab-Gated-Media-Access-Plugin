@@ -95,10 +95,11 @@ export function IconControl( {
 }
 
 /**
- * Currencies offered in the editor.
+ * Currencies offered in the editor's price controls.
  *
- * The same set Support\Money knows symbols for. A site needing another one
- * filters `gatedmedia_format_price` rather than adding it here.
+ * A shortlist for the dropdown, not a limit on what the plugin sells in:
+ * Settings offers every ISO 4217 code and Support\Money formats all of them
+ * through ICU. A site selling in another one adds it here.
  */
 export const CURRENCIES = [ 'GBP', 'EUR', 'USD', 'AUD', 'CAD', 'NZD', 'JPY' ];
 

@@ -2,12 +2,14 @@
 /**
  * §6.6 Status pill — an icon and a label in a small fill.
  *
- * Five values, all of them drawn in the corpus. The pill itself never dims:
- * §6.6 says a refunded or revoked *row* drops to 60%, which is the row's job.
+ * Seven values: §6.6's five, plus a payment's own pending and failed. The
+ * pill itself never dims: §6.6 says a refunded or revoked *row* drops to 60%,
+ * which is the row's job.
  *
  * The default label comes from the value, so a caller passing only `value`
- * gets the right words — and a caller with its own wording can override it,
- * which a third-party section adding a sixth meaning will want.
+ * gets the right words, and a caller with its own wording can override it.
+ * A value outside the table renders nothing, and `block.json` enumerates the
+ * same seven.
  *
  * @package PinkCrab\Gated_Access
  *

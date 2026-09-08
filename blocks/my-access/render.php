@@ -15,10 +15,9 @@
  *   link** rather than a button — Files (§7.2) is the view where downloading
  *   is the point, so it gets the heavier control and this one does not.
  *
- * Everything here comes from the resolver (architecture.md §4), which does not
- * exist yet — it is step 2 of §12. Until it does the three lists are empty and
- * this renders the wholly-empty case, which is the truthful answer for a site
- * with no access records in it.
+ * Everything here comes from the resolver (architecture.md §4), reaching the
+ * view through Held_Access on `gatedmedia_my_access_data`. A user holding
+ * nothing renders the wholly-empty case.
  *
  * @package PinkCrab\Gated_Access
  *

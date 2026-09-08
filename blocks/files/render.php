@@ -18,9 +18,9 @@
  * - **Downloading** — the button is replaced by a progress indication.
  * - **Past access** — dimmed, no action, the right side states it has gone.
  *
- * The rows come from the resolver (architecture.md §4), which is step 2 of §12
- * and does not exist. The filter renders regardless because it is part of the
- * view's structure; it has nothing to filter until then.
+ * The rows come from the resolver (architecture.md §4), reaching the view
+ * through Downloadable_Files on `gatedmedia_files_data`. The filter renders
+ * regardless, as part of the view's structure.
  *
  * @package PinkCrab\Gated_Access
  *

@@ -161,10 +161,12 @@ class Access_Taxonomy implements Hookable {
 	}
 
 	/**
-	 * Refuses group creation over REST — the block editor's "add new" path.
+	 * Refuses group creation over REST.
 	 *
-	 * A POST to the terms collection is a create; the panel assigning
-	 * existing groups goes through the posts endpoint and passes untouched.
+	 * Dormant as registered: `show_in_rest` is false, so core creates no
+	 * `/wp/v2/gatedmedia_access` route to POST at. It stands so turning
+	 * `show_in_rest` on cannot quietly open a create path. Assigning existing
+	 * groups goes through the posts endpoint and passes untouched.
 	 * (Not `rest_pre_insert_{taxonomy}`: the terms controller, unlike the
 	 * posts one, never error-checks that filter's return.)
 	 *
