@@ -2,9 +2,12 @@
 /**
  * Type definitions for static analysis.
  *
- * The plugin's constants are declared here with empty values, so static analysis and editors resolve them without executing the main plugin file, and .phpstan.neon names this file in `parameters.bootstrapFiles`.
+ * Plugin-defined constants are declared here (with empty values) so PHPStan,
+ * Psalm, IDE intellisense, etc. can resolve them without executing the main
+ * plugin file. Referenced by .phpstan.neon via `parameters.bootstrapFiles`.
  *
- * Do NOT require it at runtime: the real values come from the main plugin file's `define()` calls.
+ * Do NOT require this file at runtime — the real values are set by the main
+ * plugin file's `define()` calls.
  *
  * @since   0.1.0
  * @package PinkCrab\Gated_Access
