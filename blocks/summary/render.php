@@ -1,14 +1,10 @@
 <?php
 /**
- * §6.16 Summary — a count line, in meta type.
+ * Summary: a count line, in meta type.
  *
- * "12 files, 45 posts". The one-line form of the contents list (§6.12): used
- * where the count is incidental to something else, where the contents list is
- * used where the contents are the point.
+ * "12 files, 45 posts". The one-line form of the contents list, used where the count is incidental to something else rather than the point of it.
  *
- * Takes either a ready-made string or a set of counts to phrase. The counts
- * form exists so the pluralisation happens once here rather than at each call
- * site, which is where "1 files" comes from.
+ * Takes either a ready-made string or a set of counts to phrase, and the counts form exists so the pluralisation happens once here rather than at each call site, which is where "1 files" comes from.
  *
  * @package PinkCrab\Gated_Access
  *

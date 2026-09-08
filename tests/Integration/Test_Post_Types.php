@@ -14,8 +14,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 
 /**
- * The containers exist with the shape the plan gives them: what is public,
- * what has a UI, and — just as deliberately — what has neither.
+ * The three containers exist with the shape they are meant to have: what is public, what has a UI, and, just as deliberately, what has neither.
  *
  * @group integration
  */
@@ -34,7 +33,7 @@ class Test_Post_Types extends WP_UnitTestCase {
 
 		$this->assertNotNull( $access );
 		$this->assertFalse( $access->public );
-		// True since round 4 — the core list screen is the Access screen.
+		// The core list screen is the Access screen.
 		$this->assertTrue( $access->show_ui );
 		$this->assertSame( 'gated-media-access', $access->show_in_menu );
 		$this->assertFalse( $access->query_var );
@@ -44,10 +43,7 @@ class Test_Post_Types extends WP_UnitTestCase {
 	/**
 	 * @testdox Every screen this plugin owns lives under its own menu, not beside it.
 	 *
-	 * Products and Coupons each had a top-level entry of their own, so one
-	 * plugin occupied three places in the sidebar. Asserted rather than left
-	 * to the eye: a missing `show_in_menu` is invisible in a diff and only
-	 * shows up in the admin.
+	 * Products and Coupons each had a top-level entry of their own, so one plugin occupied three places in the sidebar, and a missing `show_in_menu` is invisible in a diff.
 	 *
 	 * @dataProvider owned_types
 	 *
@@ -111,8 +107,7 @@ class Test_Post_Types extends WP_UnitTestCase {
 	/**
 	 * @testdox Access supports nothing at all.
 	 *
-	 * Guards the `supports => false` argument specifically: an empty array
-	 * there would silently gain the title and editor defaults.
+	 * Guards the `supports => false` argument: an empty array there would silently gain the title and editor defaults.
 	 */
 	public function test_access_supports_nothing(): void {
 		$this->assertSame( array(), get_all_post_type_supports( Post_Types::ACCESS ) );
@@ -126,8 +121,7 @@ class Test_Post_Types extends WP_UnitTestCase {
 		$this->assertTrue( $product->public );
 		$this->assertFalse( $product->has_archive );
 		$this->assertTrue( $product->exclude_from_search );
-		// In REST for the block editor; Product_Meta's guard 404s the
-		// surface for anyone without manage-products (Test_Product_Meta).
+		// In REST for the block editor, and Product_Meta's guard 404s the surface for anyone without manage-products.
 		$this->assertTrue( $product->show_in_rest );
 
 		$sitemap_types = ( new Post_Types() )->hide_products_from_sitemaps(
@@ -138,12 +132,11 @@ class Test_Post_Types extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @testdox Only the product supports custom-fields — the flag the block editor needs to save meta.
+	 * @testdox Only the product supports custom-fields, the flag the block editor needs to save meta.
 	 *
-	 * The Custom Fields metabox is gated on post_type_supports(); access and
-	 * coupon keep the flag off. The product needs it on or the block editor
-	 * silently drops every meta save — its keys stay out of the panel anyway,
-	 * because all of them are is_protected_meta (Test_Product_Meta).
+	 * The Custom Fields metabox is gated on post_type_supports(), so access and coupon keep the flag off, and the product needs it on or the block editor silently drops every meta save.
+	 *
+	 * Its keys stay out of the panel anyway, because every one of them is is_protected_meta.
 	 */
 	public function test_custom_fields_support(): void {
 		$this->assertFalse( post_type_supports( Post_Types::ACCESS, 'custom-fields' ) );

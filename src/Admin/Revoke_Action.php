@@ -17,10 +17,9 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * Takes the row's revoke click and puts it through the writer, doing whatever
- * the site's revoke behaviour says — mark revoked, expire now, or delete
- * (architecture.md §9). All three are writer methods; this class decides
- * nothing about the record itself.
+ * Takes the row's revoke click and puts it through the writer, doing whatever the site's revoke behaviour says: mark revoked, expire now, or delete.
+ *
+ * All three are writer methods, and this class decides nothing about the record itself.
  */
 class Revoke_Action implements Hookable {
 
@@ -66,8 +65,7 @@ class Revoke_Action implements Hookable {
 	/**
 	 * Guards the click, applies it, and returns to the list.
 	 *
-	 * The `exit` is required: a redirect that does not halt emits a body
-	 * alongside the Location header (the `Profile_Writer::handle()` note).
+	 * The `exit` is required: a redirect that does not halt emits a body alongside the Location header, as `Profile_Writer::handle()` also notes.
 	 */
 	public function handle(): void {
 		$access_id = isset( $_GET['access'] ) ? absint( $_GET['access'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The id names which nonce to check; check_admin_referer runs on the next line.
@@ -85,8 +83,7 @@ class Revoke_Action implements Hookable {
 	}
 
 	/**
-	 * Back where the click came from — the list, a metabox, wherever —
-	 * defaulting to the Access list.
+	 * Back where the click came from, defaulting to the Access list.
 	 */
 	private function return_url(): string {
 		$referer = wp_get_referer();

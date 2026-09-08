@@ -16,9 +16,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * The same list, for one person, on their profile screen (architecture.md
- * §9) — every record they hold, whatever its status. Read-only by design:
- * granting and revoking live on the Access screens, one link away.
+ * The same list, for one person, on their profile screen: every record they hold, whatever its status, read-only because granting and revoking live on the Access screens one link away.
  */
 class Profile_Access_List implements Hookable {
 
@@ -92,8 +90,7 @@ class Profile_Access_List implements Hookable {
 	}
 
 	/**
-	 * Every record the person holds — all three statuses, named (never
-	 * 'any': ours are excluded from it), newest first.
+	 * Every record the person holds: all three statuses named, never 'any', newest first.
 	 *
 	 * @param int $user_id Whose records.
 	 * @return array<int, int>

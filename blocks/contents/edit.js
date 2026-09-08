@@ -1,12 +1,9 @@
 /**
- * §6.12 Contents list — editor.
+ * The contents list, editor side.
  *
- * Each line is typed in the list itself; the sidebar carries only the icons
- * and the ordering, which cannot be typed.
+ * Each line is typed in the list itself. The sidebar carries only the icons and the ordering, which cannot be typed.
  *
- * It is a statement of contents, not a list you can act on — no rules between
- * rows, no right-hand column, no actions. That is the whole difference from a
- * Row (§6.2), and it is why this is not a list of Rows.
+ * It is a statement of contents, not a list you can act on: no rules between rows, no right-hand column, no actions. That is the whole difference from a Row, and why this is not a list of Rows.
  */
 
 import {
@@ -155,7 +152,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					value={ note }
 					onChange={ ( value ) => setAttributes( { note: value } ) }
 					placeholder={ __(
-						'Optional note — e.g. contents as they were on the order date',
+						'Optional note, e.g. contents as they were on the order date',
 						'gated-media-access'
 					) }
 					allowedFormats={ [] }

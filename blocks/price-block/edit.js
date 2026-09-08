@@ -1,11 +1,9 @@
 /**
- * §6.13 Price block — editor.
+ * The price block, editor side.
  *
- * Drawn client-side. Which of §6.13's four forms you get follows from the
- * amounts rather than a mode switch, so the block shows it directly instead of
- * the panel describing it.
+ * Drawn client-side. Which of the four forms you get follows from the amounts rather than a mode switch, so the block shows it directly instead of the panel describing it.
  *
- * Amounts are entered in pounds and stored in pence (specification.md §1a).
+ * Amounts are entered in pounds and stored in pence.
  */
 
 import {
@@ -100,7 +98,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					) }
 					<span className="gatedmedia-price-block__amount">
 						{ notApplicable
-							? '—'
+							? '-'
 							: formatMinor( amount, currency ) }
 					</span>
 				</p>

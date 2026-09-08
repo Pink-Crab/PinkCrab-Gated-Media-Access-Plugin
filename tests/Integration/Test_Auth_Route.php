@@ -18,22 +18,16 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * `Account_Route`'s mirror image: this one has to answer when signed **out**,
- * which is the exact case that route refuses. The trap it exists to avoid is
- * the account area's own `require_login()` — an auth page living under
- * `/account/` would be bounced by the very thing it exists to fix.
+ * `Account_Route`'s mirror image: this one answers when signed **out**, the exact case that route refuses, and an auth page under `/account/` would be bounced by the `require_login()` it exists to fix.
  *
- * One rule serves all four states, because the state is a query argument. So
- * the assertions are: the URL resolves, it is not a 404, and adding a state to
- * it does not stop it resolving.
+ * One rule serves all four states because the state is a query argument, so the assertions are that the URL resolves, is not a 404, and still resolves with a state on it.
  *
  * @group integration
  */
 class Test_Auth_Route extends WP_UnitTestCase {
 
 	/**
-	 * Pretty permalinks, so rewrite rules are consulted at all. The default
-	 * test install uses plain ones, where every rule is ignored.
+	 * Pretty permalinks, so rewrite rules are consulted at all: the test install defaults to plain ones, where every rule is ignored.
 	 */
 	public function set_up(): void {
 		parent::set_up();
@@ -89,7 +83,7 @@ class Test_Auth_Route extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The four states of §7.7.
+	 * The four auth states.
 	 *
 	 * @return array<string, array{0: string}>
 	 */
@@ -114,9 +108,7 @@ class Test_Auth_Route extends WP_UnitTestCase {
 	/**
 	 * @testdox Renaming the segment moves the route with it.
 	 *
-	 * The rule was added on `init` with the default segment, and flushing only
-	 * rebuilds from what is registered — so the route has to register itself
-	 * again for the filtered segment to exist at all.
+	 * The rule was added on `init` with the default segment and flushing only rebuilds what is registered, so the route registers itself again for the filtered segment to exist.
 	 */
 	public function test_the_slug_filter_moves_the_route(): void {
 		add_filter( 'gatedmedia_auth_slug', static fn(): string => 'login' );
@@ -137,7 +129,7 @@ class Test_Auth_Route extends WP_UnitTestCase {
 		$this->assertSame( '1', (string) get_query_var( Auth_Route::QUERY_FLAG ) );
 	}
 
-	/** @testdox The page title changes with the state, because the h1 is the theme's and is printed from it. */
+	/** @testdox The page title changes with the state, because the block's h1 and the document title are both printed from it. */
 	public function test_the_title_follows_the_state(): void {
 		$this->assertSame( 'Sign in', Auth_Route::title_for( Auth_Url::STATE_SIGNIN ) );
 		$this->assertSame( 'Create your account', Auth_Route::title_for( Auth_Url::STATE_SIGNUP ) );

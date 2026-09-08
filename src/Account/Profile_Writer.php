@@ -15,22 +15,15 @@ use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * One profile shape — name, email, address, phone, company — and the handler
- * that saves it from the front end.
+ * One profile shape (name, email, address, phone, company) and the handler that saves it from the front end.
  *
- * The brief is emphatic that all three creation routes fill the same fields, so
- * that a person who arrived by webhook is indistinguishable from one who signed
- * up. That only holds if there is one definition of what the fields are, which
- * is `fields()` below. The webhook and the admin-created user read the same
- * list when they are built.
+ * All three creation routes fill the same fields, so a person who arrived by webhook is indistinguishable from one who signed up, and that only holds while `fields()` below is the one definition of what the fields are.
  *
- * **The meta keys are not in specification.md.** §1, §1a and §1b define access,
- * products and coupons; the user shape is described in the brief but never
- * given keys. These follow the same `gatedmedia_` prefix and the same no-leading
- * -underscore rule, and want confirming when the specification catches up.
+ * The webhook and the admin-created user read that same list when they are built.
  *
- * Email is deliberately absent from the list: it identifies the account and is
- * rendered read-only, so it is not something this form can write.
+ * The meta keys follow the same `gatedmedia_` prefix and no-leading-underscore rule as everything else.
+ *
+ * Email is deliberately absent: it identifies the account and is rendered read-only, so this form cannot write it.
  */
 class Profile_Writer implements Hookable {
 
@@ -43,17 +36,14 @@ class Profile_Writer implements Hookable {
 	 * @param Hook_Loader $loader The shared loader.
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
-		// admin_post_ rather than a template_redirect handler: posting to
-		// admin-post.php keeps the write off the rendering path entirely, so
-		// there is no ordering to get wrong against the account route.
+		// admin_post_ rather than a template_redirect handler: posting to admin-post.php keeps the write off the rendering path, so there is no ordering to get wrong against the account route.
 		$loader->action( 'admin_post_' . self::ACTION, array( $this, 'handle' ) );
 	}
 
 	/**
 	 * The profile fields, in render order.
 	 *
-	 * Two are core user fields; the rest are our meta. `core` says which,
-	 * because they are saved through different functions.
+	 * Two are core user fields and the rest are our meta, and `core` says which, because they are saved through different functions.
 	 *
 	 * @return array<string, array{label: string, type: string, core: bool, required: bool, autocomplete: string}>
 	 */
@@ -139,8 +129,7 @@ class Profile_Writer implements Hookable {
 	/**
 	 * Which required fields are still empty.
 	 *
-	 * Drives both the "profile incomplete" notice and the forced-completion
-	 * state, which shows only what is missing rather than the whole form.
+	 * Drives both the "profile incomplete" notice and the forced-completion state, which shows only what is missing rather than the whole form.
 	 *
 	 * @param int $user_id Whose profile.
 	 * @return array<int, string>
@@ -161,12 +150,9 @@ class Profile_Writer implements Hookable {
 	/**
 	 * Saves the posted profile and sends the person back where they came from.
 	 *
-	 * Only ever writes the current user's own profile — there is no user id in
-	 * the payload to tamper with.
+	 * Only ever writes the current user's own profile, with no user id in the payload to tamper with.
 	 *
-	 * The `exit` calls are required: a `wp_safe_redirect()` that does not halt
-	 * carries on and emits a body alongside the Location header, which on
-	 * admin-post.php means the redirect may not be honoured at all.
+	 * The `exit` calls are required: a `wp_safe_redirect()` that does not halt emits a body alongside the Location header, and on admin-post.php the redirect may then not be honoured at all.
 	 */
 	public function handle(): void {
 		if ( ! is_user_logged_in() ) {
@@ -179,10 +165,7 @@ class Profile_Writer implements Hookable {
 		$user_id = get_current_user_id();
 
 		foreach ( self::fields() as $key => $field ) {
-			// A field absent from the payload is left alone rather than
-			// blanked — forced completion posts only the missing fields, and
-			// wiping the rest would be a spectacular way to lose someone's
-			// address.
+			// Absent means "not submitted", never "blank it": forced completion posts only the missing fields.
 			if ( ! isset( $_POST[ $key ] ) ) {
 				continue;
 			}

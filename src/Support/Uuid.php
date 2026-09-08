@@ -10,10 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Support;
 
 /**
- * One minter for everything that carries a UUID — groups on term meta,
- * products on post meta — under the one key. Identity is settled the first
- * time anything asks: whoever calls first mints, and every later call
- * reads the same answer.
+ * One minter for everything that carries a UUID, groups on term meta and products on post meta, under the one key. Whoever calls first mints, and every later call reads the same answer.
  */
 class Uuid {
 
@@ -23,7 +20,7 @@ class Uuid {
 	/**
 	 * The object's UUID, minted now if it has none.
 	 *
-	 * @param string $meta_type Which meta table — post or term.
+	 * @param string $meta_type Which meta table, post or term.
 	 * @param int    $object_id The object.
 	 */
 	public static function ensure( string $meta_type, int $object_id ): string {

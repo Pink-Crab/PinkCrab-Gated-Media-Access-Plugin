@@ -17,22 +17,17 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 /**
  * The coupon rules, asked twice and answered the same way both times.
  *
- * §6.14's flow shows the buyer what a coupon saves before they commit, and
- * `Checkout` then charges them — so the same code is judged once to price a
- * page and again to take the money. They have to agree, and the second answer
- * is the one that counts: a coupon that expires or hits its limit between the
- * two is refused at purchase, whatever the page said.
+ * The buyer is shown what a coupon saves before they commit and `Checkout` then charges them, so the same code is judged once to price a page and again to take the money.
  *
- * Split out of `Checkout` because it is a different question. `Checkout` takes
- * somebody's money; this decides what a code is worth, writes nothing, and
- * spends nothing. Usage is counted from completed payments rather than stored,
- * so an abandoned checkout consumes nothing (spec §1b).
+ * They have to agree, and the second answer counts: a coupon that expires or hits its limit between the two is refused at purchase, whatever the page said.
  *
- * A checkout in flight has completed nothing, so it counts for nothing here
- * on its own — which let two buyers arriving together both pass a limit of
- * one. `Coupon_Hold` covers that window, and its live reservations count
- * alongside completions in both answers below. Reserving is a write, so it
- * stays out of this class; `Checkout` does it.
+ * Split out of `Checkout` because it is a different question: `Checkout` takes somebody's money, and this decides what a code is worth, writing and spending nothing.
+ *
+ * Usage is counted from completed payments rather than stored, so an abandoned checkout consumes nothing.
+ *
+ * A checkout in flight has completed nothing, which let two buyers arriving together both pass a limit of one. `Coupon_Hold` covers that window, and its live reservations count alongside completions in both answers below.
+ *
+ * Reserving is a write, so it stays out of this class. `Checkout` does it.
  */
 class Coupon_Pricing {
 
@@ -46,8 +41,7 @@ class Coupon_Pricing {
 	}
 
 	/**
-	 * How many more times the coupon may be used at all, counting completions
-	 * and live reservations. `PHP_INT_MAX` when it carries no limit.
+	 * How many more times the coupon may be used at all, counting completions and live reservations, and `PHP_INT_MAX` when it carries no limit.
 	 *
 	 * @param WP_Post $coupon The coupon.
 	 */
@@ -142,8 +136,7 @@ class Coupon_Pricing {
 	}
 
 	/**
-	 * Whether both usage limits have room, counting completed payments and
-	 * the checkouts currently holding one.
+	 * Whether both usage limits have room, counting completed payments and the checkouts currently holding one.
 	 *
 	 * @param WP_Post $coupon  The coupon.
 	 * @param int     $user_id The buyer.

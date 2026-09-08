@@ -1,9 +1,7 @@
 /**
- * Orders — ui-spec.md §7.3.
+ * Orders.
  *
- * A section view. It draws the signed-in person's own record, so the editor
- * shows exactly what the front end will — there is nothing here to configure
- * beyond the detail segment, which the account route supplies from the URL.
+ * A section view. It draws the signed-in person's own record, so the editor shows exactly what the front end will, and there is nothing here to configure beyond the detail segment the account route supplies from the URL.
  */
 
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';

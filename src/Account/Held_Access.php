@@ -15,11 +15,9 @@ use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Support\Access_Row;
 
 /**
- * Answers the `my-access` block — §7.1: the groups, posts and files this
- * person has been given, each in its own list.
+ * Answers the `my-access` block: the groups, posts and files this person has been given, each in its own list.
  *
- * The block renders; it cannot reach the container, so it raises
- * `gatedmedia_my_access_data` and this answers it.
+ * The block renders and cannot reach the container, so it raises `gatedmedia_my_access_data` and this answers it.
  */
 class Held_Access implements Hookable {
 
@@ -101,8 +99,7 @@ class Held_Access implements Hookable {
 			return null;
 		}
 
-		// §7.1 folds a file's expiry into its meta line rather than giving it a
-		// chip of its own, which is what the Files page does.
+		// My Access folds a file's expiry into its meta line, where Files gives it a chip.
 		$item['meta'] = Access_Row::joined(
 			array( (string) $item['meta'], (string) $item['expiry_label'] )
 		);

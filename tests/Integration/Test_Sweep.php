@@ -19,8 +19,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Past-expiry active records are swept, everything else is left alone, and the
- * sweep itself changes nothing — every move is the writer's.
+ * Past-expiry active records are swept, everything else is left alone, and the sweep itself changes nothing because every move is the writer's.
  *
  * @group integration
  */
@@ -38,8 +37,7 @@ class Test_Sweep extends WP_UnitTestCase {
 		$this->writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->sweep  = new Sweep( $this->writer );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
@@ -101,8 +99,7 @@ class Test_Sweep extends WP_UnitTestCase {
 
 		$this->assertSame( 2, $this->sweep->run() );
 
-		// Same-second records tie on the sweep query's date order, so which
-		// fires first is not part of the claim — only that both fired once.
+		// Same-second records tie on the sweep query's date order, so only that both fired once is claimed.
 		ksort( $fired );
 		$this->assertSame( array( $first => $this->user_id, $second => $this->user_id ), $fired );
 	}
@@ -155,10 +152,7 @@ class Test_Sweep extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Revocation is a state, and expiry is a way out of it: an expired record
-	 * can be dated forward from Edit Access, a revoked one cannot. Expiring a
-	 * revoked record is therefore a way back from a withdrawal that is meant
-	 * to have none.
+	 * An expired record can be dated forward from Edit Access and a revoked one cannot, so expiring a revoked record would be a way back from a withdrawal meant to have none.
 	 *
 	 * @testdox Expire refuses a record that is already revoked, leaving it revoked.
 	 */

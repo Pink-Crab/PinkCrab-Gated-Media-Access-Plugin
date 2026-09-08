@@ -1,12 +1,9 @@
 /**
- * §6.3 Buttons — editor.
+ * The button block, editor side.
  *
- * The label is typed on the button. Everything else is what cannot be shown in
- * place: where it goes, and — when it is a real button rather than a link —
- * what pressing it does to the form around it.
+ * The label is typed on the button. Everything else is what cannot be shown in place: where it goes, and, when it is a real button rather than a link, what pressing it does to the form around it.
  *
- * Drawn client-side. A button is a span in a box; asking the server to render
- * one on every keystroke would be a round trip for nothing.
+ * Drawn client-side, because a button is a span in a box and asking the server to render one on every keystroke would be a round trip for nothing.
  */
 
 import {
@@ -62,8 +59,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				.filter( Boolean )
 				.join( ' ' );
 
-	// The wrapper is block-level with the control inside, matching render.php —
-	// an inline-flex block cannot be centred by a theme's `margin-inline: auto`.
+	// Block-level wrapper, matching render.php, so a theme can centre it.
 	const blockProps = useBlockProps( { className: 'gatedmedia-inline-host' } );
 
 	return (
@@ -100,7 +96,7 @@ export default function Edit( { attributes, setAttributes } ) {
 										'gated-media-access'
 								  )
 								: __(
-										'Empty renders a real button — for submitting a form rather than going somewhere.',
+										'Empty renders a real button, for submitting a form rather than going somewhere.',
 										'gated-media-access'
 								  )
 						}

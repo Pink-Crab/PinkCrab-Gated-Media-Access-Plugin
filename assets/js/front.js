@@ -1,9 +1,7 @@
 /**
- * Front end — build/js/front.js
+ * Front end, built to build/js/front.js.
  *
- * The interactive surface of the account area, and it is deliberately small.
- * Everything in §7 is server rendered; this enhances what is already on the
- * page and nothing here is required for a view to be readable or usable.
+ * The interactive surface of the account area, and deliberately small: every view is server rendered, so this enhances what is already on the page and nothing here is required for a view to be readable or usable.
  *
  * Enqueued conditionally, alongside build/css/front.css.
  */

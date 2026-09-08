@@ -18,8 +18,7 @@ use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * One person's records, all statuses, read-only, and only for those who may
- * give access.
+ * One person's records, all statuses, read-only, and only for those who may give access.
  *
  * @group integration
  */
@@ -38,8 +37,7 @@ class Test_Profile_Access_List extends WP_UnitTestCase {
 		$this->writer       = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 		$this->profile_list = new Profile_Access_List( new Access_List( $taxonomy ) );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );

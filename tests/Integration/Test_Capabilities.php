@@ -13,8 +13,7 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * Administrators get the four capabilities once per version, nobody else gets
- * anything, and the give-access lookup is filterable.
+ * Administrators get the four capabilities once per version, nobody else gets anything, and the give-access lookup is filterable.
  *
  * @group integration
  */
@@ -30,9 +29,7 @@ class Test_Capabilities extends WP_UnitTestCase {
 	public function tear_down(): void {
 		remove_all_filters( 'gatedmedia_give_access_capability' );
 
-		// The rollback restores the roles option, but not the in-memory
-		// WP_Roles cache — a cap removed here would stay missing for every
-		// later test. Put back what the init grant establishes.
+		// The rollback restores the roles option but not the WP_Roles cache, so a cap removed here would stay missing for every later test.
 		$role = get_role( 'administrator' );
 
 		if ( null !== $role ) {
@@ -82,8 +79,7 @@ class Test_Capabilities extends WP_UnitTestCase {
 	/**
 	 * @testdox Running the grant again at the current version changes nothing.
 	 *
-	 * Proved through the version check: a capability removed by hand stays
-	 * removed, because the stored version says the grant already ran.
+	 * Proved through the version check: a capability removed by hand stays removed, because the stored version says the grant already ran.
 	 */
 	public function test_running_twice_changes_nothing(): void {
 		$role = get_role( 'administrator' );

@@ -6,7 +6,7 @@
 	"title": "Expiry",
 	"category": "widgets",
 	"icon": "clock",
-	"description": "ui-spec.md §6.5. Bare in lists, a chip in detail panels. Four states.",
+	"description": "Bare in lists, a chip in detail panels. Four states.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"state": {

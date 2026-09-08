@@ -1,20 +1,11 @@
 /**
- * Product details — editor.
+ * The product details block, editor side.
  *
- * The product's whole form, saving straight to its registered meta over
- * REST. The server stamps what the client must not choose — the UUID
- * identity and the shop currency — so neither has an input here; the
- * currency and its digits arrive as `window.gatedmediaProduct`, supplied by
- * Product_Meta beside the picker-search nonce the item search uses.
+ * The product's whole form, saving straight to its registered meta over REST. The server stamps what the client must not choose, the UUID identity and the shop currency, so neither has an input here. The currency and its digits arrive as `window.gatedmediaProduct`, supplied by Product_Meta beside the picker-search nonce.
  *
- * Drawn to Glynn's Stitch mock (stitch.withgoogle.com project
- * 17998674859270043397, "Artisanal Product Editor Card"): a serif display
- * voice over small-caps utility labels, the reference as a mono line, a
- * heavy rule under the header, typed left-column rows in hairline panels,
- * and the who-may-buy rows keeping a right-hand status column that round
- * 6's invites will fill. No save button — the editor's own Update is the
- * save. Styles are inline because the block renders inside the theme's
- * canvas, whose content styles are the wrong scale for a form.
+ * A serif display voice over small-caps utility labels, the reference as a mono line, a heavy rule under the header, typed left-column rows in hairline panels, and a right-hand status column on the who-may-buy rows for invites.
+ *
+ * No save button: the editor's own Update is the save. Styles are inline because the block renders inside the theme's canvas, whose content styles are the wrong scale for a form.
  */
 
 import { useRef, useState } from '@wordpress/element';
@@ -37,8 +28,7 @@ const META = {
 	sendInvites: 'gatedmedia_send_invites',
 };
 
-// Matches Product_Meta::DURATION_LIFETIME — the server normalises to it on
-// write, so the block must write it too rather than an empty string.
+// Matches Product_Meta::DURATION_LIFETIME, which the server normalises to on write.
 const LIFETIME = '-1';
 
 /**
@@ -90,8 +80,7 @@ const SANS =
 const SERIF = 'Georgia, "Iowan Old Style", "Times New Roman", serif';
 
 /**
- * The currency's own symbol from the browser's ICU data — the £ in the
- * amount field's prefix.
+ * The currency's own symbol from the browser's ICU data, for the amount field's prefix.
  *
  * @param {string} currency ISO code.
  * @return {string} Its symbol, or the code when Intl does not know it.
@@ -183,7 +172,7 @@ const STYLES = {
 		alignSelf: 'center',
 	},
 	input: {
-		// No `outline: none`: §6.3 says focus is never removed.
+		// No `outline: none`, because focus is never removed.
 		border: 'none',
 		background: 'transparent',
 		height: '100%',
@@ -324,9 +313,7 @@ const STYLES = {
 /**
  * One row's parts: its type for the left cell, and what to show for it.
  *
- * Labels come from this session's choices first, then the server-supplied
- * labels for stored rows (Product_Meta::item_labels()), and only fall back
- * to the raw identifier when neither knows the row.
+ * Labels come from this session's choices first, then `Product_Meta::item_labels()` for stored rows, and only fall back to the raw identifier when neither knows the row.
  *
  * @param {string} row    The stored row.
  * @param {Object} labels Labels for rows added this session.
@@ -345,7 +332,7 @@ export default function Edit() {
 		[]
 	);
 	const [ rawMeta, setMeta ] = useEntityProp( 'postType', postType, 'meta' );
-	// Undefined until the store hydrates — never index it raw.
+	// Undefined until the store hydrates, so never index it raw.
 	const meta = rawMeta || {};
 	const shop = window.gatedmediaProduct || {
 		currency: 'GBP',
@@ -368,9 +355,7 @@ export default function Edit() {
 
 	const items = meta[ META.items ] || [];
 	const emails = meta[ META.emails ] || [];
-	// Lifetime is stored as -1, never as an empty string: an empty box and an
-	// unset key used to be the same falsey thing. The box still shows empty
-	// for it, with the placeholder saying what empty means.
+	// Lifetime is stored as -1, never as an empty string, because an empty box and an unset key used to be the same falsey thing, and the box still shows empty for it with the placeholder saying what empty means.
 	const storedDuration = meta[ META.duration ] ?? '';
 	const duration = LIFETIME === storedDuration ? '' : storedDuration;
 	const digits = currencyDigits( shop.currency );

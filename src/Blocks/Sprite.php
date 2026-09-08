@@ -15,18 +15,13 @@ use PinkCrab\Gated_Access\Hookable;
 /**
  * Puts the sprite on any page that draws one of our blocks.
  *
- * Nearly every §6 component names an icon — the expiry has one per state, the
- * status pill one per value, notices one per kind. Printing the sprite only on
- * the account route meant a component placed anywhere else lost every one of
- * them, silently: `<use href="#i-files">` with no matching symbol renders
- * nothing at all rather than failing.
+ * Nearly every component names an icon: the expiry has one per state, the status pill one per value, notices one per kind.
  *
- * It is inlined rather than referenced as an external file because `<use>`
- * across documents is not reliably supported, and a nav whose icons work in
- * one browser and not another is worse than a kilobyte of markup.
+ * Printing the sprite only on the account route meant a component placed anywhere else lost every one of them silently, because `<use href="#i-files">` with no matching symbol renders nothing rather than failing.
  *
- * Printed once, and only when something asked for it — a page with none of our
- * blocks on it gets nothing.
+ * It is inlined rather than referenced as an external file because `<use>` across documents is not reliably supported, and a nav whose icons work in one browser and not another is worse than a kilobyte of markup.
+ *
+ * Printed once, and only when something asked for it, so a page with none of our blocks gets nothing.
  */
 class Sprite implements Hookable {
 
@@ -76,8 +71,7 @@ class Sprite implements Hookable {
 	/**
 	 * Marks the sprite as wanted, for markup we compose ourselves.
 	 *
-	 * The account shell draws its navigation before the loop, so nothing has
-	 * gone through `render_block` by the time the footer is reached.
+	 * The account shell draws its navigation before the loop, so nothing has gone through `render_block` by the time the footer is reached.
 	 */
 	public function require_sprite(): void {
 		$this->needed = true;

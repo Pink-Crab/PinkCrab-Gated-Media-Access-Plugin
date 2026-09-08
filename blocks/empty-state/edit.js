@@ -1,9 +1,7 @@
 /**
- * §6.10 Empty state — editor.
+ * The empty state, editor side.
  *
- * Both lines are typed in the box. The second one is not optional and the
- * placeholder says what it is for: §6.10 is explicit that it always states
- * what would put something here, so the box is never a dead end.
+ * Both lines are typed in the box. The second is not optional, and the placeholder says what it is for: it always states what would put something here, so the box is never a dead end.
  */
 
 import {
@@ -43,7 +41,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				>
 					<Notice status="info" isDismissible={ false }>
 						{ __(
-							'One per view, only when the whole view is empty. An empty section is simply not rendered — three of these down a page reads as three failures rather than one empty account.',
+							'One per view, only when the whole view is empty. An empty section is simply not rendered, because three of these down a page reads as three failures rather than one empty account.',
 							'gated-media-access'
 						) }
 					</Notice>
@@ -75,7 +73,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						setAttributes( { message: value } )
 					}
 					placeholder={ __(
-						'Say what would put something here — this must never be a dead end.',
+						'Say what would put something here. This must never be a dead end.',
 						'gated-media-access'
 					) }
 					allowedFormats={ [ 'core/link' ] }

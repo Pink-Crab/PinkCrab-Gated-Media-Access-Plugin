@@ -6,7 +6,7 @@
 	"title": "Coupon field",
 	"category": "widgets",
 	"icon": "tickets-alt",
-	"description": "ui-spec.md §6.14. A labelled input paired with Apply, replaced by a confirmation once applied.",
+	"description": "A labelled input paired with Apply, replaced by a confirmation once applied.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"label": {

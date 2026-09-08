@@ -6,7 +6,7 @@
 	"title": "Payment status",
 	"category": "widgets",
 	"icon": "clock",
-	"description": "ui-spec.md §7.8. Where a buyer lands back from Stripe: confirming, done, or failed.",
+	"description": "Where a buyer lands back from Stripe: confirming, done, or failed.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"status": {

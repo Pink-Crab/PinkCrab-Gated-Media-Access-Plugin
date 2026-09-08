@@ -12,27 +12,18 @@ namespace PinkCrab\Gated_Access\Payments;
 use PinkCrab\Gated_Access\Admin\Coupon_Metabox;
 
 /**
- * Every query against `{prefix}gatedmedia_payments` lives here. Payments are
- * not Access records — `Access_Writer` has no part in this table — but the
- * same one-owner rule applies.
+ * Every query against `{prefix}gatedmedia_payments` lives here: payments are not access records, since `Access_Writer` has no part in this table, but the same one-owner rule applies.
  *
- * **The row is the replay guard** (spec §3, architecture §7). Stripe retries
- * deliveries, so each status mover is a single conditional update — move from
- * exactly one state, and let affected-rows answer who was first. One
- * statement, no gap between checking and writing, nothing else stored.
+ * **The row is the replay guard.** Stripe retries deliveries, so each status mover is a single conditional update: move from exactly one state and let affected-rows answer who was first, in one statement, with no gap between checking and writing.
  *
- * Thirteen public methods, all queries against the one table. Splitting them
- * would put two owners on `{prefix}gatedmedia_payments` to satisfy a counter,
- * which is the rule this class exists to keep.
+ * Thirteen public methods, all queries against the one table, and splitting them would put two owners on `{prefix}gatedmedia_payments` to satisfy a counter, which is the rule this class exists to keep.
  *
  * @SuppressWarnings("PHPMD.TooManyPublicMethods")
  */
 class Payment_Store {
 
 	/**
-	 * Creates the pending row — before the person leaves for Stripe, so the
-	 * confirmation has something to attach to and the return page something
-	 * to poll.
+	 * Creates the pending row before the person leaves for Stripe, so the confirmation has something to attach to and the return page something to poll.
 	 *
 	 * @param int                $user_id           Who is buying.
 	 * @param int                $product_id        The product bought.
@@ -72,8 +63,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * Records the Stripe session against its row, once the session exists —
-	 * the one write that is not a status move.
+	 * Records the Stripe session against its row, the one write that is not a status move.
 	 *
 	 * @param string $uuid       The payment.
 	 * @param string $session_id Stripe's checkout session id.
@@ -94,9 +84,9 @@ class Payment_Store {
 	}
 
 	/**
-	 * Records why a grant failed, or clears it with an empty string once one
-	 * succeeds. Stripe's retries are finite, so this is what is left to look
-	 * at on the payment's own screen after it has stopped delivering.
+	 * Records why a grant failed, or clears it with an empty string once one succeeds.
+	 *
+	 * Stripe's retries are finite, so this is what is left to look at on the payment's own screen after it has stopped delivering.
 	 *
 	 * @param string $uuid   The payment.
 	 * @param string $reason The cause, or '' to clear.
@@ -117,8 +107,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * Pending → complete, exactly once. True means we were first and the
-	 * caller grants access; false means another delivery already did.
+	 * Pending to complete, exactly once: true means this caller was first and grants access, false means another delivery already did.
 	 *
 	 * @param string $uuid      The payment.
 	 * @param string $intent_id Stripe's payment intent, kept for the refund path.
@@ -144,8 +133,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * Complete → refunded, exactly once. True and the caller revokes the
-	 * access this payment created.
+	 * Complete to refunded, exactly once, and on true the caller revokes the access this payment created.
 	 *
 	 * @param string $uuid The payment.
 	 */
@@ -169,9 +157,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * Pending → failed — the checkout expired or was abandoned. Same guard,
-	 * so a late confirmation cannot complete a payment already marked failed,
-	 * and a late failure cannot undo a completion.
+	 * Pending to failed, for a checkout expired or abandoned. The same guard, so a late confirmation cannot complete a failed payment and a late failure cannot undo a completion.
 	 *
 	 * @param string $uuid The payment.
 	 */
@@ -194,7 +180,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * One payment by its public identifier — what the return page polls.
+	 * One payment by its public identifier, which the return page polls.
 	 *
 	 * @param string $uuid The payment.
 	 */
@@ -203,8 +189,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * One payment by Stripe's payment intent — how a refund event finds its
-	 * row.
+	 * One payment by Stripe's payment intent, which is how a refund event finds its row.
 	 *
 	 * @param string $intent_id Stripe's payment intent id.
 	 */
@@ -217,7 +202,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * One page of payments, newest first — the Payments screen.
+	 * One page of payments, newest first, for the Payments screen.
 	 *
 	 * @param int $page     1-based page.
 	 * @param int $per_page Rows per page.
@@ -243,10 +228,9 @@ class Payment_Store {
 	}
 
 	/**
-	 * One person's payments, newest first — §7.3 Orders.
+	 * One person's payments, newest first, for the Orders view.
 	 *
-	 * Unpaged: an account holds few enough orders that the list is one flat
-	 * read, which is the same reason §7.3 has no filter.
+	 * Unpaged: an account holds few enough orders that the list is one flat read, which is the same reason that view has no filter.
 	 *
 	 * @param int $user_id Whose orders.
 	 * @return array<int, Payment>
@@ -273,7 +257,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * How many payments exist — the screen's pagination.
+	 * How many payments exist, for the screen's pagination.
 	 */
 	public function total(): int {
 		global $wpdb;
@@ -285,11 +269,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * How many completed payments carry a coupon — its usage count, since
-	 * usage is never stored (spec §1b). Counted at completion, so an
-	 * abandoned checkout consumes nothing. `Coupon_Hold` covers the window
-	 * between starting a checkout and finishing one; this counts only what
-	 * finished.
+	 * How many completed payments carry a coupon, which is its usage count, since usage is never stored. `Coupon_Hold` covers the window between starting and finishing a checkout, and this counts only what finished.
 	 *
 	 * @param int $coupon_id The coupon.
 	 * @param int $user_id   Restrict to one user's completions, 0 for all.
@@ -322,15 +302,11 @@ class Payment_Store {
 	}
 
 	/**
-	 * Whether this payment took its coupon past a limit, and by how much —
-	 * null when it carries no coupon, has not completed, or stayed inside
-	 * both limits.
+	 * Whether this payment took its coupon past a limit and by how much, or null when it carries no coupon, has not completed, or stayed inside both limits.
 	 *
-	 * `Coupon_Hold` reserves a limited coupon only briefly, so two checkouts
-	 * that overlap by longer than that window can both complete, and nothing
-	 * can be refused once Stripe has the money. This is how the Payments
-	 * screen says so afterwards. The whole-coupon limit is reported ahead of
-	 * the per-buyer one when a payment breaks both.
+	 * `Coupon_Hold` reserves a limited coupon only briefly, so two checkouts overlapping by longer can both complete, and nothing can be refused once Stripe has the money, which is why the Payments screen says so afterwards.
+	 *
+	 * The whole-coupon limit is reported ahead of the per-buyer one when a payment breaks both.
 	 *
 	 * @param Payment $payment The row being asked about.
 	 * @return array{used: int, limit: int, per_user: bool}|null
@@ -362,11 +338,9 @@ class Payment_Store {
 	}
 
 	/**
-	 * Which use of the coupon this payment was: how many completions carrying
-	 * it exist up to and including this row.
+	 * Which use of the coupon this payment was: how many completions carrying it exist up to and including this row.
 	 *
-	 * Ordered by id, so the answer for a given payment never changes as later
-	 * ones complete.
+	 * Ordered by id, so the answer for a given payment never changes as later ones complete.
 	 *
 	 * @param Payment $payment The row being asked about.
 	 * @param int     $user_id Count only this user's completions, 0 for all.
@@ -401,7 +375,7 @@ class Payment_Store {
 	}
 
 	/**
-	 * One row by primary key — the insert's read-back.
+	 * One row by primary key, for the insert's read-back.
 	 *
 	 * @param int $row_id The row.
 	 */

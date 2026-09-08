@@ -2,31 +2,22 @@
 /**
  * Test-suite wp-config.
  *
- * Loaded by wp-phpunit via the WP_PHPUNIT__TESTS_CONFIG env var (set in
- * phpunit.xml.dist). Defines the constants WordPress expects; never
- * `require wp-settings.php` here — wp-phpunit's bootstrap does that.
+ * Loaded by wp-phpunit through `WP_PHPUNIT__TESTS_CONFIG`. It defines the constants WordPress expects and never requires wp-settings.php, which wp-phpunit's own bootstrap does.
  *
- * DB credentials come from env vars (typically populated from tests/.env;
- * see tests/.env_sample for the template).
+ * DB credentials come from env vars, usually populated from tests/.env.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
 
 declare( strict_types = 1 );
 
-// WordPress lives at <plugin-root>/wordpress/ (installed by roots/wordpress
-// via the roots/wordpress-core-installer composer plugin).
+// WordPress lives at <plugin-root>/wordpress/, installed by roots/wordpress.
 define( 'ABSPATH', dirname( __DIR__ ) . '/wordpress/' );
 
-// The test install's own plugins directory — where the bootstrap unzips
-// restrict-media-file-access, and where core looks when it includes active
-// plugins. This plugin itself is not in here; the bootstrap requires it by
-// path, so nothing depends on where the checkout lands.
+// The test install's plugins directory, where the bootstrap unzips the dependency.
 define( 'WP_PLUGIN_DIR', dirname( __DIR__ ) . '/wordpress/wp-content/plugins' );
 
-// Database. CI vs local split: the CI workflows export `environment_github=true`
-// and the branch below matches the MySQL service they spin up. Locally, a
-// tests/.env supplies WP_DB_* via vlucas/phpdotenv (loaded in tests/bootstrap.php).
+// CI exports `environment_github=true` and matches its own MySQL service; locally tests/.env supplies WP_DB_*.
 if ( getenv( 'environment_github' ) ) {
 	define( 'DB_NAME',     'wordpress_test' );
 	define( 'DB_USER',     'root' );
@@ -49,7 +40,7 @@ define( 'WP_TESTS_TITLE',  'Gated Media Access Tests' );
 
 define( 'WP_PHP_BINARY', 'php' );
 
-// Salts — irrelevant for tests, WP demands them.
+// Salts. Irrelevant for tests, but WordPress demands them.
 define( 'AUTH_KEY',         'phpunit-key' );
 define( 'SECURE_AUTH_KEY',  'phpunit-key' );
 define( 'LOGGED_IN_KEY',    'phpunit-key' );
@@ -62,9 +53,7 @@ define( 'NONCE_SALT',       'phpunit-salt' );
 define( 'WPLANG',   '' );
 define( 'WP_DEBUG', true );
 
-// Core calls wp_is_block_theme before the theme directory is registered, which
-// is a notice PHPUnit turns into an error in a test running in its own process.
-// @see https://core.trac.wordpress.org/ticket/63086
+// Core notices wp_is_block_theme before the theme directory registers and PHPUnit turns that into an error in a process-isolated test, per core.trac ticket 63086.
 set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Test bootstrap.
 	function ( $errno, $errstr ) {
 		return E_USER_NOTICE === $errno && false !== strpos( $errstr, 'wp_is_block_theme' );

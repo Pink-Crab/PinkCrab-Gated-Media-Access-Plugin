@@ -21,8 +21,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Each behaviour leaves the record where the setting says, every one goes
- * through the writer, and the holder's access is gone within the request.
+ * Each behaviour leaves the record where the setting says, every one goes through the writer, and the holder's access is gone within the request.
  *
  * @group integration
  */
@@ -40,14 +39,13 @@ class Test_Revoke_Action extends WP_UnitTestCase {
 		$this->writer = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->action = new Revoke_Action( $this->writer, new Settings() );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 	}
 
-	/** @testdox With nothing configured, revoking marks the record revoked — history kept. */
+	/** @testdox With nothing configured, revoking marks the record revoked and keeps the history. */
 	public function test_default_behaviour_is_revoke(): void {
 		$access_id = $this->grant();
 

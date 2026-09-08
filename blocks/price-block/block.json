@@ -6,7 +6,7 @@
 	"title": "Price block",
 	"category": "widgets",
 	"icon": "tag",
-	"description": "ui-spec.md §6.13. The standalone price on a product page. Four forms.",
+	"description": "The standalone price on a product page. Four forms.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"amount": {

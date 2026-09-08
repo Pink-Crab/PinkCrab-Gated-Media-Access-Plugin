@@ -14,8 +14,7 @@ use PinkCrab\Gated_Access\Admin\Picker_Search;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Each search finds its own kind and shapes the result for the picker:
- * id and label, nothing else.
+ * Each search finds its own kind and shapes the result for the picker: id and label, nothing else.
  *
  * @group integration
  */

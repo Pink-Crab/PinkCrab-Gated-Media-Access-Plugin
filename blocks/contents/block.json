@@ -6,7 +6,7 @@
 	"title": "Contents list",
 	"category": "widgets",
 	"icon": "list-view",
-	"description": "ui-spec.md §6.12. What a product contains, or what an order contained.",
+	"description": "What a product contains, or what an order contained.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"items": {

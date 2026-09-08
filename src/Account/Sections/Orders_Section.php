@@ -12,11 +12,9 @@ namespace PinkCrab\Gated_Access\Account\Sections;
 use PinkCrab\Gated_Access\Account\Account_Section;
 
 /**
- * The record of what was taken and when — ui-spec.md §7.3.
+ * The record of what was taken and when.
  *
- * **This is not a shop.** It is a history, and §7.4's order detail hangs off
- * it at `/account/orders/{id}` — which is what the route's second captured
- * segment exists for.
+ * **This is not a shop.** It is a history, and one order's detail hangs off it at `/account/orders/{id}`, which is what the route's second captured segment exists for.
  */
 class Orders_Section implements Account_Section {
 

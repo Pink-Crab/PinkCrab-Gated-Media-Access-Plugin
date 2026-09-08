@@ -22,44 +22,31 @@ use PinkCrab\Gated_Access\Support\Auth_Url;
 /**
  * Puts the account area on a URL of its own.
  *
- * This is the second of the two ways the account area reaches a site — the
- * first being an administrator placing the blocks on their own pages. Both
- * render the same blocks, which is what stops them drifting apart.
+ * The second of the two ways the account area reaches a site, the first being an administrator placing the blocks on their own pages. Both render the same blocks, which is what stops them drifting apart.
  *
- * **A virtual page, not a takeover.** The route answers with a page the theme
- * then renders: its header, its navigation, its footer, its width. This is the
- * WooCommerce My Account model, and it is the only one that behaves for a
- * plugin shipped to sites whose themes we have never seen. Replacing the
- * document would strand someone on a page with no way back to the site.
+ * **A virtual page, not a takeover.** The route answers with a page the theme then renders: its header, its navigation, its footer, its width, the WooCommerce My Account model, and the only one that behaves for a plugin shipped to themes we have never seen.
  *
- * **One rewrite rule, not one per section.** A rule per section would mean a
- * third party adding one has no URL until rewrite rules are flushed, and
- * flush-on-demand is a trap: it is expensive, it is easy to call on every
- * request by accident, and forgetting it produces a 404 nobody can explain. So
- * the rule captures any segment and the section list decides at runtime what is
- * valid. Adding a section needs no flush, ever.
+ * **One rewrite rule, not one per section.** A rule per section would leave a third party's new section with no URL until rewrite rules were flushed, and flush-on-demand is expensive, easy to call on every request by accident, and produces a 404 nobody can explain when forgotten.
  *
- * Two segments are captured. The second is what makes `/account/orders/{id}`
- * work, and a third-party section gets the same for free.
+ * So the rule captures any segment and the section list decides at runtime what is valid, and adding a section needs no flush.
+ *
+ * Two segments are captured: the second is what makes `/account/orders/{id}` work, and a third-party section gets the same for free.
  */
 class Account_Route implements Hookable {
 
 	/** Marks a request as ours. */
 	public const QUERY_FLAG = 'gatedmedia_account';
 
-	/** Which section — the first URL segment. */
+	/** Which section, from the first URL segment. */
 	public const QUERY_SECTION = 'gatedmedia_account_section';
 
 	/** The optional second segment: an order id, or whatever a section wants. */
 	public const QUERY_DETAIL = 'gatedmedia_account_detail';
 
 	/**
-	 * Bumped whenever the plugin's rewrite rules change — the rules below, or
-	 * a registered post type's — which triggers exactly one flush.
+	 * Bumped whenever the plugin's rewrite rules change, ours or a post type's, which triggers exactly one flush.
 	 *
-	 * Adding a section does not change the rules, so this does not move when
-	 * one is added — that is the point of the catch-all.
-	 * '2': the gatedmedia_product post type added its rules.
+	 * Adding a section does not change the rules, which is the point of the catch-all, and '2' is where the gatedmedia_product post type added its own.
 	 */
 	private const REWRITE_VERSION = '2';
 
@@ -103,10 +90,7 @@ class Account_Route implements Hookable {
 	/**
 	 * Registers the rewrites, the query vars and the virtual page.
 	 *
-	 * Nothing is attached when the `account_route` setting is off: the brief
-	 * gives an administrator two ways to have an account area, this route or
-	 * their own pages holding the same blocks, and a site that has chosen the
-	 * second should not also answer on `/account/`.
+	 * Nothing is attached when the `account_route` setting is off: an administrator has two ways to have an account area, this route or their own pages holding the same blocks, and a site that chose the second should not also answer on `/account/`.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -126,10 +110,7 @@ class Account_Route implements Hookable {
 	/**
 	 * The account area's URL segment.
 	 *
-	 * A filter rather than a setting, per the brief — this is the sort of thing
-	 * a site changes in code, and making it a setting invites someone to change
-	 * it in a way that breaks their own links. `Account_Url` resolves it; this
-	 * stays as the route's own way of asking.
+	 * A filter rather than a setting, because a setting invites someone to break their own links. `Account_Url` resolves it, and this is the route's own way of asking.
 	 */
 	public function slug(): string {
 		return Account_Url::slug();
@@ -169,9 +150,7 @@ class Account_Route implements Hookable {
 	/**
 	 * Flushes only when the rules themselves changed.
 	 *
-	 * Flushing is expensive and doing it on every request is a well-known way
-	 * to make a site crawl, so it is gated on a stored version rather than on
-	 * "are our rules present".
+	 * Flushing is expensive and doing it on every request makes a site crawl, so it is gated on a stored version rather than on whether our rules are present.
 	 */
 	private function flush_once(): void {
 		$stamp = self::REWRITE_VERSION . ':' . $this->slug();
@@ -201,9 +180,7 @@ class Account_Route implements Hookable {
 	/**
 	 * Answers the account route with a page that does not exist in the database.
 	 *
-	 * The query found nothing, because there is nothing to find. Rather than
-	 * let that become a 404, we hand back one post so the theme renders its
-	 * ordinary singular template around our content.
+	 * The query found nothing because there is nothing to find, so rather than let that become a 404 this hands back one post and the theme renders its ordinary singular template around our content.
 	 *
 	 * @param array<int, WP_Post> $posts The posts the query found.
 	 * @param WP_Query            $query The query that found them.
@@ -214,8 +191,7 @@ class Account_Route implements Hookable {
 			return $posts;
 		}
 
-		// Signed out is turned away on template_redirect, where a redirect is
-		// safe to send. Until then it must be a 404 and not the blog listing.
+		// Signed out is turned away on template_redirect, where a redirect is safe to send, and until then it must be a 404 rather than the blog listing.
 		if ( ! is_user_logged_in() ) {
 			return $this->refuse( $query );
 		}
@@ -227,9 +203,7 @@ class Account_Route implements Hookable {
 			? $this->visible->first()
 			: $this->visible->get( $requested );
 
-		// An unknown slug, or one this user may not see, is a 404 — the nav and
-		// the router read the same list, so this only happens for a URL typed
-		// by hand or left over from a section that has gone away.
+		// An unknown slug, or one this user may not see, is a 404.
 		if ( null === $this->current ) {
 			return $this->refuse( $query );
 		}
@@ -244,14 +218,11 @@ class Account_Route implements Hookable {
 		$query->post_count    = 1;
 		$query->max_num_pages = 1;
 
-		// Our content is already markup. wpautop would insert paragraphs
-		// between the shell's elements and break the layout.
+		// Our content is already markup, and wpautop would insert paragraphs between the shell's elements and break the layout.
 		remove_filter( 'the_content', 'wpautop' );
 
 		$this->assets->enqueue_front();
-		// The shell draws its navigation before the loop, so nothing has passed
-		// through render_block by the time the footer runs — the sprite has to
-		// be asked for explicitly here.
+		// The shell draws before the loop, so the sprite has to be asked for here.
 		$this->sprite->require_sprite();
 
 		return array( $this->virtual_post( $this->current ) );
@@ -260,11 +231,7 @@ class Account_Route implements Hookable {
 	/**
 	 * Turns an account URL we cannot answer into a 404.
 	 *
-	 * Returning an empty list is not enough on its own. The rewrite resolves to
-	 * `index.php` with only our own query vars on it, so nothing marks the
-	 * request as singular and WordPress falls back to treating it as the blog
-	 * home — which never 404s, and would answer `/account/nonsense/` with the
-	 * post listing.
+	 * Returning an empty list is not enough on its own. The rewrite resolves to `index.php` with only our own query vars, so nothing marks the request singular and WordPress treats it as the blog home, which never 404s.
 	 *
 	 * @param WP_Query $query The main query.
 	 * @return array<int, WP_Post> Always empty.
@@ -279,12 +246,9 @@ class Account_Route implements Hookable {
 	/**
 	 * Sends a signed-out visitor to sign in, and back here afterwards.
 	 *
-	 * The account area is a person's own record, so there is no signed-out view
-	 * of it to render.
+	 * The account area is a person's own record, so there is no signed-out view of it to render.
 	 *
-	 * Round 9 moved this off `wp_login_url()` and onto the plugin's own view.
-	 * wp-login.php still works and is still where core's reset link lands; it
-	 * is simply not where our own pages send people any more.
+	 * The destination is `Auth_Url`, not `wp_login_url()`: wp-login.php still works and is still where core's reset link lands, but it is not where our own pages send people.
 	 */
 	public function require_login(): void {
 		if ( '1' !== (string) get_query_var( self::QUERY_FLAG ) ) {
@@ -302,12 +266,7 @@ class Account_Route implements Hookable {
 	/**
 	 * Sends a real 404 status for an account URL we refused.
 	 *
-	 * `refuse()` marks the query as a 404, which is enough to get the theme's
-	 * 404 template rendered — but not enough to set the status code. Core sends
-	 * that from `WP::handle_404()`, which runs before this and declines to act
-	 * on a 404 the query already carried. Left alone the result is a soft 404:
-	 * a "page not found" screen served with 200, which search engines index and
-	 * uptime monitors call healthy.
+	 * `refuse()` renders the theme's 404 template but does not set the status code, because `WP::handle_404()` runs before this and declines to act on a 404 the query already carried. Left alone the result is a soft 404, served with 200.
 	 */
 	public function send_not_found_status(): void {
 		if ( '1' !== (string) get_query_var( self::QUERY_FLAG ) ) {
@@ -325,8 +284,7 @@ class Account_Route implements Hookable {
 	/**
 	 * Replaces the virtual page's empty content with the account shell.
 	 *
-	 * Rendered here rather than when the post is built, so blocks render at the
-	 * ordinary time with the query fully set up.
+	 * Rendered here rather than when the post is built, so blocks render at the ordinary time with the query fully set up.
 	 *
 	 * @param string $content The post content.
 	 */
@@ -358,8 +316,7 @@ class Account_Route implements Hookable {
 	/**
 	 * A page that exists only for this request.
 	 *
-	 * ID 0 keeps it from colliding with a real post: anything that reaches for
-	 * post meta gets nothing rather than another post's values.
+	 * ID 0 keeps it from colliding with a real post, so anything reaching for post meta gets nothing rather than another post's values.
 	 *
 	 * @param Account_Section $section The section being viewed.
 	 */

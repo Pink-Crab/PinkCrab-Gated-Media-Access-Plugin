@@ -1,5 +1,5 @@
 /**
- * Profile — ui-spec.md §7.5.
+ * Profile.
  *
  * Placeable: an administrator can put this section on a page of their own.
  */

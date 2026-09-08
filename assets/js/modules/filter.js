@@ -1,13 +1,9 @@
 /**
- * §6.11 — the filter: a search box, and a type list drawn as a select at wide
- * widths and as chips at narrow ones.
+ * The filter: a search box, and a type list drawn as a select at wide widths and as chips at narrow ones.
  *
- * Every row is already on the page, so matching happens here rather than in a
- * request. A section whose rows have all gone is hidden with them, or the view
- * keeps a heading over nothing.
+ * Every row is already on the page, so matching happens here rather than in a request, and a section whose rows have all gone is hidden with them, or the view keeps a heading over nothing.
  *
- * Nothing is required for the view to be readable: with this script absent the
- * rows are simply all shown, which is the state the server rendered.
+ * Nothing here is required for the view to be readable: with this script absent every row is shown, which is the state the server rendered.
  */
 
 import { all } from '../shared/dom';

@@ -17,17 +17,11 @@ use Countable;
 /**
  * Holds Account_Section instances, keyed by slug, in nav order.
  *
- * It exists so that `gatedmedia_account_sections` passes something with a type
- * rather than a bare array. A filter returning an array of who-knows-what is
- * how a third party's mistake becomes our fatal error three hooks later; here
- * the only way in is `add()`, which will not take anything else.
+ * It exists so `gatedmedia_account_sections` passes something typed rather than a bare array, since a filter returning an array of anything at all is how a third party's mistake becomes our fatal error three hooks later.
  *
- * Immutable-ish by habit rather than enforcement: `add()` returns a new
- * collection, so a filter that forgets to return gets caught by the type on the
- * other side instead of quietly mutating ours.
+ * The only way in is `add()`, which takes nothing else, and it returns a new collection, so a filter that forgets to return is caught by the type on the other side instead of quietly mutating ours.
  *
- * Iteration is by position, not by slug — `sorted()` returns a list, and the
- * keys a consumer sees are 0..n in nav order.
+ * Iteration is by position rather than slug, so the keys a consumer sees are 0..n in nav order.
  *
  * @implements IteratorAggregate<int, Account_Section>
  */
@@ -56,8 +50,7 @@ final class Section_Collection implements IteratorAggregate, Countable {
 	/**
 	 * Returns a copy with one more section in it.
 	 *
-	 * A slug that already exists is replaced, which is how a site swaps our
-	 * Profile for its own without having to remove ours first.
+	 * A slug that already exists is replaced, which is how a site swaps our Profile for its own without removing ours first.
 	 *
 	 * @param Account_Section $section The section to add.
 	 */
@@ -101,8 +94,7 @@ final class Section_Collection implements IteratorAggregate, Countable {
 	/**
 	 * Only the sections this user may see, in nav order.
 	 *
-	 * The nav and the router both read this, so a hidden section cannot be
-	 * advertised in one and refused by the other.
+	 * The nav and the router both read this, so a hidden section cannot be advertised in one and refused by the other.
 	 *
 	 * @param int $user_id The user viewing, 0 when signed out.
 	 */
@@ -150,8 +142,7 @@ final class Section_Collection implements IteratorAggregate, Countable {
 	}
 
 	/**
-	 * Iterates in nav order, not insertion order — every consumer wants the
-	 * former and forgetting to sort is an easy bug to miss.
+	 * Iterates in nav order rather than insertion order, since forgetting to sort is an easy bug to miss.
 	 *
 	 * @return Traversable<int, Account_Section>
 	 */

@@ -27,9 +27,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * A new allow-list address is invited by who they are and what the product
- * costs; an existing user on a free product holds access before the email
- * lands; removal forgets, re-adding re-sends; the switches gate everything.
+ * A new allow-list address is invited by who they are and what the product costs, an existing user on a free product holds access before the email lands, removal forgets and re-adding re-sends, and the switches gate all of it.
  *
  * @group integration
  */
@@ -124,7 +122,7 @@ class Test_Invites extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'member@example.test', $this->invites->sent_map( $product_id ) );
 	}
 
-	/** @testdox An existing user joining a paid product's list is invited to buy — no access yet. */
+	/** @testdox An existing user joining a paid product's list is invited to buy, with no access yet. */
 	public function test_user_on_paid_product_mailed_only(): void {
 		$user_id    = self::factory()->user->create( array( 'user_email' => 'buyer@example.test' ) );
 		$product_id = $this->make_product( 500 );
@@ -138,7 +136,7 @@ class Test_Invites extends WP_UnitTestCase {
 		$this->assertNull( $this->lookup->find_by_reference( Invites::SOURCE_INVITE, "user:{$user_id}:product:{$product_id}" ) );
 	}
 
-	/** @testdox An address with no account is asked to create one — worded by the product's price. */
+	/** @testdox An address with no account is asked to create one, worded by the product's price. */
 	public function test_guest_variants(): void {
 		$free = $this->make_product( 0 );
 		add_post_meta( $free, Product_Meta::META_EMAILS, 'newcomer@example.test' );
@@ -211,8 +209,7 @@ class Test_Invites extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A block editor save, over the REST route the product form actually
-	 * posts to — the post row is written first, the meta after it.
+	 * A block editor save over the REST route the product form posts to: the post row is written first, the meta after it.
 	 *
 	 * @param int                $product_id The product being saved.
 	 * @param array<int, string> $emails     The allow-list as the form sends it.

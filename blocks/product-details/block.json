@@ -6,7 +6,7 @@
 	"title": "Product details",
 	"category": "widgets",
 	"icon": "products",
-	"description": "The product's form — price, duration, visibility, the items it grants and the email allow-list. Locked into every product; saves to meta, never to content.",
+	"description": "The product's form: price, duration, visibility, the items it grants and the email allow-list. Locked into every product, and saves to meta rather than content.",
 	"textdomain": "gated-media-access",
 	"supports": {
 		"html": false,

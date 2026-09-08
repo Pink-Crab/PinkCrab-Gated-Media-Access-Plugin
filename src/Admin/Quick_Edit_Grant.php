@@ -18,17 +18,13 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * An Access column on the restrictable list tables, and a grant inside its
- * quick edit: pick a user, give days or lifetime, save the row.
+ * An Access column on the restrictable list tables, and a grant inside its quick edit: pick a user, give days or lifetime, save the row.
  *
- * Quick edit renders one template row with no per-row state, so this box only
- * adds — the holders themselves live on the item's metabox and the Access
- * screen, where there is a record to point at. The save is core's inline
- * save; the record still comes from `Access_Writer::grant()`, keyed off our
- * own nonced fields, which a plain editor save does not carry.
+ * Quick edit renders one template row with no per-row state, so this box only adds. The holders themselves live on the item's metabox and the Access screen.
  *
- * Attachments are out: the media list has no quick edit. Their door is the
- * metabox on the attachment edit screen.
+ * The save is core's inline save, and the record still comes from `Access_Writer::grant()`, keyed off our own nonced fields that a plain editor save does not carry.
+ *
+ * Attachments are out, because the media list has no quick edit, and their door is the metabox on the attachment edit screen.
  */
 class Quick_Edit_Grant implements Hookable {
 
@@ -69,8 +65,7 @@ class Quick_Edit_Grant implements Hookable {
 	}
 
 	/**
-	 * The types whose list tables carry the column — restrictable, minus
-	 * attachments (the media list has no quick edit).
+	 * The types whose list tables carry the column: restrictable, minus attachments, whose media list has no quick edit.
 	 *
 	 * @return array<int, string>
 	 */
@@ -105,7 +100,7 @@ class Quick_Edit_Grant implements Hookable {
 
 		echo esc_html(
 			0 === $count
-				? __( '—', 'gated-media-access' )
+				? __( '-', 'gated-media-access' )
 				/* translators: %d: how many users hold access. */
 				: sprintf( _n( '%d holder', '%d holders', $count, 'gated-media-access' ), $count )
 		);
@@ -135,7 +130,7 @@ class Quick_Edit_Grant implements Hookable {
 					<span class="title"><?php esc_html_e( 'Days', 'gated-media-access' ); ?></span>
 					<span class="input-text-wrap"><input type="number" min="1" name="gatedmedia_qe_duration" /></span>
 				</label>
-				<em class="inline-edit-group"><?php esc_html_e( 'A picked user gains access to this item when the row saves — empty days means lifetime. Nobody picked, nothing granted.', 'gated-media-access' ); ?></em>
+				<em class="inline-edit-group"><?php esc_html_e( 'A picked user gains access to this item when the row saves, and empty days means lifetime. Nobody picked, nothing granted.', 'gated-media-access' ); ?></em>
 			</div>
 		</fieldset>
 		<?php
@@ -144,8 +139,7 @@ class Quick_Edit_Grant implements Hookable {
 	/**
 	 * Grants from an inline save that carries our fields.
 	 *
-	 * Runs on save_post but writes nothing itself — the record is the
-	 * writer's, and only when the nonced quick edit actually picked a user.
+	 * Runs on save_post but writes nothing itself. The record is the writer's, and only when the nonced quick edit actually picked a user.
 	 *
 	 * @param int $post_id The row saved.
 	 */
@@ -176,8 +170,7 @@ class Quick_Edit_Grant implements Hookable {
 	}
 
 	/**
-	 * Whether this save is a nonced quick edit of a listed type, by someone
-	 * who may give access — and a real save, not a revision or autosave.
+	 * Whether this is a nonced quick edit of a listed type, by someone who may give access, and a real save rather than a revision or autosave.
 	 *
 	 * @param int $post_id The row saved.
 	 */
@@ -203,9 +196,7 @@ class Quick_Edit_Grant implements Hookable {
 	private function holder_count( int $post_id ): int {
 		$rows = $this->rows_on_screen();
 
-		// Only the table's own rows are cached, and only for the one pass it
-		// draws them in. Anything else is asked for directly, so answer it
-		// directly rather than from a memo a write could have made stale.
+		// Only the table's own rows are cached, and only for the pass that draws them, so anything else is answered directly rather than from a memo a write could have made stale.
 		if ( ! in_array( $post_id, $rows, true ) ) {
 			return $this->look_up( array( $post_id ) )[ $post_id ] ?? 0;
 		}
@@ -233,7 +224,7 @@ class Quick_Edit_Grant implements Hookable {
 		$records = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
-				// Named, never 'any' — ours are excluded from 'any'.
+				// Named, never 'any', which excludes ours.
 				'post_status'    => Post_Types::STATUS_ACTIVE,
 				'posts_per_page' => -1,
 				'fields'         => 'ids',

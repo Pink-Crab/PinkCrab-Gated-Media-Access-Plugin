@@ -15,20 +15,13 @@ use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Owns the marker term and the two automatic behaviours from architecture.md
- * §6: any group term applied to content applies the marker too, and a group
- * term applied to an attachment restricts its file through the dependency.
+ * Owns the marker term and its two automatic behaviours: any group term applied to content applies the marker too, and a group term applied to an attachment restricts its file through the dependency.
  *
- * Removal does neither — the brief's deliberate asymmetry. Unrestricting
- * rewrites post content across the site, so it stays a manual administrator
- * act.
+ * Removal does neither, which is a deliberate asymmetry: unrestricting rewrites post content across the site, so it stays a manual administrator act.
  *
- * The marker is one term, slug `restricted` (the docs' `is_gated`, renamed
- * under the access/groups vocabulary), created the first time something needs
- * it and hidden from every term list via `list_terms_exclusions`. Readers
- * that genuinely need it pass the INCLUDE_MARKER query arg; membership reads
- * (`get_objects_in_term`) query the database directly and never see the
- * exclusion.
+ * The marker is one term, slug `restricted`, created the first time something needs it and hidden from every term list via `list_terms_exclusions`.
+ *
+ * Readers that genuinely need it pass the INCLUDE_MARKER query arg, and membership reads through `get_objects_in_term` query the database directly and never see the exclusion.
  */
 class Restriction implements Hookable {
 
@@ -38,9 +31,7 @@ class Restriction implements Hookable {
 	/**
 	 * Term-query argument that lets a caller see the marker.
 	 *
-	 * Our own lookups pass it; everything else — the admin list table, the
-	 * editor's panel, front-of-site term queries — never does, so the marker
-	 * stays out of sight.
+	 * Our own lookups pass it and nothing else does, so the marker stays out of sight.
 	 */
 	public const INCLUDE_MARKER = 'gatedmedia_include_marker';
 
@@ -57,9 +48,7 @@ class Restriction implements Hookable {
 	/**
 	 * Applies the marker (and file restriction) when a group term lands.
 	 *
-	 * Fires on every `wp_set_object_terms` call. Our own marker append below
-	 * re-fires it with the marker as the only term, which the group check
-	 * reads as "no group term applied" — that is what ends the recursion.
+	 * Fires on every `wp_set_object_terms` call. Our own marker append re-fires it with the marker as the only term, which the group check reads as "no group term applied", ending the recursion.
 	 *
 	 * @param int               $object_id  The object the terms were set on.
 	 * @param array<int|string> $terms      The terms as passed in (unused; tt_ids is canonical).
@@ -79,8 +68,7 @@ class Restriction implements Hookable {
 			wp_set_object_terms( $object_id, array( $marker_id ), Access_Taxonomy::TAXONOMY, true );
 		}
 
-		// The dependency's own guard makes this a no-op on an already
-		// restricted file.
+		// The dependency's own guard makes this a no-op on an already restricted file.
 		if ( 'attachment' === get_post_type( $object_id ) ) {
 			rmfa_set_file_as_protected( $object_id );
 		}
@@ -102,10 +90,7 @@ class Restriction implements Hookable {
 			return $exclusions;
 		}
 
-		// Hidden from lists, not from direct lookups. A query naming a term —
-		// by ID (term_exists), slug or name (get_term_by) — gets the truth;
-		// hiding the marker there makes wp_set_object_terms() silently drop
-		// it as a non-existent term ID.
+		// Hidden from lists, not from direct lookups, or wp_set_object_terms() drops it.
 		foreach ( array( 'include', 'slug', 'name' ) as $direct ) {
 			$value = $args[ $direct ] ?? '';
 
@@ -128,9 +113,7 @@ class Restriction implements Hookable {
 	/**
 	 * The marker term, if it exists yet.
 	 *
-	 * Uncached on purpose: core's term query cache already covers the lookup,
-	 * and an instance memo would go stale the moment a test transaction rolls
-	 * back under it.
+	 * Uncached on purpose: core's term query cache already covers the lookup, and an instance memo would go stale the moment a test transaction rolled back under it.
 	 */
 	public function marker(): ?WP_Term {
 		$terms = get_terms(
@@ -179,7 +162,7 @@ class Restriction implements Hookable {
 	}
 
 	/**
-	 * The applied tt_ids with the marker's removed — what's left is groups.
+	 * The applied tt_ids with the marker's removed, leaving the groups.
 	 *
 	 * @param array<int|string> $tt_ids Term taxonomy IDs from the assignment.
 	 * @return array<int>

@@ -6,7 +6,7 @@
 	"title": "Profile",
 	"category": "widgets",
 	"icon": "admin-users",
-	"description": "The one profile shape every route fills — name, email, address, phone, company.",
+	"description": "The one profile shape every route fills: name, email, address, phone, company.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"detail": {

@@ -25,8 +25,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Records inside the lead window are warned once; lifetime, far-future and
- * already-warned records are left alone; a reschedule earns a new warning.
+ * Records inside the lead window are warned once, lifetime and far-future and already-warned records are left alone, and a reschedule earns a new warning.
  *
  * @group integration
  */
@@ -86,8 +85,7 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Built from the route's slug by hand rather than through `Account_Url`,
-	 * so it survived the setting that turned the route off.
+	 * Built from the route's slug by hand rather than through `Account_Url`, so it survived the setting that turned the route off.
 	 *
 	 * @testdox With the account route off, the warning's link does not point at a page that no longer answers.
 	 */
@@ -139,9 +137,7 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The flag was written whatever the send returned, and the query skips
-	 * anything carrying it — so one transient mail failure meant that holder
-	 * was never warned at all, and nothing recorded it.
+	 * The flag was written whatever the send returned and the query skips anything carrying it, so one mail failure meant that holder was never warned and nothing recorded it.
 	 *
 	 * @testdox A send that fails leaves the record unwarned, so the next run tries again.
 	 */
@@ -182,9 +178,7 @@ class Test_Expiry_Warning extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Stacking moves the date without going through `set_expiry()`, so the
-	 * rescheduled action never fired and the flag from the old date stayed
-	 * put: a renewed holder was never warned about the new one.
+	 * Stacking moves the date without `set_expiry()`, so the rescheduled action never fired, the old flag stayed put, and a renewed holder was never warned about the new date.
 	 *
 	 * @testdox Stacking more time onto live access clears the warned flag, so the new date warns.
 	 */

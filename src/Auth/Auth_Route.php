@@ -19,24 +19,15 @@ use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * `Account_Route`'s mirror image, and deliberately so. That route exists for
- * people who are signed in and turns everyone else away; this one exists for
- * people who are not, and turns *them* away — which is why it could never have
- * been a section of the account area. `Account_Section`'s own contract says as
- * much: a section always renders inside the account shell, and §7.7 has no
- * shell at all.
+ * `Account_Route`'s mirror image, deliberately: that route exists for people who are signed in and turns everyone else away, this one exists for people who are not and turns *them* away.
  *
- * **One rule, not four.** §7.7 is one view in four states, so it is one URL:
- * the state rides as a query argument (`Auth_Url`), and the four states share
- * a rewrite, a virtual page and a block. Adding a state needs no flush.
+ * Which is why it could never have been a section of the account area, since `Account_Section`'s contract says a section always renders inside the account shell and this view has no shell at all.
  *
- * **A virtual page, not a takeover** — the same WooCommerce model the account
- * route uses. The theme renders its header, navigation and footer around our
- * content, so nobody is ever stranded on a page with no way back to the site.
+ * **One rule, not four.** It is one view in four states, so it is one URL, with the state riding as a query argument through `Auth_Url` and the four states sharing a rewrite, a virtual page and a block, so adding a state needs no flush.
  *
- * wp-login.php is left entirely alone: not filtered, not redirected, not
- * replaced. It keeps working, which is what makes it the recovery door if this
- * page ever breaks, and it is still where core's reset link lands.
+ * **A virtual page, not a takeover**, the same WooCommerce model the account route uses, so the theme renders its header, navigation and footer around our content and nobody is stranded on a page with no way back to the site.
+ *
+ * wp-login.php is left entirely alone, not filtered, not redirected, not replaced, which is what makes it the recovery door if this page ever breaks, and it is still where core's reset link lands.
  */
 class Auth_Route implements Hookable {
 
@@ -74,23 +65,15 @@ class Auth_Route implements Hookable {
 	}
 
 	/**
-	 * The heading for each state — §7.7's block 1.
+	 * The heading for each state.
 	 *
-	 * **This one is the block's, not the theme's**, which is the opposite of
-	 * every other view and is why it is worth saying. `Account_Renderer` lets
-	 * the theme print the h1 because the account area has a shell for it to be
-	 * the heading *of*. §7.7 has no shell: a theme-printed title lands outside
-	 * the card, left-aligned to the content column while the card is centred,
-	 * and reads as a stray line above an unrelated box.
+	 * **This one is the block's, not the theme's**, the opposite of every other view: `Account_Renderer` lets the theme print the h1 because the account area has a shell for it to be the heading *of*.
 	 *
-	 * So the virtual page is given no title — core's `post-title` block renders
-	 * nothing at all for an empty one rather than an empty `h1`
-	 * (`wp-includes/blocks/post-title.php`) — and the block draws the heading
-	 * inside the card where §7.7 puts it. Still exactly one h1, which is what
-	 * §2 conflict 4 was protecting.
+	 * This view has no shell, so a theme-printed title lands outside the card, left-aligned while the card is centred, and reads as a stray line above an unrelated box.
 	 *
-	 * The document title is set from this too, so the browser tab still names
-	 * the state.
+	 * The virtual page is given no title instead, since core's `post-title` block renders nothing for an empty one rather than an empty `h1`, and the block draws the heading inside the card. Still exactly one h1.
+	 *
+	 * The document title is set from this too, so the browser tab still names the state.
 	 *
 	 * @param string $state One of `Auth_Url`'s STATE_* values.
 	 */
@@ -121,9 +104,7 @@ class Auth_Route implements Hookable {
 	/**
 	 * Names the state in the browser tab.
 	 *
-	 * The virtual page carries no title, so without this the tab would fall
-	 * back to the site name alone and four different pages would look like one
-	 * in a list of open tabs or in history.
+	 * The virtual page carries no title, so without this the tab would fall back to the site name alone and four different pages would look like one in a list of tabs or in history.
 	 *
 	 * @param array<string, string> $parts The title's parts.
 	 * @return array<string, string>
@@ -173,9 +154,7 @@ class Auth_Route implements Hookable {
 	/**
 	 * Answers the auth route with a page that does not exist in the database.
 	 *
-	 * Signed in is sent away on `template_redirect`, where a redirect is safe
-	 * to send. Until then the page is built either way — bailing here would
-	 * leave the request as the blog listing rather than as a redirect.
+	 * Signed in is sent away on `template_redirect`, where a redirect is safe to send. The page is built either way, or bailing here would leave the request as the blog listing.
 	 *
 	 * @param array<int, WP_Post> $posts The posts the query found.
 	 * @param WP_Query            $query The query that found them.
@@ -198,8 +177,7 @@ class Auth_Route implements Hookable {
 		$query->post_count    = 1;
 		$query->max_num_pages = 1;
 
-		// Our content is already markup. wpautop would insert paragraphs
-		// between the card's elements and break the layout.
+		// Our content is already markup, and wpautop would insert paragraphs between the card's elements and break the layout.
 		remove_filter( 'the_content', 'wpautop' );
 
 		$this->assets->enqueue_front();
@@ -211,9 +189,7 @@ class Auth_Route implements Hookable {
 	/**
 	 * Someone already signed in has nothing to do here.
 	 *
-	 * They are sent where the form would have sent them — their destination if
-	 * they carried one, their account otherwise — rather than shown a sign-in
-	 * form they cannot use.
+	 * They are sent where the form would have sent them, their destination if they carried one and their account otherwise, rather than shown a form they cannot use.
 	 */
 	public function send_signed_in_away(): void {
 		if ( '1' !== (string) get_query_var( self::QUERY_FLAG ) || ! is_user_logged_in() ) {
@@ -235,8 +211,7 @@ class Auth_Route implements Hookable {
 	/**
 	 * Replaces the virtual page's empty content with the auth block.
 	 *
-	 * Rendered here rather than when the post is built, so the block renders at
-	 * the ordinary time with the query fully set up.
+	 * Rendered here rather than when the post is built, so the block renders at the ordinary time with the query fully set up.
 	 *
 	 * @param string $content The post content.
 	 */
@@ -251,8 +226,7 @@ class Auth_Route implements Hookable {
 	/**
 	 * A page that exists only for this request.
 	 *
-	 * ID 0 keeps it from colliding with a real post: anything reaching for post
-	 * meta gets nothing rather than another post's values.
+	 * ID 0 keeps it from colliding with a real post, so anything reaching for post meta gets nothing rather than another post's values.
 	 */
 	private function virtual_post(): WP_Post {
 		return new WP_Post(
@@ -262,8 +236,7 @@ class Auth_Route implements Hookable {
 				'post_date'             => current_time( 'mysql' ),
 				'post_date_gmt'         => current_time( 'mysql', true ),
 				'post_content'          => '',
-				// Empty on purpose — see title_for(). The block draws the
-				// heading; core renders nothing here rather than an empty h1.
+				// Empty on purpose: the block draws the heading, per title_for().
 				'post_title'            => '',
 				'post_excerpt'          => '',
 				'post_status'           => 'publish',
@@ -288,7 +261,7 @@ class Auth_Route implements Hookable {
 	}
 
 	/**
-	 * Flushes only when the rule itself changed — version or segment.
+	 * Flushes only when the rule changed, by version or segment.
 	 */
 	private function flush_once(): void {
 		$stamp = self::REWRITE_VERSION . ':' . $this->slug();

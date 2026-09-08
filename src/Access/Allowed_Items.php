@@ -10,16 +10,11 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Access;
 
 /**
- * Everything one user is allowed to see, resolved once by the resolver and
- * read by everything else: the live direct records, and the flattened maps
- * they expand to.
+ * Everything one user is allowed to see, resolved once by `Resolver` and read by everything else: the live direct records, and the flattened maps they expand to.
  *
- * Expiries are UTC timestamps, or null for lifetime. Where an item is reachable
- * more than one way — held directly and inside a held group — the map carries
- * the most generous expiry: lifetime beats any date, later beats sooner.
+ * Expiries are UTC timestamps, or null for lifetime. Where an item is reachable more than one way, held directly and inside a held group, the map carries the most generous expiry: lifetime beats any date, later beats sooner.
  *
- * Immutable; revoked and expired records were dropped during the build, so
- * membership here *is* the answer.
+ * Immutable, and revoked and expired records were dropped during the build, so membership here *is* the answer.
  */
 final class Allowed_Items {
 
@@ -42,7 +37,7 @@ final class Allowed_Items {
 	}
 
 	/**
-	 * The live direct records, as granted — what My Access lists.
+	 * The live direct records, as granted, which is what My Access lists.
 	 *
 	 * @return array<int, array{access_id: int, item_type: string, item_id: string, expires_at: int|null}>
 	 */
@@ -51,7 +46,7 @@ final class Allowed_Items {
 	}
 
 	/**
-	 * Every reachable attachment — direct grants and group contents together.
+	 * Every reachable attachment: direct grants and group contents together.
 	 *
 	 * @return array<int, int|null>
 	 */

@@ -6,6 +6,7 @@
 		"value-keyword-case": null,
 		"no-duplicate-selectors": null,
 		"selector-id-pattern": null,
-		"no-descending-specificity": null
+		"no-descending-specificity": null,
+		"@stylistic/max-line-length": null
 	}
 }

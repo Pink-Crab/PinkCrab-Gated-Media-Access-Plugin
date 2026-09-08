@@ -1,8 +1,7 @@
 /**
- * Product details — the product's whole form.
+ * Product details, the product's whole form.
  *
- * Hidden from the inserter: the post type's template places it, locked, on
- * every product. It saves to meta over REST and writes nothing to content.
+ * Hidden from the inserter, because the post type's template places it locked on every product, and it saves to meta over REST and writes nothing to content.
  */
 
 import { registerBlockType } from '@wordpress/blocks';

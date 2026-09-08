@@ -13,14 +13,13 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
 
 /**
- * The brief requires all three creation routes to fill the same fields, which
- * only holds while there is one definition of what those fields are.
+ * All three creation routes fill the same fields, which only holds while there is one definition of what those fields are.
  *
  * @group integration
  */
 class Test_Profile_Writer extends WP_UnitTestCase {
 
-	/** @testdox The profile carries the fields the brief names. */
+	/** @testdox The profile carries the four fields every creation route fills. */
 	public function test_defines_the_fields_from_the_brief(): void {
 		$fields = array_keys( Profile_Writer::fields() );
 

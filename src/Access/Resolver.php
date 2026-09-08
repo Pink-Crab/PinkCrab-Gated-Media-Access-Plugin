@@ -15,19 +15,13 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Answers the brief's two questions — can this user see this thing right now,
- * and what can this user see right now — from one per-user set of allowed
- * items. Nothing else evaluates expiry, revocation or group membership
- * (architecture.md §4).
+ * Answers two questions, can this user see this thing right now and what can this user see right now, from one per-user set of allowed items. Nothing else evaluates expiry, revocation or group membership.
  *
- * A shared service others call; its only hooks keep the memo honest. The file
- * boundary (round 3) attaches at plugin load and resolves this lazily.
+ * A shared service others call, whose only hooks keep the memo honest. `File_Boundary` attaches at plugin load and resolves this lazily.
  *
- * The allowed items are memoised per instance, and instances are shared
- * through the container, so a page asking once per image size pays for one
- * build. A grant, a revocation or a stacked extension forgets that holder's
- * items, so a write is visible to the rest of its own request.
- * Expiry is compared against now at read time — no sweep has to have run.
+ * The allowed items are memoised per instance and instances are shared through the container, so a page asking once per image size pays for one build.
+ *
+ * A grant, a revocation or a stacked extension forgets that holder's items, so a write is visible to the rest of its own request, and expiry is compared against now at read time, so no sweep has to have run.
  */
 class Resolver implements Hookable {
 
@@ -84,7 +78,7 @@ class Resolver implements Hookable {
 	/**
 	 * Can this user see this thing right now?
 	 *
-	 * A membership test against the allowed items — no query after the first ask.
+	 * A membership test against the allowed items, with no query after the first ask.
 	 *
 	 * @param int    $user_id   The user asking.
 	 * @param string $item_type One of file, post, group.
@@ -101,7 +95,7 @@ class Resolver implements Hookable {
 		};
 
 		/**
-		 * The last word on an access decision, deliberately (architecture.md §4).
+		 * The last word on an access decision, deliberately.
 		 *
 		 * @param bool   $allowed   What the records say.
 		 * @param int    $user_id   The user asking.
@@ -130,8 +124,7 @@ class Resolver implements Hookable {
 			} elseif ( 'post' === $record['item_type'] ) {
 				$posts = $this->merge( $posts, (int) $record['item_id'], $record['expires_at'] );
 			} elseif ( 'group' === $record['item_type'] ) {
-				// array_key_exists, not ?? — a held lifetime group stores null,
-				// and ?? would read that as absent and downgrade it to dated.
+				// array_key_exists, not ??: a lifetime group stores null, which ?? reads as absent.
 				$current = array_key_exists( $record['item_id'], $groups ) ? $groups[ $record['item_id'] ] : PHP_INT_MIN;
 
 				$groups[ $record['item_id'] ] = $this->most_generous( $current, $record['expires_at'] );
@@ -183,8 +176,7 @@ class Resolver implements Hookable {
 			$expires    = (string) get_post_meta( (int) $access_id, Access_Writer::META_EXPIRES_AT, true );
 			$expires_at = '' === $expires ? null : (int) strtotime( $expires . ' +0000' );
 
-			// Expiry is a date, not a status — a record is expired the moment
-			// it is expired, swept or not.
+			// Expiry is a date, not a status: a record is expired whether swept or not.
 			if ( null !== $expires_at && $expires_at <= time() ) {
 				continue;
 			}
@@ -201,8 +193,7 @@ class Resolver implements Hookable {
 	}
 
 	/**
-	 * What a group contains right now — live, per the brief: everyone holding
-	 * the group sees whatever is in it at the moment they ask.
+	 * What a group contains right now, so everyone holding it sees whatever is in it at the moment they ask.
 	 *
 	 * @param string $uuid The group.
 	 * @return array<int, bool> Object ID → true when it is an attachment.
@@ -233,9 +224,7 @@ class Resolver implements Hookable {
 				continue;
 			}
 
-			// Attachments live at inherit; anything else must be published or
-			// gated — a draft in a group is not viewable content for anyone,
-			// but a gated post is exactly what a group is granted for.
+			// Attachments live at inherit, everything else must be published or gated.
 			$is_file  = 'attachment' === $object->post_type;
 			$readable = in_array( $object->post_status, array( 'publish', Post_Types::STATUS_GATED ), true );
 

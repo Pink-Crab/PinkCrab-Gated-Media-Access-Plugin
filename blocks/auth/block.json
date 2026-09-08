@@ -6,7 +6,7 @@
 	"title": "Sign in",
 	"category": "widgets",
 	"icon": "unlock",
-	"description": "ui-spec.md §7.7. One view in four states — sign in, sign up, reset, reset link sent. Rendered by the plugin's own auth route; the state comes from the URL.",
+	"description": "One view in four states: sign in, sign up, reset, reset link sent. Rendered by the plugin's own auth route, with the state coming from the URL.",
 	"textdomain": "gated-media-access",
 	"supports": {
 		"html": false,

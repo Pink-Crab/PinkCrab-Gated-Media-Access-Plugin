@@ -12,14 +12,11 @@ namespace PinkCrab\Gated_Access\Notifications;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Every notification goes out through here (architecture §10, spec §5):
- * type → template (stored override or shipped default) → placeholders →
- * recipients filter → content filter → the sending action → `wp_mail()`.
+ * Every notification goes out through here, in this order: type, then template (a stored override or the shipped default), then placeholders, then the recipients filter, then the content filter, then the sending action, then `wp_mail()`.
  *
- * A site can take over entirely: listen on
- * `gatedmedia_notification_sending` and empty the recipients through
- * `gatedmedia_notification_recipients` — with nobody to mail, nothing
- * sends. Nothing here is load-bearing for access.
+ * A site can take over entirely by listening on `gatedmedia_notification_sending` and emptying the recipients through `gatedmedia_notification_recipients`, because with nobody to mail nothing sends.
+ *
+ * Nothing here is load-bearing for access.
  */
 class Notification_Sender {
 
@@ -42,8 +39,7 @@ class Notification_Sender {
 	}
 
 	/**
-	 * Every type this plugin sends, label included — the Settings screen
-	 * renders this list, so the sender stays the one place types exist.
+	 * Every type this plugin sends, label included. The Settings screen renders this list, so the sender stays the one place types exist.
 	 *
 	 * @return array<string, string> Type key to human label.
 	 */
@@ -51,15 +47,15 @@ class Notification_Sender {
 		return array(
 			self::TYPE_ACCESS_CREATED    => __( 'Access created', 'gated-media-access' ),
 			self::TYPE_EXPIRY_WARNING    => __( 'Expiry warning', 'gated-media-access' ),
-			self::TYPE_INVITE_USER_FREE  => __( 'Invite — existing user, free product', 'gated-media-access' ),
-			self::TYPE_INVITE_USER_PAID  => __( 'Invite — existing user, paid product', 'gated-media-access' ),
-			self::TYPE_INVITE_GUEST_FREE => __( 'Invite — new user, free product', 'gated-media-access' ),
-			self::TYPE_INVITE_GUEST_PAID => __( 'Invite — new user, paid product', 'gated-media-access' ),
+			self::TYPE_INVITE_USER_FREE  => __( 'Invite: existing user, free product', 'gated-media-access' ),
+			self::TYPE_INVITE_USER_PAID  => __( 'Invite: existing user, paid product', 'gated-media-access' ),
+			self::TYPE_INVITE_GUEST_FREE => __( 'Invite: new user, free product', 'gated-media-access' ),
+			self::TYPE_INVITE_GUEST_PAID => __( 'Invite: new user, paid product', 'gated-media-access' ),
 		);
 	}
 
 	/**
-	 * One type's shipped template — what sends until a site stores its own.
+	 * One type's shipped template, which sends until a site stores its own.
 	 *
 	 * @param string $type The notification type key.
 	 * @return array{subject: string, body: string}
@@ -102,7 +98,7 @@ class Notification_Sender {
 	 * Sends one notification, honouring the whole contract.
 	 *
 	 * @param string                $type    One of the TYPE_* keys.
-	 * @param int                   $user_id Who it concerns — 0 when no account exists (guest invites).
+	 * @param int                   $user_id Who it concerns, 0 when no account exists.
 	 * @param array<string, string> $args    Placeholder values: name, item, link, expires, site.
 	 * @param string                $address An explicit address; '' means the holder's.
 	 * @return bool Whether `wp_mail()` reported the send.
@@ -115,8 +111,7 @@ class Notification_Sender {
 		$recipients = $this->initial_recipients( $user_id, $address );
 
 		/**
-		 * Filters who receives one notification. Empty the list to stop the
-		 * plugin's own send while still hearing the sending action.
+		 * Filters who receives one notification, and emptying the list stops the plugin's own send while still hearing the sending action.
 		 *
 		 * @param array<int, string> $recipients The addresses to mail.
 		 * @param string             $type       The notification type key.
@@ -136,8 +131,7 @@ class Notification_Sender {
 		$content = (array) apply_filters( 'gatedmedia_notification_content', $content, $type, $args );
 
 		/**
-		 * Fires before every send — the take-over point for sites that mail
-		 * through their own system instead (spec §5).
+		 * Fires before every send, the take-over point for sites that mail through their own system instead.
 		 *
 		 * @param string                $type    The notification type key.
 		 * @param int                   $user_id Who it concerns, 0 for none.
@@ -157,8 +151,7 @@ class Notification_Sender {
 	}
 
 	/**
-	 * Who the send starts addressed to: the named address or the holder's,
-	 * plus the admin copy when that switch is on.
+	 * Who the send starts addressed to: the named address or the holder's, plus the admin copy when that switch is on.
 	 *
 	 * @param int    $user_id The holder, 0 for none.
 	 * @param string $address An explicit address, '' for the holder's.
@@ -187,8 +180,7 @@ class Notification_Sender {
 	}
 
 	/**
-	 * The template — stored override winning over the shipped default —
-	 * with every placeholder replaced.
+	 * The template, a stored override winning over the shipped default, with every placeholder replaced.
 	 *
 	 * @param string                $type    The notification type key.
 	 * @param array<string, string> $args    The placeholder values.

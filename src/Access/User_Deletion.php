@@ -13,21 +13,15 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 
 /**
- * Removes a deleted user's access records before core can do anything with
- * them.
+ * Removes a deleted user's access records before core can do anything with them.
  *
- * Access records name their holder in `post_author`, which makes them ordinary
- * authored content as far as core is concerned. `wp_delete_user()` with a
- * reassign target rewrites `post_author` on every post the person owns with no
- * post type filter, so the chosen account would inherit their access, paid
- * records included; without a target the records are left behind, still active
- * against a user id that no longer exists.
+ * Access records name their holder in `post_author`, which makes them ordinary authored content to core.
  *
- * Access is personal and is not inheritable, so both cases end the same way:
- * the records go. `delete_user` fires before either branch runs, which is why
- * it is the hook.
+ * `wp_delete_user()` with a reassign target rewrites `post_author` on every post the person owns with no post type filter, so the chosen account would inherit their access, paid records included, and without a target the records are left behind, still active against a user id that no longer exists.
  *
- * Every removal goes through `Access_Writer::delete()` — architecture §3.
+ * Access is personal and is not inheritable, so both cases end the same way, and `delete_user` is the hook because it fires before either branch runs.
+ *
+ * Every removal goes through `Access_Writer::delete()`.
  */
 class User_Deletion implements Hookable {
 

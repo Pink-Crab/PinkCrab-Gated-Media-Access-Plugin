@@ -1,5 +1,5 @@
 /**
- * My Access — ui-spec.md §7.1.
+ * My Access.
  *
  * Placeable: an administrator can put this section on a page of their own.
  */

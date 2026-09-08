@@ -6,7 +6,7 @@
 	"title": "Row",
 	"category": "widgets",
 	"icon": "menu",
-	"description": "ui-spec.md §6.2. A file, a post, a group or an order. Four states.",
+	"description": "A file, a post, a group or an order. Four states.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"title": {

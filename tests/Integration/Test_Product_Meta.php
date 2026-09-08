@@ -18,10 +18,7 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * The block editor is the writer now: every key is in REST behind
- * manage-products, rows are validated by their sanitizers, the server
- * stamps identity and currency on save, and the whole product REST surface
- * answers 404 to anyone without the capability.
+ * The block editor is the writer now: every key is in REST behind manage-products, rows are validated by their sanitizers, the server stamps identity and currency on save, and the product REST surface answers 404 to anyone without the capability.
  *
  * @group integration
  */
@@ -85,10 +82,7 @@ class Test_Product_Meta extends WP_UnitTestCase {
 	/**
 	 * @testdox A duration normalises on write: a real count keeps itself, everything else stores as lifetime.
 	 *
-	 * The whole point of `-1`. An unset key, an empty box, a zero and a
-	 * negative were all falsey and all the same value to a reader, which is
-	 * how the offer came to promise "Lifetime access" for something the
-	 * checkout handed to the validator as zero days and had refused.
+	 * The whole point of `-1`: an unset key, an empty box, a zero and a negative all read the same, which is how the offer came to promise "Lifetime access" for something the checkout handed the validator as zero days and had refused.
 	 */
 	public function test_duration_normalises_on_write(): void {
 		$this->assertSame(
@@ -115,9 +109,7 @@ class Test_Product_Meta extends WP_UnitTestCase {
 	/**
 	 * @testdox The UUID is readable over REST but never writable, even by a manager.
 	 *
-	 * The class docblock says the server stamps what the client must not
-	 * choose. It was registered with the same write permission as every other
-	 * key, so a manager could post another product's UUID and take its links.
+	 * The server stamps what the client must not choose, and this was registered with the same write permission as every other key, so a manager could post another product's UUID and take its links.
 	 */
 	public function test_the_uuid_is_not_rest_writable(): void {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );

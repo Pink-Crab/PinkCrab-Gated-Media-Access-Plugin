@@ -1,8 +1,7 @@
 /**
- * Empty state — ui-spec.md §6.10.
+ * Empty state.
  *
- * Hidden from the inserter, but a real block type on the client — the editor
- * has to know what it is wherever one appears.
+ * Hidden from the inserter, but a real block type on the client, because the editor has to know what it is wherever one appears.
  */
 
 import { registerBlockType } from '@wordpress/blocks';

@@ -6,7 +6,7 @@
 	"title": "Notice",
 	"category": "widgets",
 	"icon": "warning",
-	"description": "ui-spec.md §6.4. Information, error or success. Tinted, with an optional dismiss.",
+	"description": "Information, error or success. Tinted, with an optional dismiss.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"kind": {

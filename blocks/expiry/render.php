@@ -1,13 +1,10 @@
 <?php
 /**
- * §6.5 Expiry — an icon and a label, 8px apart.
+ * Expiry: an icon and a label, 8px apart.
  *
- * Four states, each with its own icon, and only one of them coloured: expiring
- * soon is `error`, expired is muted to 60%. The other two are ordinary text.
+ * Four states, each with its own icon, and only one of them coloured: expiring soon is `error`, expired is muted to 60%. The other two are ordinary text.
  *
- * `chip` switches to the filled form. §8 conflict 7 settled where each is used
- * — bare in lists, chip in detail panels — because a list is already busy with
- * rules and buttons and a detail panel is not.
+ * `chip` switches to the filled form. Bare in lists, chip in detail panels, because a list is already busy with rules and buttons and a detail panel is not.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -28,8 +25,7 @@ if ( '' === $gatedmedia_label ) {
 
 $gatedmedia_state = isset( $attributes['state'] ) ? (string) $attributes['state'] : 'lifetime';
 
-// Icon and modifier per state, from §6.5's table. Anything unrecognised falls
-// back to the dated form rather than rendering without an icon.
+// Icon and modifier per state. Anything unrecognised falls back to the dated form.
 $gatedmedia_states = array(
 	'lifetime' => array( 'i-infinity', '' ),
 	'dated'    => array( 'i-calendar', '' ),
@@ -49,9 +45,7 @@ if ( '' !== $gatedmedia_modifier ) {
 if ( true === ( $attributes['chip'] ?? false ) ) {
 	$gatedmedia_classes[] = 'gatedmedia-expiry--chip';
 }
-// Block-level host around an inline component, so it lands in the content
-// column when placed on its own — a theme centres a top-level block with
-// `margin-inline: auto`, which does nothing to an inline element.
+// Block-level host, so an inline component still lands in the content column.
 ?>
 <div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-inline-host' ) ) ); ?>>
 	<span class="<?php echo esc_attr( implode( ' ', $gatedmedia_classes ) ); ?>">

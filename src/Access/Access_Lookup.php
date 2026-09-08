@@ -12,17 +12,14 @@ namespace PinkCrab\Gated_Access\Access;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * The grant path's two lookups: has this source and reference been seen
- * (the retry guard), and which live records could a re-grant stack onto.
- * Reads only — writing stays the writer's, which is this class's only
- * caller today.
+ * The grant path's two lookups: has this source and reference been seen, and which live records could a re-grant stack onto.
+ *
+ * Reads only. Writing stays `Access_Writer`'s.
  */
 class Access_Lookup {
 
 	/**
-	 * An already-recorded source and reference, if we hold one — narrowed to
-	 * one item when the caller names it, since a product purchase writes one
-	 * record per item all carrying the same source and reference (spec §4).
+	 * An already-recorded source and reference, narrowed to one item when the caller names it, since a product purchase writes one record per item under the same pair.
 	 *
 	 * @param string $source    The system.
 	 * @param string $reference That system's reference.
@@ -56,9 +53,7 @@ class Access_Lookup {
 		$found = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
-				// Never 'any': it excludes statuses registered with
-				// exclude_from_search, which is all three of ours — the guard
-				// would find nothing and every retry would grant again.
+				// Never 'any': it excludes all three of our statuses, so every retry would grant again.
 				'post_status'    => array( Post_Types::STATUS_ACTIVE, Post_Types::STATUS_EXPIRED, Post_Types::STATUS_REVOKED ),
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
@@ -72,8 +67,7 @@ class Access_Lookup {
 	}
 
 	/**
-	 * Every record a source and reference created — what a refund revokes:
-	 * a product purchase writes one per item, and the refund takes them all.
+	 * Every record a source and reference created, which is what a refund revokes.
 	 *
 	 * @param string $source    The system.
 	 * @param string $reference That system's reference.
@@ -107,16 +101,11 @@ class Access_Lookup {
 	/**
 	 * Everyone currently holding one item.
 	 *
-	 * The other way round from `records_for_item()`, which asks about one
-	 * person: this asks about one thing and answers with the people. A group's
-	 * own screen needs it — "who has this" is half of what a group is, and
-	 * until now nothing could answer it without walking every user.
+	 * The other way round from `records_for_item()`: that asks about one person, this asks about one thing and answers with the people.
 	 *
-	 * The holder is the record's author (architecture.md §2), so the user ids
-	 * come off the records rather than from a meta key of their own.
+	 * The holder is the record's author, so the user ids come off the records rather than a meta key of their own.
 	 *
-	 * Active only. Expired and revoked records are history, and a screen that
-	 * listed them as holders would be lying.
+	 * Active only, because a screen listing expired or revoked records as holders would be lying.
 	 *
 	 * @param string $item_type One of file, post, group.
 	 * @param string $item_id   The target's identifier.
@@ -189,10 +178,7 @@ class Access_Lookup {
 	/**
 	 * Access this person once had for an item and no longer does.
 	 *
-	 * The sibling of `records_for_item()`, looking the other way: expired and
-	 * revoked rather than active. §7.6's lapsed state is the whole reason —
-	 * a product page says "your access to this ended" rather than offering it
-	 * as though it had never been bought.
+	 * The sibling of `records_for_item()`, looking the other way: expired and revoked rather than active. It is what lets the product page say "your access to this ended".
 	 *
 	 * @param int                                     $user_id Who held them.
 	 * @param array<int, array{0: string, 1: string}> $items   Type and identifier pairs.
@@ -241,8 +227,7 @@ class Access_Lookup {
 	/**
 	 * Every record one person holds, whatever state it is in.
 	 *
-	 * All three statuses, because this answers "what is theirs", not "what
-	 * works" — deleting a user takes their history with them too.
+	 * All three statuses, because this answers "what is theirs" rather than "what works". Deleting a user takes their history too.
 	 *
 	 * @param int $user_id Whose records.
 	 * @return array<int, int>

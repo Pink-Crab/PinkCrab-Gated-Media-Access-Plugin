@@ -12,14 +12,9 @@ namespace PinkCrab\Gated_Access\Settings;
 use PinkCrab\Gated_Access\Notifications\Notification_Sender;
 
 /**
- * The Notifications tab's body (Stitch project 17998674859270043397,
- * "Artisanal Notifications Settings"): the delivery settings — admin copies
- * and the expiry warning lead time — and a template panel per notification
- * type with its switch, subject, body and the token legend.
+ * The Notifications tab's body: the delivery settings, admin copies and the expiry warning lead time, plus a template panel per notification type with its switch, subject, body and token legend.
  *
- * `Settings_Page` owns the page, the form and the tabs; this renders the
- * fields inside them. Each switch renders a hidden '0' before its checkbox,
- * so unticking actually stores the off.
+ * `Settings_Page` owns the page, the form and the tabs, and this renders the fields inside them, each switch printing a hidden '0' before its checkbox so unticking really stores the off.
  */
 class Notification_Fields {
 

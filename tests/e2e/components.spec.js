@@ -1,15 +1,11 @@
 /**
  * Components placed outside the account area.
  *
- * Every other e2e visits `/account/`, where the shell wraps everything — which
- * is exactly how three separate faults survived a full suite:
+ * Every other e2e visits `/account/`, where the shell wraps everything, which is exactly how three separate faults survived a full suite:
  *
- * - design tokens were scoped to `.gatedmedia`, so a component anywhere else
- *   had no tokens at all: transparent buttons, 16px where 44px was specified;
- * - the icon sprite was printed only on the account route, so every icon in
- *   every component was silently missing elsewhere;
- * - inline components had no block-level host, so a theme could not place them
- *   in its content column.
+ * - design tokens were scoped to `.gatedmedia`, so a component anywhere else had none: transparent buttons, 16px where 44px was specified;
+ * - the icon sprite was printed only on the account route, so every icon in every component was silently missing elsewhere;
+ * - inline components had no block-level host, so a theme could not place them in its content column.
  *
  * A block is placeable on any page. These check one behaves there.
  */
@@ -57,9 +53,7 @@ test.describe( 'a component on an ordinary page', () => {
 		expect( primary ).toBe( '#5d5e67' );
 	} );
 
-	test( 'a button is the size and colour §6.3 specifies', async ( {
-		page,
-	} ) => {
+	test( 'a button is the specified size and colour', async ( { page } ) => {
 		const button = page.locator( '.gatedmedia-button--primary' ).first();
 
 		await expect( button ).toBeVisible();
@@ -85,8 +79,7 @@ test.describe( 'a component on an ordinary page', () => {
 		const symbols = await page.locator( 'symbol' ).count();
 		expect( symbols ).toBeGreaterThan( 0 );
 
-		// Every <use> must resolve. A reference with no symbol draws nothing
-		// at all rather than failing, which is how this went unnoticed.
+		// Every <use> must resolve: a reference with no symbol draws nothing rather than failing, which is how this went unnoticed.
 		const unresolved = await page.evaluate( () => {
 			const ids = [ ...document.querySelectorAll( 'symbol' ) ].map(
 				( s ) => s.id
@@ -104,8 +97,7 @@ test.describe( 'a component on an ordinary page', () => {
 	test( 'inline components sit in the content column, not against the page edge', async ( {
 		page,
 	} ) => {
-		// The section heading is a block-level element the theme constrains,
-		// so it marks where the column starts.
+		// The section heading is a block-level element the theme constrains, so it marks where the column starts.
 		const column = await page
 			.locator( '.gatedmedia-section-heading' )
 			.first()
@@ -129,8 +121,7 @@ test.describe( 'a component on an ordinary page', () => {
 	} );
 
 	test( 'a field renders its invalid state', async ( { page } ) => {
-		// §6.8's invalid treatment had CSS and no way to be rendered at all
-		// until the components became blocks.
+		// The invalid treatment had CSS and no way to be rendered until the components became blocks.
 		const invalid = page.locator( '.gatedmedia-field.is-invalid' ).first();
 
 		await expect( invalid ).toBeVisible();

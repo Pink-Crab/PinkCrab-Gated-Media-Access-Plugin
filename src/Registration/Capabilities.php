@@ -15,18 +15,13 @@ use PinkCrab\Gated_Access\Hookable;
 /**
  * Grants the four capabilities to administrators, once per install.
  *
- * On `init` behind a stored version, deliberately not an activation hook: the
- * test suite requires the plugin by path and never activates it — the checkout
- * name on CI makes `activate_plugin()` fail silently — so an activation-only
- * grant would leave every capability check failing on a green codebase.
+ * On `init` behind a stored version, never an activation hook, because the test suite requires the plugin by path and never activates it.
  *
- * Consumers check a capability through the lookups below rather than the raw
- * string, so each one is filterable in one place regardless of route
- * (architecture.md §3).
+ * Consumers check through the lookups below rather than the raw string, so each is filterable in one place.
  */
 class Capabilities implements Hookable {
 
-	/** Creating access — admin screens and webhook alike. */
+	/** Creating access, admin screens and webhook alike. */
 	public const GIVE_ACCESS = 'gatedmedia_give_access';
 
 	/** Products and coupons. */
@@ -63,8 +58,7 @@ class Capabilities implements Hookable {
 
 		$role = get_role( 'administrator' );
 
-		// No administrator role, no grant — and no version write, so it is
-		// retried rather than skipped forever.
+		// No role, no grant, and no version write, so it retries next load.
 		if ( null === $role ) {
 			return;
 		}

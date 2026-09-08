@@ -1,11 +1,8 @@
 <?php
 /**
- * Integration smoke tests — WordPress boots, the plugin loads, and the boot
- * loop wires a service up.
+ * Integration smoke tests: WordPress boots, the plugin loads, and the boot loop wires a service up.
  *
- * restrict-media-file-access is a require-dev dependency and the bootstrap
- * loads it first, so these run with the dependency guard satisfied rather than
- * around it.
+ * restrict-media-file-access is a require-dev dependency the bootstrap loads first, so these run with the dependency guard satisfied rather than around it.
  *
  * @since   0.1.0
  * @package PinkCrab\Gated_Access\Tests\Integration
@@ -69,8 +66,7 @@ class Test_Smoke extends WP_UnitTestCase {
 	 * @testdox A hookable service registers its hooks through the loader
 	 */
 	public function test_hookable_service_registers_through_the_loader(): void {
-		// The menu is an admin_action, and Hook_Manager::validate_context()
-		// only attaches those when is_admin() is true.
+		// The menu is an admin_action, and Hook_Manager::validate_context() attaches those only when is_admin() is true.
 		set_current_screen( 'dashboard' );
 
 		$page   = new Settings_Page( new \PinkCrab\Gated_Access\Settings\Settings(), new \PinkCrab\Gated_Access\Settings\Notification_Fields( new \PinkCrab\Gated_Access\Settings\Settings() ), new \PinkCrab\Gated_Access\Settings\Account_Fields( new \PinkCrab\Gated_Access\Settings\Settings() ) );

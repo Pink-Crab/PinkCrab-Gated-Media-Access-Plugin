@@ -10,13 +10,9 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Admin\Pickers;
 
 /**
- * A picker whose visible control is a search input against one of
- * `Picker_Search`'s admin-ajax endpoints. The admin bundle binds
- * autocomplete to the data attributes and writes the choice into the
- * hidden input.
+ * A picker whose visible control is a search input against one of `Picker_Search`'s admin-ajax endpoints, where the admin bundle binds autocomplete to the data attributes and writes the choice into the hidden input.
  *
- * A concrete picker names its endpoint and its placeholder; the markup is
- * decided here, once.
+ * A concrete picker names its endpoint and its placeholder, and the markup is decided here, once.
  */
 abstract class Search_Picker extends Picker {
 

@@ -12,11 +12,9 @@ namespace PinkCrab\Gated_Access\Account\Sections;
 use PinkCrab\Gated_Access\Account\Account_Section;
 
 /**
- * Everything the person can download — ui-spec.md §7.2.
+ * Everything the person can download.
  *
- * Distinct from My Access (§7.1), which also lists files: this is the view
- * where downloading is the point, so it carries a search and a type filter and
- * gives each row a Download button rather than a text link.
+ * Distinct from My Access, which also lists files: this is the view where downloading is the point, so it carries a search and a type filter and gives each row a Download button rather than a text link.
  */
 class Files_Section implements Account_Section {
 

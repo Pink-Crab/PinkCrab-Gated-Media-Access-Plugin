@@ -20,9 +20,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Deactivating takes the cron events; uninstalling takes the credentials, the
- * options and the capabilities. Business history survives unless the site has
- * asked for it to go (§32).
+ * Deactivating takes the cron events and uninstalling takes the credentials, the options and the capabilities, but business history survives unless the site asked for it to go.
  *
  * @group integration
  */
@@ -48,9 +46,7 @@ class Test_Lifecycle extends WP_UnitTestCase {
 
 		delete_option( Settings::OPTION );
 
-		// The rollback restores the roles option but not the in-memory
-		// WP_Roles cache, so a capability this class removed would stay
-		// missing for every later test (as Test_Capabilities notes).
+		// The rollback restores the roles option but not the WP_Roles cache, so a capability removed here would stay missing for every later test.
 		$role = get_role( 'administrator' );
 
 		if ( null !== $role ) {
@@ -65,9 +61,7 @@ class Test_Lifecycle extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The suite runs inside a transaction and rewrites CREATE/DROP TABLE to
-	 * their TEMPORARY forms, so a dropped real table has to be put back by
-	 * hand or every later payments test loses it.
+	 * The suite rewrites CREATE/DROP TABLE to their TEMPORARY forms, so a dropped real table has to be put back by hand or every later payments test loses it.
 	 */
 	private function restore_payments_table(): void {
 		remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
@@ -120,8 +114,7 @@ class Test_Lifecycle extends WP_UnitTestCase {
 
 	/** @testdox Uninstalling takes the four capabilities back off administrator. */
 	public function test_uninstall_removes_the_capabilities(): void {
-		// The bootstrap's init grant already ran, and the stored version stops
-		// it running again, so the caps are simply there to be taken.
+		// The bootstrap's init grant already ran and the stored version stops it running again, so the caps are there to be taken.
 		$this->assertTrue( get_role( 'administrator' )->has_cap( Capabilities::GIVE_ACCESS ) );
 
 		Lifecycle::uninstall();
@@ -153,8 +146,7 @@ class Test_Lifecycle extends WP_UnitTestCase {
 	public function test_uninstall_purges_when_asked(): void {
 		global $wpdb;
 
-		// The harness rewrites both statements to their TEMPORARY forms, which
-		// SHOW TABLES cannot see — so this one test works on the real table.
+		// SHOW TABLES cannot see the harness's TEMPORARY rewrites, so use the real table.
 		remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
 		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 

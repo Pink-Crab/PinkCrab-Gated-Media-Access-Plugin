@@ -1,19 +1,12 @@
 <?php
 /**
- * §6.15 Pinned action bar — narrow only, Product only.
+ * Pinned action bar, narrow only, Product only.
  *
- * **The only pinned bottom element in the design.** §8 conflict 3 removed the
- * fixed bottom tab bar, because a fixed bar owns the bottom of a viewport that
- * is not ours to take — it collides with the theme's footer, cookie notices
- * and the admin bar. This one survives because it is a single action on a
- * public page rather than navigation.
+ * **The only pinned bottom element anywhere.** A fixed bar owns the bottom of a viewport that is not ours to take, colliding with the theme's footer, cookie notices and the admin bar. This one survives because it is a single action on a public page rather than navigation.
  *
- * §6.15 is explicit: **it must not be used on account views.** Nothing here can
- * enforce that; it is a rule for whoever composes a view, and the account
- * shell does not compose it.
+ * **It must not be used on account views.** Nothing here can enforce that: it is a rule for whoever composes a view, and the account shell does not compose it.
  *
- * The price goes in the button's own label, so there is one control rather
- * than a bar with a price beside a button.
+ * The price goes in the button's own label, so there is one control rather than a bar with a price beside a button.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -32,8 +25,7 @@ if ( '' === $gatedmedia_label ) {
 	return;
 }
 
-// The bar sits outside whatever it acts on, so it is either a link or a
-// submit naming the form by id — never a button that needs script to work.
+// The bar sits outside what it acts on, so it is a link or a submit naming the form by id.
 $gatedmedia_form = isset( $attributes['form'] ) ? (string) $attributes['form'] : '';
 
 $gatedmedia_button = do_blocks(

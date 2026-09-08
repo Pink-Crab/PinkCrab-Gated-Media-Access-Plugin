@@ -14,20 +14,13 @@ use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 
 /**
- * Registers the three containers — access records, products, coupons — and the
- * three access statuses. Nothing here reads or writes them.
+ * Registers the three containers, access records, products and coupons, and the three access statuses. Nothing here reads or writes them.
  *
- * Meta is deliberately absent. The class that writes a key registers it, on
- * `init`, alongside its own hooks — `Profile_Writer` already works this way —
- * so the access writer brings its own `register_post_meta()` calls when it
- * lands.
+ * Meta is deliberately absent: the class that writes a key registers it, on `init`, alongside its own hooks.
  *
- * No `supports` list includes `custom-fields`. The Custom Fields metabox is
- * gated on `post_type_supports( $type, 'custom-fields' )`, so leaving it out
- * is what keeps our keys out of the editor — not a naming convention.
+ * The Custom Fields metabox is gated on `post_type_supports()`, so leaving `custom-fields` out is what keeps our keys out of the editor.
  *
- * Sits first in `Plugin::SERVICES`: the account route flushes rewrite rules on
- * `init`, and the product type's rules must exist before that happens.
+ * Sits first in `Plugin::SERVICES`, because the account route flushes rewrite rules on `init` and the product type's rules must exist before that happens.
  */
 class Post_Types implements Hookable {
 
@@ -46,32 +39,23 @@ class Post_Types implements Hookable {
 	/**
 	 * Access whose expiry date has passed.
 	 *
-	 * Housekeeping for admin screens only: the resolver always compares the
-	 * expiry date against now, so if the sweep that writes this status never
-	 * ran, nothing would leak.
+	 * Housekeeping for admin screens only: `Resolver` always compares the expiry date against now, so nothing would leak if the sweep that writes this status never ran.
 	 */
 	public const STATUS_EXPIRED = 'gatedmedia_expired';
 
 	/**
 	 * Access an administrator has revoked.
 	 *
-	 * Authoritative, unlike expiry: written the instant it happens, with no
-	 * date behind it.
+	 * Authoritative, unlike expiry: written the instant it happens, with no date behind it.
 	 */
 	public const STATUS_REVOKED = 'gatedmedia_revoked';
 
 	/**
 	 * Content reachable only at its UUID, and only by someone granted it.
 	 *
-	 * The one status here that belongs to **content** rather than to an access
-	 * record. Setting it applies the marker term, so everything restriction
-	 * already means — absent from archives, search, REST and sitemaps, a hard
-	 * 404 without access — comes with it rather than being reimplemented.
+	 * The one status here belonging to **content** rather than an access record. Setting it applies the marker term, so everything restriction already means comes with it rather than being reimplemented.
 	 *
-	 * What it adds is addressing: a post carrying it answers at
-	 * `/{segment}/{uuid}` and nowhere else. Its slug 404s for everyone,
-	 * holders included, which is what separates it from an ordinary restricted
-	 * post — those keep their permalink and are merely refused.
+	 * What it adds is addressing: a post carrying it answers at `/{segment}/{uuid}` and nowhere else, and its slug 404s for everyone, holders included. An ordinary restricted post keeps its permalink and is merely refused.
 	 */
 	public const STATUS_GATED = 'gatedmedia_gated';
 
@@ -86,8 +70,7 @@ class Post_Types implements Hookable {
 	}
 
 	/**
-	 * Products out of wp-sitemap.xml — `public` alone would list every
-	 * product page for crawlers, unlisted ones included.
+	 * Products out of wp-sitemap.xml, since `public` alone would list every product page for crawlers, unlisted ones included.
 	 *
 	 * @param array<string, \WP_Post_Type> $types The sitemap's post types.
 	 * @return array<string, \WP_Post_Type>
@@ -111,11 +94,7 @@ class Post_Types implements Hookable {
 	/**
 	 * The access record. Pure data: no editor, no REST, no front end.
 	 *
-	 * `show_ui` is true for the core list screen only — the round 4 flip the
-	 * original docblock argued for. The `capabilities` map points the caps the
-	 * list screen checks at the filtered give-access capability, and shuts the
-	 * core write surfaces (Add New, publish, trash): records are made by the
-	 * Add Access form and changed by `Access_Writer`, nothing else.
+	 * `show_ui` is true for the core list screen only. The `capabilities` map points what that screen checks at the filtered give-access capability and shuts the core write surfaces, because records are made by the Add Access form and changed by `Access_Writer`.
 	 */
 	private function register_access(): void {
 		register_post_type(
@@ -131,8 +110,7 @@ class Post_Types implements Hookable {
 				'show_ui'             => true,
 				'show_in_menu'        => Settings_Page::MENU_SLUG,
 				'show_in_rest'        => false,
-				// false, not array(): register_post_type() reads an empty
-				// array as "use the defaults" and would add title and editor.
+				// false, not array(): register_post_type() reads an empty array as "use the defaults" and would add title and editor.
 				'supports'            => false,
 				'rewrite'             => false,
 				'query_var'           => false,
@@ -171,22 +149,13 @@ class Post_Types implements Hookable {
 				),
 				'public'              => true,
 				'show_ui'             => true,
-				// In REST for the block editor; Product_Meta's guard 404s
-				// the surface for anyone without manage-products, so the
-				// public cannot enumerate products there. Search and
-				// sitemaps (hide_products_from_sitemaps() below) stay shut:
-				// a product is found through our own listings or its direct
-				// link, never by crawling the site (Glynn's round 5 ruling).
+				// In REST for the block editor, and Product_Meta's guard 404s the surface for anyone without manage-products, so the public cannot enumerate products there.
+				// Search and sitemaps stay shut, through hide_products_from_sitemaps() below: a product is found through our own listings or its direct link, never by crawling the site.
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
-				// custom-fields is the flag that lets the block editor send
-				// the meta field at all — without it every block save is
-				// silently dropped. Our keys stay out of the Custom Fields
-				// panel regardless: they are all is_protected_meta.
+				// custom-fields is what lets the block editor send meta at all, and our keys stay out of the panel regardless, being is_protected_meta.
 				'supports'            => array( 'title', 'editor', 'custom-fields' ),
-				// The product form is this block, present from the first
-				// paint, pinned and not removable — the description writes
-				// freely around it.
+				// The product form is this block, pinned and not removable.
 				'template'            => array(
 					array(
 						'gated-media-access/product-details',
@@ -200,14 +169,11 @@ class Post_Types implements Hookable {
 				),
 				'has_archive'         => false,
 				'rewrite'             => array( 'slug' => 'product' ),
-				// Under the plugin's own menu, as Access is. No menu_icon:
-				// a submenu has nowhere to draw one.
+				// Under the plugin's own menu, as Access is, and no menu_icon, because a submenu has nowhere to draw one.
 				'show_in_menu'        => Settings_Page::MENU_SLUG,
 				'map_meta_cap'        => true,
 				'capability_type'     => array( 'gatedmedia_product', 'gatedmedia_products' ),
-				// Spec §7: the screens sit behind the one filtered
-				// manage-products capability — without this map the menu
-				// asked for caps nobody was ever granted.
+				// The screens sit behind the one filtered manage-products capability.
 				'capabilities'        => $this->manage_products_capabilities(),
 			)
 		);
@@ -236,16 +202,14 @@ class Post_Types implements Hookable {
 				'query_var'       => false,
 				'map_meta_cap'    => true,
 				'capability_type' => array( 'gatedmedia_coupon', 'gatedmedia_coupons' ),
-				// Same gate as products — spec §7 puts both behind it.
+				// Same gate as products.
 				'capabilities'    => $this->manage_products_capabilities(),
 			)
 		);
 	}
 
 	/**
-	 * Every primitive capability both commerce types check, pointed at the
-	 * one filtered manage-products capability (spec §7) — administrators
-	 * hold it from the init grant, and a site can move it wholesale.
+	 * Every primitive capability both commerce types check, pointed at the one filtered manage-products capability, which administrators hold from the init grant and a site can move wholesale.
 	 *
 	 * @return array<string, string>
 	 */
@@ -270,8 +234,7 @@ class Post_Types implements Hookable {
 	/**
 	 * The three access statuses.
 	 *
-	 * Expiry is a date, revocation is a state (architecture.md §2) — see the
-	 * constants above for what that means for each.
+	 * Expiry is a date and revocation is a state. See the constants above.
 	 */
 	private function register_statuses(): void {
 		register_post_status(
@@ -301,12 +264,7 @@ class Post_Types implements Hookable {
 			)
 		);
 
-		// Not status_args(): the three above belong to access records, which
-		// are never rendered. This one belongs to content that must still be
-		// renderable — for the holder, at its UUID. `public` is what lets the
-		// post be queried and displayed at all; every gate it needs is ours
-		// and is applied deliberately, rather than by making the status
-		// unqueryable and then fighting core to show it to one person.
+		// Not status_args(): those three are never rendered and this one has to be, for the holder at its UUID, which `public` is what allows, and every gate around it is ours.
 		register_post_status(
 			self::STATUS_GATED,
 			array(

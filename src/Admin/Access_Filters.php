@@ -18,10 +18,9 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Filtering the Access list: by holder, by item type, by one item, by
- * source — submitted by the list's own Filter button. The holder rides
- * core's `author` query var; the rest become meta clauses. The item search
- * follows the type select, the admin bundle swapping its endpoint.
+ * Filtering the Access list by holder, item type, one item, or source, submitted by the list's own Filter button.
+ *
+ * The holder rides core's `author` query var and the rest become meta clauses. The item search follows the type select, with the admin bundle swapping its endpoint.
  */
 class Access_Filters implements Hookable {
 
@@ -88,7 +87,7 @@ class Access_Filters implements Hookable {
 	/**
 	 * What the toolbar submitted, sanitised, keyed by the meta it filters.
 	 *
-	 * The holder is absent deliberately — it submits core's own `author`.
+	 * The holder is absent deliberately, since it submits core's own `author`.
 	 *
 	 * @return array<string, string>
 	 */
@@ -125,10 +124,7 @@ class Access_Filters implements Hookable {
 	/**
 	 * A label only assistive technology reads, as core's own toolbar does.
 	 *
-	 * The toolbar is one row of controls whose meaning is carried by their
-	 * first option — "All sources" and so on — so a visible label would say
-	 * the same thing twice. A placeholder is not a label: it goes as soon as
-	 * anything is typed.
+	 * Each control's meaning is carried by its first option, so a visible label would say the same thing twice. A placeholder is not a label, because it goes as soon as anything is typed.
 	 *
 	 * @param string $control_id The control's id.
 	 * @param string $text       What the control is.
@@ -204,8 +200,7 @@ class Access_Filters implements Hookable {
 	}
 
 	/**
-	 * The chosen filter item's display name, so the prefilled filter reads
-	 * as what it is.
+	 * The chosen filter item's display name, so the prefilled filter reads as what it is.
 	 *
 	 * @param string $item_type One of group, post, file, or ''.
 	 * @param string $item      The chosen identifier, '' for none.

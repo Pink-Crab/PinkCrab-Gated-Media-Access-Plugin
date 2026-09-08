@@ -1,12 +1,9 @@
 // =============================================================================
 // Base
 //
-// The root scope, the type roles from §2, and the handful of layout primitives
-// §6 explicitly says are *not* components.
+// The root scope, the type roles, and the layout primitives that are not components.
 //
-// Everything is nested inside `.gatedmedia`. This is a plugin on someone else's
-// site: it does not get to restyle their page, and a bare element selector
-// would do exactly that.
+// Everything nests inside `.gatedmedia`: a bare element selector would restyle someone else's site.
 // =============================================================================
 
 @use "mixins" as *;
@@ -24,14 +21,12 @@
 		box-sizing: inherit;
 	}
 
-	// A class that sets `display` beats the UA rule for [hidden]. Restore it,
-	// or every JS-toggled element stays on screen.
+	// A class setting `display` beats the UA rule for [hidden], so restore it.
 	[hidden] {
 		display: none !important;
 	}
 
-	// §6.3 — focus, everywhere. ":focus-visible" so a mouse click on a button
-	// leaves no ring, while keyboard and assistive technology still get one.
+	// Focus everywhere, but `:focus-visible` so a mouse click leaves no ring.
 	a,
 	button,
 	input,
@@ -47,11 +42,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §5 — muting.
-//
-// Done with opacity rather than a second grey, which is what lets it survive
-// being dropped into a theme whose colours we do not control. Three settled
-// meanings, written as states so a component needs no variant per reason.
+// Muting. Opacity rather than a second grey, written as states so no component needs a variant per reason.
 // -----------------------------------------------------------------------------
 
 .gatedmedia {
@@ -70,10 +61,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §2 — the type roles, as classes.
-//
-// None carry margin. Spacing between blocks belongs to whatever is stacking
-// them (§1), and an inherited theme margin on a heading would fight the scale.
+// The type roles, as classes. None carry margin: spacing belongs to whatever stacks them.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-heading {
@@ -85,7 +73,7 @@
 		@include h1;
 	}
 
-	// A row title — a file, an order, a group.
+	// A row title: a file, an order, a group.
 	&--row {
 
 		@include h4-row;
@@ -111,18 +99,17 @@
 }
 
 // -----------------------------------------------------------------------------
-// Layout primitives. §6 names two things that look like components and are not:
-// the page header, and the hairline. Both are plain layout and live here.
+// Layout primitives. The page header and the hairline look like components but are not.
 // -----------------------------------------------------------------------------
 
-// §4 — a hairline standing alone as a divider.
+// A hairline standing alone as a divider.
 .gatedmedia-rule {
 	border: 0;
 	border-top: var(--gatedmedia-hairline);
 	margin: var(--gatedmedia-lg) 0;
 }
 
-// Vertical rhythm, on the §1 scale. `md` is the resting state.
+// Vertical rhythm. `md` is the resting state.
 .gatedmedia-stack {
 
 	> * + * {
@@ -149,13 +136,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// Icons.
-//
-// ui-spec.md §9 left delivery open between a webfont and inline SVG. Inline
-// SVG, from a sprite: a plugin distributed to other people's sites has no
-// business fetching a font from a third party on their visitors' behalf.
-//
-// 20px in navigation, 16px in meta lines, per §9.
+// Icons. Inline SVG from a sprite, never a third-party webfont. 20px in navigation, 16px in meta lines.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-icon {

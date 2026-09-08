@@ -1,16 +1,10 @@
 <?php
 /**
- * §6.8 Form field — label above, input, message beneath.
+ * Form field: label above, input, message beneath.
  *
- * The invalid treatment is the part that matters and the part most easily
- * left out: the border goes `error`, **the label goes `error` too**, and the
- * message sits beneath in 14px error. The field is marked invalid and pointed
- * at its message for screen readers — `aria-invalid` and `aria-describedby`
- * are both already in the corpus, so they are requirements rather than extras.
+ * The invalid treatment is the part most easily left out. The border goes `error`, **the label goes `error` too**, and the message sits beneath in 14px error. The field is marked invalid and pointed at its message for screen readers with `aria-invalid` and `aria-describedby`.
  *
- * `error` and `message` occupy the same line and never both show: an error
- * replaces the helper text, because a field explaining itself while also
- * complaining reads as two problems.
+ * `error` and `message` occupy the same line and never both show: an error replaces the helper text, because a field explaining itself while also complaining reads as two problems.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -34,10 +28,7 @@ $gatedmedia_error     = isset( $attributes['error'] ) ? (string) $attributes['er
 $gatedmedia_help      = isset( $attributes['message'] ) ? (string) $attributes['message'] : '';
 $gatedmedia_multiline = true === ( $attributes['multiline'] ?? false );
 
-// Invalid with no message of its own: §7.7's failed sign-in marks both fields
-// while the notice above them carries the one explanation. Without this the
-// only way to a red border is an error string, and the page would say the same
-// thing three times.
+// Invalid with no message of its own, for a failed sign-in where the notice above carries the one explanation.
 $gatedmedia_invalid = '' !== $gatedmedia_error || true === ( $attributes['invalid'] ?? false );
 
 // An error replaces the helper line rather than joining it.

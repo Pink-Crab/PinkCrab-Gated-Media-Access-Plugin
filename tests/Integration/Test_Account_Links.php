@@ -25,15 +25,11 @@ use PinkCrab\Gated_Access\Support\Block;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
- * `Account_Url` is the single place a link into the account area is built, so
- * that switching the `account_route` setting off moves all of them at once.
- * The setting was added in PR #14 and only two call sites were told about it;
- * the rest went on pointing at `/account/`, which no longer answers — Stripe's
- * return page, both notification emails, and every nav and row link.
+ * `Account_Url` is the single place a link into the account area is built, so that switching the `account_route` setting off moves all of them at once.
  *
- * These drive each producer with the route off and assert none of them still
- * name that route. The guard at the end is the one that stops it happening
- * again: nothing outside `Account_Url` may build the path itself.
+ * Only two call sites were told about that setting when it landed: Stripe's return page, both notification emails, and every nav and row link went on pointing at `/account/`, which no longer answers.
+ *
+ * These drive each producer with the route off and assert none still name it, and the guard at the end stops the next call site building the path itself.
  *
  * @group integration
  */
@@ -136,8 +132,7 @@ class Test_Account_Links extends WP_UnitTestCase {
 					'uuid'   => 'abc-123',
 					'status' => 'complete',
 					'date'   => '2026-01-01',
-					// §7.8 only draws the payment-status block, and so the
-					// button, when the buyer has just come back from Stripe.
+					// The panel, and so the button, only draws on a fresh return from Stripe.
 					'is_new' => true,
 				),
 			)
@@ -152,9 +147,7 @@ class Test_Account_Links extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The emails hand-built `/{slug}/{section}/` and so survived the setting.
-	 * Nothing may build that path but `Account_Url`, or the next call site
-	 * repeats it.
+	 * The emails hand-built `/{slug}/{section}/` and so survived the setting, so nothing but `Account_Url` may build that path.
 	 *
 	 * @testdox Nothing outside Account_Url builds an account path of its own.
 	 */
@@ -164,10 +157,7 @@ class Test_Account_Links extends WP_UnitTestCase {
 		foreach ( $this->php_files() as $file ) {
 			$source = (string) file_get_contents( $file );
 
-			// The shape both emails used: the account segment and a section
-			// slug sprintf'd into a path, with nothing reading the setting.
-			// Account_Route is the exception — it only runs while the route
-			// is on, and its virtual post's guid must name the URL served.
+			// The shape both emails used, with nothing reading the setting. Account_Route is exempt: it runs only while the route is on and its virtual post's guid must name the URL served.
 			if ( str_contains( $source, "'/%s/%s/'" ) && ! str_ends_with( $file, 'Account_Route.php' ) ) {
 				$offenders[] = $file;
 			}

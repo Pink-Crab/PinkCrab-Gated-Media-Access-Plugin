@@ -63,33 +63,26 @@ use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
 
 /**
- * Builds every service through the container and attaches their hooks in one
- * pass.
+ * Builds every service through the container and attaches their hooks in one pass.
  *
- * The list is fixed. Third-party code does not register services into it — it
- * extends through the plugin's own hooks.
+ * The list is fixed. Third-party code extends through the plugin's own hooks, never by registering a service.
  */
 class Plugin {
 
 	/**
 	 * The service classes, in boot order.
 	 *
-	 * Note the file access filter will not live here. It has to be attached
-	 * before `init` finishes — files are served on `parse_request`, before the
-	 * main query — so it is attached at plugin load and resolves its service
-	 * lazily on first call. That is the one exception to this list.
+	 * The file access filter is the one exception. Files are served on `parse_request`, before the main query, so it is attached at plugin load and resolves its service lazily on first call.
 	 *
 	 * @var array<class-string>
 	 */
 	private const SERVICES = array(
-		// First on purpose: same-priority init callbacks fire in registration
-		// order, and Account_Route flushes rewrites on init — the post types'
-		// rules must exist by then.
+		// First on purpose: Account_Route flushes rewrites on init, so these rules must exist by then.
 		Post_Types::class,
 		Access_Taxonomy::class,
 		Capabilities::class,
 		Access_Writer::class,
-		// For its memo-honesty hooks only — everything else calls it.
+		// Here for its memo-honesty hooks only; everything else calls it.
 		Resolver::class,
 		Restriction::class,
 		Post_Boundary::class,
@@ -145,12 +138,9 @@ class Plugin {
 	private ?Dice $container = null;
 
 	/**
-	 * Builds each service, lets the hookable ones register, then attaches
-	 * everything to WordPress in one pass.
+	 * Builds each service, lets the hookable ones register, then attaches everything to WordPress in one pass.
 	 *
-	 * The migration runs first and its result is honoured: a site whose
-	 * payments table is not there would take payments it cannot record, so
-	 * nothing is attached and the administrator is told instead.
+	 * The migration runs first and its result is honoured: without the payments table a site would take payments it cannot record, so nothing is attached and the administrator is told instead.
 	 *
 	 * @return bool Whether the plugin booted in full.
 	 */
@@ -170,11 +160,7 @@ class Plugin {
 	 * Attaches every service.
 	 */
 	private function boot_services(): bool {
-		// Shared by default, which for a list of services is the only sane
-		// reading: without it Dice hands out a fresh instance per resolution,
-		// so a service holding state — the sprite knowing it has been asked
-		// for, the registry memoising the section list — would be answering
-		// about an object nobody else has.
+		// Shared by default, or Dice hands out a fresh instance per resolution and any service holding state answers about an object nobody else has.
 		$container       = ( new Dice() )->addRule( '*', array( 'shared' => true ) );
 		$this->container = $container;
 		$loader          = new Hook_Loader();
@@ -195,8 +181,7 @@ class Plugin {
 	/**
 	 * The file boundary, resolved through the shared container on first ask.
 	 *
-	 * The bootstrap attaches its two hooks at plugin load; nothing is built
-	 * until the first protected-file request actually arrives.
+	 * The bootstrap attaches its two hooks at plugin load, and nothing is built until the first protected-file request arrives.
 	 */
 	public function file_boundary(): File_Boundary {
 		if ( null === $this->container ) {
@@ -233,8 +218,7 @@ class Plugin {
 	/**
 	 * The notice shown when the payments table could not be created.
 	 *
-	 * Nothing else of ours runs in that state, because a checkout that cannot
-	 * be recorded is worse than one that never starts.
+	 * Nothing else of ours runs in that state, because a checkout that cannot be recorded is worse than one that never starts.
 	 */
 	public static function render_missing_table_notice(): void {
 		printf(

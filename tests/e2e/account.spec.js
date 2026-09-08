@@ -1,10 +1,7 @@
 /**
  * The account area, end to end.
  *
- * These cover the things unit and integration tests cannot see: that the theme
- * still renders around us, that the one breakpoint reflows as ui-spec.md §3
- * settled it, and that a refused URL answers with a real 404 status rather than
- * a "not found" page served with 200.
+ * These cover the things unit and integration tests cannot see: that the theme still renders around us, that the one breakpoint reflows correctly, and that a refused URL answers with a real 404 status rather than a "not found" page served with 200.
  */
 
 const { test, expect } = require( '@playwright/test' );
@@ -59,7 +56,7 @@ test.describe( 'account area', () => {
 	test( 'the page has exactly one h1', async ( { page } ) => {
 		await page.goto( '/account/files/' );
 
-		// §2 conflict 4. The theme supplies it; we must not print a second.
+		// The theme supplies it, so we must not print a second.
 		await expect( page.locator( 'h1' ) ).toHaveCount( 1 );
 	} );
 
@@ -83,8 +80,7 @@ test.describe( 'account area', () => {
 	} ) => {
 		await page.goto( '/account/' );
 
-		// Both navigations are in the markup and CSS picks one per width, so
-		// this counts what is on screen rather than what is in the document.
+		// Both navigations are in the markup and CSS picks one per width, so this counts what is on screen.
 		const links = page.locator(
 			'.gatedmedia-account-nav__item:visible, .gatedmedia-tab-strip__item:visible'
 		);
@@ -97,9 +93,7 @@ test.describe( 'account area', () => {
 	} ) => {
 		await page.goto( '/account/orders/' );
 
-		// Visible only, for the same reason. The hidden navigation carries its
-		// own aria-current, but display:none keeps it out of the
-		// accessibility tree, so nothing is announced twice.
+		// Visible only: the hidden navigation carries its own aria-current, but display:none keeps it out of the accessibility tree.
 		const current = page.locator( '[aria-current="page"]:visible' );
 
 		await expect( current ).toHaveCount( 1 );
@@ -119,20 +113,14 @@ test.describe( 'account area', () => {
 	test( 'the icon sprite is inlined once', async ( { page } ) => {
 		await page.goto( '/account/' );
 
-		// External <use> references are not reliably supported, so the symbols
-		// have to be in the document.
+		// External <use> references are not reliably supported, so the symbols have to be in the document.
 		expect( await page.locator( 'symbol' ).count() ).toBeGreaterThan( 0 );
 	} );
 
 	test( 'the empty state appears when there is nothing to show', async ( {
 		page,
 	} ) => {
-		// Signed in as somebody who holds nothing and has bought nothing. This
-		// used to use the admin's Orders, on the grounds that no orders could
-		// exist yet — true only until the payments table landed and the shop
-		// fixture began creating one. An empty state needs an empty account,
-		// not a feature that has not been built.
-		// Dropped, not just navigated away from: for a signed-in visitor core pre-fills the username and empties the password box 200ms later.
+		// Signed in as somebody who holds nothing and has bought nothing, and the cookies are dropped because for a signed-in visitor core pre-fills the username and empties the password box 200ms later.
 		await page.context().clearCookies();
 
 		await page.goto( '/wp-login.php' );
@@ -148,7 +136,7 @@ test.describe( 'account area', () => {
 
 		await page.goto( '/account/orders/' );
 
-		// One box, at page level — never one per empty section.
+		// One box, at page level, never one per empty section.
 		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount(
 			1
 		);
@@ -157,7 +145,7 @@ test.describe( 'account area', () => {
 	test( 'my access lists what the fixture granted', async ( { page } ) => {
 		await page.goto( '/account/' );
 
-		// Real rows, not the empty state — the resolver feeds the view now.
+		// Real rows, not the empty state.
 		await expect( page.locator( '.gatedmedia-empty-state' ) ).toHaveCount(
 			0
 		);
@@ -242,10 +230,7 @@ test.describe( 'account area', () => {
 
 		const company = `Pink Crab ${ Date.now() }`;
 
-		// First and last name are required, so the browser refuses to submit
-		// while they are empty. A fresh WordPress has neither on its admin
-		// user, which made this pass only where someone had filled them in by
-		// hand. Fill them here so the state under test is the one we set.
+		// First and last name are required, and a fresh WordPress has neither on its admin user, so they are filled here rather than left to whatever the site happens to hold.
 		await page.fill( '#gatedmedia-first_name', 'Glynn' );
 		await page.fill( '#gatedmedia-last_name', 'Quelch' );
 		await page.fill( '#gatedmedia-company', company );
@@ -277,9 +262,7 @@ test.describe( 'signed out', () => {
 		await page.context().clearCookies();
 		await page.goto( '/account/' );
 
-		// Sent to sign in, and brought back here afterwards. Round 9 moved
-		// this off wp-login.php and onto the plugin's own view — wp-login.php
-		// still works, it is simply not where our own pages send people.
+		// Sent to our own sign-in view, not wp-login.php, and brought back after.
 		await expect( page ).toHaveURL( /\/sign-in\// );
 		await expect( page ).not.toHaveURL( /wp-login/ );
 
@@ -304,7 +287,7 @@ test.describe( 'the one breakpoint', () => {
 		if ( testInfo.project.name === 'wide' ) {
 			await expect( sidebar ).toBeVisible();
 			await expect( tabs ).toBeHidden();
-			// §3 — 256px, fixed.
+			// 256px, fixed.
 			expect( ( await sidebar.boundingBox() ).width ).toBe( 256 );
 		} else {
 			await expect( sidebar ).toBeHidden();
@@ -317,7 +300,7 @@ test.describe( 'the one breakpoint', () => {
 	}, testInfo ) => {
 		await page.goto( '/account/files/' );
 
-		// §8 conflict 8 — search is never dropped.
+		// Search is never dropped.
 		await expect(
 			page.locator( '.gatedmedia-filter__search input' )
 		).toBeVisible();
@@ -337,7 +320,7 @@ test.describe( 'the one breakpoint', () => {
 	test( 'no fixed bottom bar at any width', async ( { page } ) => {
 		await page.goto( '/account/' );
 
-		// §8 conflict 3 dropped it. It must not come back on an account view.
+		// It must never appear on an account view.
 		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount(
 			0
 		);

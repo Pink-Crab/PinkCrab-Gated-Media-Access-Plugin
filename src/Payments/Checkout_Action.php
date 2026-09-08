@@ -16,11 +16,9 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * The admin-post action a product page's buy form submits to. Thin on
- * purpose: read the form, hand it to `Checkout`, follow its answer —
- * to Stripe's hosted page, straight to the product for a free claim, or
- * back to the product carrying the error flag. Round 6's product page
- * renders the form; until then anything can POST it (the e2e specs do).
+ * The admin-post action a product page's buy form submits to.
+ *
+ * Thin on purpose: read the form, hand it to `Checkout`, and follow its answer to Stripe's hosted page, straight to the product for a free claim, or back to the product carrying the error flag.
  *
  * Signed out, the wp-login round trip comes back here and continues.
  */
@@ -33,9 +31,7 @@ class Checkout_Action implements Hookable {
 	public const ERROR_FLAG = 'gatedmedia_checkout_error';
 
 	/**
-	 * The coupon's field name — posted with the buy form, and the query arg
-	 * Apply reloads the product page with. One name for both, so the applied
-	 * code and the typed code are never two different things.
+	 * The coupon's field name, posted with the buy form and used as the query arg Apply reloads with, so the applied code and the typed code are never two different things.
 	 */
 	public const COUPON_FIELD = 'gatedmedia_coupon';
 
@@ -49,8 +45,7 @@ class Checkout_Action implements Hookable {
 	}
 
 	/**
-	 * The handler, its signed-out mirror, and Stripe's host on the redirect
-	 * allow-list.
+	 * The handler, its signed-out mirror, and Stripe's host on the redirect allow-list.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -61,21 +56,16 @@ class Checkout_Action implements Hookable {
 	}
 
 	/**
-	 * The host of the session Stripe just handed back, when it is not one we
-	 * already name.
+	 * The host of the session Stripe just handed back, when it is not one we already name.
 	 *
 	 * @var string
 	 */
 	private string $session_host = '';
 
 	/**
-	 * Core's wp_safe_redirect() only follows hosts it knows; the hosted
-	 * checkout lives on Stripe's.
+	 * Core's `wp_safe_redirect()` follows only hosts it knows, and the hosted checkout lives on Stripe's.
 	 *
-	 * `checkout.stripe.com` is the usual one, but a Stripe account can serve
-	 * Checkout from a domain of its own, and naming only the default sent
-	 * those buyers to wp-admin with a pending row behind them and no word
-	 * about why. So the session's own host is allowed alongside it.
+	 * `checkout.stripe.com` is the usual one, but a Stripe account can serve Checkout from a domain of its own, and naming only the default sent those buyers to wp-admin with a pending row behind them and no word about why, so the session's own host is allowed alongside it.
 	 *
 	 * @param array<int, string> $hosts Core's allow-list.
 	 * @return array<int, string>
@@ -93,10 +83,7 @@ class Checkout_Action implements Hookable {
 	/**
 	 * Trusts the host of a destination `Checkout` produced.
 	 *
-	 * Never request input: the only off-site URL that reaches here came back
-	 * from the Stripe API under this site's own secret key, so its host is
-	 * Stripe's to choose. An on-site destination needs no allowance and adds
-	 * nothing.
+	 * Never request input: the only off-site URL reaching here came back from the Stripe API under this site's own secret key, so its host is Stripe's to choose, and an on-site destination needs no allowance and adds nothing.
 	 *
 	 * @param string $url Where the buyer is about to be sent.
 	 */
@@ -111,8 +98,7 @@ class Checkout_Action implements Hookable {
 	/**
 	 * One buy submit: nonce, then Checkout decides, then the redirect.
 	 *
-	 * The `exit` is required: a redirect that does not halt emits a body
-	 * after the Location header.
+	 * The `exit` is required: a redirect that does not halt emits a body after the Location header.
 	 */
 	public function handle(): void {
 		$nonce = isset( $_POST['_wpnonce'] ) ? sanitize_key( wp_unslash( $_POST['_wpnonce'] ) ) : '';
@@ -140,13 +126,9 @@ class Checkout_Action implements Hookable {
 	/**
 	 * Signed out: to the plugin's own way in, and back to the product after.
 	 *
-	 * The control that reaches here says "Create an account to continue", so it
-	 * goes to sign-up when this site creates accounts that way and to sign-in
-	 * when it does not — a page must never offer a route that does not exist.
+	 * The control says "Create an account to continue", so it goes to sign-up where this site creates accounts that way and to sign-in where it does not, because a page must never offer a route that does not exist.
 	 *
-	 * The coupon rides along on the destination. Before round 9 it was dropped
-	 * on the way through, so a buyer who had applied one came back to the
-	 * product at full price with no sign of what had happened.
+	 * The coupon rides along on the destination, or a buyer who applied one comes back at full price with no sign of why.
 	 */
 	public function require_login(): void {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nothing changes; the fields only shape the post-login destination.

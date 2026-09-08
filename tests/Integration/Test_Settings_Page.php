@@ -14,16 +14,11 @@ use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * The menu is registered behind gatedmedia_manage_settings, not
- * manage_options — so an administrator sees it, and a user holding only
- * manage_options does not.
+ * The menu is registered behind gatedmedia_manage_settings rather than manage_options, so an administrator sees it and a user holding only manage_options does not.
  *
- * Core hides a menu item from anyone failing user_can() on its registered
- * capability, so the pair proved here — which capability the menu carries,
- * and who passes it — is exactly what decides visibility.
+ * Core hides a menu item from anyone failing user_can() on its registered capability, so which capability the menu carries and who passes it is what decides visibility.
  *
- * register_menu() is called directly: the admin_menu hook is attached through
- * admin_action(), which never fires under PHPUnit because is_admin() is false.
+ * register_menu() is called directly because the admin_menu hook is attached through admin_action(), which never fires under PHPUnit where is_admin() is false.
  *
  * @group integration
  */

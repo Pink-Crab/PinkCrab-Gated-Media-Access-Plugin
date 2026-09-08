@@ -15,13 +15,9 @@ use PinkCrab\Gated_Access\Hookable;
 /**
  * Registers every block in build/blocks.
  *
- * Discovered rather than listed, because a block is already declared by its
- * own block.json — a second list here would be a second place to forget.
+ * Discovered rather than listed, because a block is already declared by its own block.json and a second list here would be a second place to forget.
  *
- * They are registered from **build**, not from source: block.json is copied
- * there by the build with its `file:` paths rewritten to the compiled assets,
- * so registering the source copy would point the editor at files that do not
- * exist.
+ * They are registered from **build**, not from source: block.json is copied there with its `file:` paths rewritten to the compiled assets, so registering the source copy would point the editor at files that do not exist.
  */
 class Block_Registrar implements Hookable {
 
@@ -39,8 +35,7 @@ class Block_Registrar implements Hookable {
 	/**
 	 * Registers each built block.
 	 *
-	 * Silent when the build has not been run — a checkout without
-	 * `npm run build` should degrade to blocks that do not exist, not a fatal.
+	 * Silent when the build has not been run, so a checkout without `npm run build` degrades to missing blocks rather than a fatal.
 	 */
 	public function register(): void {
 		$dir = GATEDMEDIA_DIR_PATH . self::BUILD_DIR;

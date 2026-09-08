@@ -22,13 +22,11 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * Adding access is picking a user, an item and a duration (architecture.md
- * §9) — this page is that form and nothing else. The record itself is the
- * writer's: the handler translates the request into `Access_Writer::grant()`
- * arguments and reports what came back.
+ * Adding access is picking a user, an item and a duration, and this page is that form and nothing else.
  *
- * The core editor never opens for an access record (`create_posts` is
- * do_not_allow), so this form is the only admin door in.
+ * The record itself is the writer's: the handler turns the request into `Access_Writer::grant()` arguments and reports what came back.
+ *
+ * The core editor never opens for an access record, because `create_posts` is do_not_allow, so this form is the only admin door in.
  */
 class Add_Access_Page implements Hookable {
 
@@ -72,11 +70,9 @@ class Add_Access_Page implements Hookable {
 	}
 
 	/**
-	 * The form: user, item, duration — composed from the picker components.
+	 * The form: user, item and duration, composed from the picker components.
 	 *
-	 * The item metabox links here pre-filled: its type and item land as GET
-	 * args and become the pickers' initial values, printed server-side so
-	 * the prefill stands without the script.
+	 * The item metabox links here pre-filled: its type and item arrive as GET args and become the pickers' initial values, printed server-side so the prefill stands without the script.
 	 */
 	public function render(): void {
 		$prefill = $this->prefill();
@@ -146,10 +142,9 @@ class Add_Access_Page implements Hookable {
 	}
 
 	/**
-	 * Guards the post, grants, and lands on the list — or back here on error.
+	 * Guards the post, grants, and lands on the list, or back here on error.
 	 *
-	 * The `exit` is required: a redirect that does not halt emits a body
-	 * alongside the Location header (the `Profile_Writer::handle()` note).
+	 * The `exit` is required: a redirect that does not halt emits a body alongside the Location header, as `Profile_Writer::handle()` also notes.
 	 */
 	public function handle(): void {
 		check_admin_referer( self::ACTION );
@@ -201,8 +196,7 @@ class Add_Access_Page implements Hookable {
 	}
 
 	/**
-	 * What the metabox link pre-fills: the item type, and — for a post or
-	 * file — the item's id and current name, ready for the pickers.
+	 * What the metabox link pre-fills: the item type, plus a post or file's id and current name, ready for the pickers.
 	 *
 	 * @return array{type: string, post_id: string, post_title: string, file_id: string, file_title: string}
 	 */
@@ -283,11 +277,9 @@ class Add_Access_Page implements Hookable {
 	/**
 	 * What a refusal reads as, for a person.
 	 *
-	 * The redirect carries `WP_Error::get_error_code()`, which is a machine
-	 * name: an administrator was reading "Access was not granted:
-	 * gatedmedia_invalid_user". The codes come from `Access_Validator`;
-	 * anything it grows later falls through to the general wording rather than
-	 * leaking its name onto the screen.
+	 * The redirect carries `WP_Error::get_error_code()`, a machine name, so an administrator was reading "Access was not granted: gatedmedia_invalid_user".
+	 *
+	 * The codes come from `Access_Validator`, and any it grows later falls through to the general wording rather than leaking its name onto the screen.
 	 *
 	 * @param string $code The error code the redirect carried.
 	 */

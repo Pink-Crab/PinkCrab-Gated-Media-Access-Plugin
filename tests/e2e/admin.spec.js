@@ -1,14 +1,9 @@
 /**
  * The admin screens the plugin designs for itself.
  *
- * wp-admin is core's surface, so the plugin restyles only what it owns —
- * everything under `.gatedmedia-admin`. That restyling has to keep core's own
- * guarantees, and the one that goes missing most easily is the keyboard focus
- * indicator: `outline: none` is a single line and shows up as nothing at all
- * until somebody tries to tab through the form.
+ * wp-admin is core's surface, so the plugin restyles only what it owns, everything under `.gatedmedia-admin`. That restyling has to keep core's own guarantees, and the one that goes missing most easily is the keyboard focus indicator.
  *
- * _mixins.scss states the rule these assert: "§6.3 — focus. Never removed,
- * never replaced with a colour change alone."
+ * The rule these assert: focus is never removed, and never replaced with a colour change alone.
  */
 
 const { test, expect } = require( '@playwright/test' );
@@ -37,8 +32,7 @@ async function signIn( page ) {
 /**
  * Whether an element draws something a keyboard user can see when focused.
  *
- * A border colour change alone does not count: it is the one thing §6.3 names
- * as insufficient, and on these screens it moved #dcdcde to #605e61.
+ * A border colour change alone does not count, and on these screens it moved #dcdcde to #605e61.
  *
  * @param {import('@playwright/test').Locator} field The control to focus.
  */

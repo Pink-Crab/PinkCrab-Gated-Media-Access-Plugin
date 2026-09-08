@@ -1,12 +1,9 @@
 /**
- * Row — ui-spec.md §6.2.
+ * Row.
  *
- * Hidden from the inserter, but a real block type on the client — the editor
- * has to know what it is wherever one appears.
+ * Hidden from the inserter, but a real block type on the client, because the editor has to know what it is wherever one appears.
  *
- * `save` returns the inner blocks rather than null. The row itself is drawn by
- * PHP, but its children are authored content and have to be written into the
- * post — with null, the aside would be empty again on every reload.
+ * `save` returns the inner blocks rather than null. The row itself is drawn by PHP, but its children are authored content and have to be written into the post, or the aside would be empty again on every reload.
  */
 
 import { registerBlockType } from '@wordpress/blocks';

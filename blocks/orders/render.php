@@ -1,29 +1,16 @@
 <?php
 /**
- * §7.3 Orders — the record of what was taken and when, and §7.4 one of them.
+ * Orders, and one order's detail.
  *
- * **This is not a shop.** One flat list, no sections and no filter: an account
- * holds few enough orders that grouping them would be scaffolding around
- * nothing.
+ * One flat list, no sections and no filter: an account holds few enough orders that grouping them would be scaffolding around nothing.
  *
- * Each row carries the order title and its date on the left, and on the right,
- * stacked tight, the inline price (§6.7) above the status pill (§6.6). The
- * whole row links to §7.4.
+ * Each row carries the title and date on the left, and the inline price above the status pill on the right. The whole row links to the detail.
  *
- * Orders is **the one row that does not stack on narrow** — price and status
- * stay right-aligned at every width, which is what the `order` variant means.
+ * Orders is the one row that does not stack on narrow, which is what the `order` variant means. A refunded or revoked order drops the whole row to 60%.
  *
- * A refunded or revoked order additionally drops the whole row to 60% (§6.6),
- * which is the row's job rather than the pill's.
+ * The `detail` attribute is the second URL segment, set by `Account_Renderer::section_content()` from `/account/orders/{uuid}`. With one present this draws that single order, including the state a buyer returning from Stripe lands on.
  *
- * The `detail` attribute is the second URL segment, set by
- * `Account_Renderer::section_content()` from `/account/orders/{uuid}`. With one
- * present this draws that single order instead of the list — including the
- * state a buyer returning from Stripe lands on, which is why §7.8 has no page
- * of its own.
- *
- * Free products never appear here: a free claim grants access directly and
- * writes no payment row at all (`Checkout::claim_free()`, architecture §7).
+ * Free products never appear here: `Checkout::claim_free()` grants directly and writes no payment row.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -45,15 +32,13 @@ if ( 0 === $gatedmedia_user_id ) {
 	return;
 }
 
-// The second URL segment. §7.4 order detail is reached at
-// /account/orders/{uuid}.
+// The second URL segment: one order at /account/orders/{uuid}.
 $gatedmedia_order_id = isset( $attributes['detail'] ) && is_string( $attributes['detail'] )
 	? $attributes['detail']
 	: '';
 
 /**
- * Supplied by Order_History from the payments table; the empty defaults are
- * what someone who has bought nothing renders.
+ * Supplied by Order_History from the payments table. The defaults render nothing.
  *
  * @var array{orders: array<int, array<string, mixed>>, detail: array<string, mixed>|null} $gatedmedia_data
  */
@@ -72,9 +57,7 @@ $gatedmedia_detail = is_array( $gatedmedia_data['detail'] ?? null ) ? $gatedmedi
 $gatedmedia_body = '';
 
 if ( '' !== $gatedmedia_order_id ) {
-	// -------------------------------------------------------------------
-	// §7.4 — one order.
-	// -------------------------------------------------------------------
+	// One order.
 	if ( null === $gatedmedia_detail ) {
 		// Someone else's order and an order that never existed read the same.
 		$gatedmedia_body = Block::render(
@@ -88,9 +71,7 @@ if ( '' !== $gatedmedia_order_id ) {
 	} else {
 		$gatedmedia_status = (string) ( $gatedmedia_detail['status'] ?? 'complete' );
 
-		// Built from the section's own URL rather than by chopping the
-		// order's: an empty href would make dirname() answer '.' and the link
-		// would point at the page it is on.
+		// From the section's own URL, not by chopping the order's.
 		$gatedmedia_back = Block::render(
 			'gated-media-access/button',
 			array(
@@ -129,18 +110,14 @@ if ( '' !== $gatedmedia_order_id ) {
 		<?php
 		$gatedmedia_body = (string) ob_get_clean();
 
-		// §7.8 — the state a buyer sees coming back from Stripe. Drawn when
-		// they have just arrived, and whenever the order is not simply done,
-		// so a pending or failed order explains itself on any visit.
+		// Drawn on arrival from Stripe, and on any visit where the order is not simply done.
 		if ( true === ( $gatedmedia_detail['is_new'] ?? false ) || 'complete' !== $gatedmedia_status ) {
 			$gatedmedia_body .= Block::render(
 				'gated-media-access/payment-status',
 				array(
 					'status'      => $gatedmedia_status,
 					'reference'   => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
-					// The same value as the reference today, passed separately
-					// because the poll matches on the uuid and must not depend
-					// on what the reference is chosen to show.
+					// Passed separately: the poll matches on the uuid, not on the reference.
 					'uuid'        => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
 					'actionLabel' => 'complete' === $gatedmedia_status ? __( 'Go to my access', 'gated-media-access' ) : '',
 					'actionHref'  => 'complete' === $gatedmedia_status ? Account_Url::section( 'my-access' ) : '',
@@ -201,13 +178,11 @@ if ( '' !== $gatedmedia_order_id ) {
 		$gatedmedia_body = $gatedmedia_back . $gatedmedia_body;
 	}
 } else {
-	// -------------------------------------------------------------------
-	// §7.3 — the list.
-	// -------------------------------------------------------------------
+	// The list.
 	foreach ( $gatedmedia_orders as $gatedmedia_order ) {
 		$gatedmedia_status = (string) ( $gatedmedia_order['status'] ?? 'complete' );
 
-		// §6.6 — a refunded or revoked row is muted as a whole.
+		// A refunded or revoked row is muted as a whole.
 		$gatedmedia_spent = in_array( $gatedmedia_status, array( 'refunded', 'revoked' ), true );
 
 		$gatedmedia_aside = Block::render(

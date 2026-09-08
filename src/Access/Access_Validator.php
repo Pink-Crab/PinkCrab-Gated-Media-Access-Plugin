@@ -13,11 +13,9 @@ use WP_Error;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Checks the four facts every route hands the writer — who, what, how long,
- * where from — point at real things before anything is written.
+ * Checks that the four facts every route hands the writer point at real things: who, what, how long, and where from.
  *
- * Split from `Access_Writer` for size, not for reuse: the writer is its only
- * caller, and stays the only path that creates or changes a record.
+ * Split from `Access_Writer` for size rather than reuse. The writer is its only caller.
  */
 class Access_Validator {
 

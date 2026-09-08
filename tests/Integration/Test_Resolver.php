@@ -17,9 +17,7 @@ use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Both of the brief's questions, answered from the records alone: direct
- * grants, live group expansion, expiry with no sweep, revocation, the final
- * filter, and the no-second-query guarantee.
+ * Answered from the records alone: direct grants, live group expansion, expiry with no sweep, revocation, the final filter, and the no-second-query guarantee.
  *
  * @group integration
  */
@@ -43,8 +41,7 @@ class Test_Resolver extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A resolver with nothing memoised — group membership changes mid-test
-	 * need a fresh answer, exactly as a new request would get one.
+	 * A resolver with nothing memoised, because a group membership change mid-test needs the fresh answer a new request would get.
 	 */
 	private function resolver(): Resolver {
 		return new Resolver( new Access_Taxonomy() );
@@ -110,7 +107,7 @@ class Test_Resolver extends WP_UnitTestCase {
 		$this->assertFalse( $resolver->can_see( $this->user_id, 'post', (string) $in_from_the_start ) );
 	}
 
-	/** @testdox An expired record answers false with no sweep having run — the status is still active. */
+	/** @testdox An expired record answers false with no sweep having run, while its status is still active. */
 	public function test_expiry_needs_no_sweep(): void {
 		$post_id   = self::factory()->post->create();
 		$access_id = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 30, 'admin' );
@@ -146,7 +143,7 @@ class Test_Resolver extends WP_UnitTestCase {
 		$this->assertFalse( $this->resolver()->can_see( $this->user_id, 'post', (string) $held ) );
 	}
 
-	/** @testdox The second ask costs zero queries — the allowed items are built once per user. */
+	/** @testdox The second ask costs zero queries, because the allowed items are built once per user. */
 	public function test_the_second_ask_is_free(): void {
 		$post_id = self::factory()->post->create();
 		$file_id = self::factory()->attachment->create();

@@ -6,7 +6,7 @@
 	"title": "Account nav",
 	"category": "widgets",
 	"icon": "menu-alt",
-	"description": "ui-spec.md §6.1. The sidebar column, or the scrolling tab strip below 782px.",
+	"description": "The sidebar column, or the scrolling tab strip below 782px.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"items": {

@@ -6,7 +6,7 @@
 	"title": "Form field",
 	"category": "widgets",
 	"icon": "forms",
-	"description": "ui-spec.md §6.8. Label, input, and the line beneath that doubles as help or error.",
+	"description": "Label, input, and the line beneath that doubles as help or error.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"name": {

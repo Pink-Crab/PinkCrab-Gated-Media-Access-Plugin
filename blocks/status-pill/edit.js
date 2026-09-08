@@ -1,12 +1,9 @@
 /**
- * §6.6 Status pill — editor.
+ * The status pill, editor side.
  *
- * Five values, each meaning something specific, so the toolbar names them and
- * the panel says what the current one means rather than listing five words.
+ * Five values, each meaning something specific, so the toolbar names them and the panel says what the current one means rather than listing five words.
  *
- * The wording is typed on the pill: leave it as the default and it follows the
- * value; overtype it and it does not. That is the whole of the label override,
- * so it needs no sidebar field.
+ * The wording is typed on the pill: left as the default it follows the value, overtyped it does not, which is the whole of the label override and needs no sidebar field.
  */
 
 import {
@@ -124,7 +121,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					{ dims && (
 						<Notice status="warning" isDismissible={ false }>
 							{ __(
-								'A refunded or revoked row is also dimmed as a whole. The pill does not do that — the row does.',
+								'A refunded or revoked row is also dimmed as a whole. The row does that, not the pill.',
 								'gated-media-access'
 							) }
 						</Notice>

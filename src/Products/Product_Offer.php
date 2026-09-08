@@ -21,16 +21,11 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
- * Turns a product into the shape §7.6 draws — its contents, its price, and
- * which of the six states the person looking at it is in.
+ * Turns a product into the shape the page draws: its contents, its price, and which of the six states the person looking at it is in.
  *
- * The render file cannot reach container services, so it arrives by filter —
- * `gatedmedia_product_data` — as My Access, Files and Orders do.
+ * The render file cannot reach container services, so it arrives by the `gatedmedia_product_data` filter, as My Access, Files and Orders do.
  *
- * **It reads and decides nothing that matters.** The state chooses what to
- * show; `Checkout` decides whether a purchase may actually happen, and it is
- * asked again on submit. A page that offered a button it should not have still
- * could not buy anything.
+ * **It reads and decides nothing that matters.** The state chooses what to show, `Checkout` decides whether a purchase may happen and is asked again on submit, so a page that offered a button it should not have still could not buy anything.
  */
 class Product_Offer implements Hookable {
 
@@ -80,7 +75,7 @@ class Product_Offer implements Hookable {
 	}
 
 	/**
-	 * Everything §7.6 needs about one product.
+	 * Everything the product page needs about one product.
 	 *
 	 * @param array<string, mixed> $data       The view's defaults.
 	 * @param int                  $product_id The product being drawn.
@@ -112,21 +107,18 @@ class Product_Offer implements Hookable {
 		$data['coupon']     = $this->coupon( $product_id, $user_id, $price );
 		$data['page_url']   = (string) get_permalink( $product_id );
 
-		// Whether a stranger looking at this page can make themselves an
-		// account. Under `admin` and `purchase` they cannot, and the signed-out
-		// controls must not say otherwise.
+		// Whether a stranger looking at this page can make themselves an account: under `admin` and `purchase` they cannot, and the signed-out controls must not say otherwise.
 		$data['signup_offered'] = Settings::ACCOUNT_CREATION_REGISTRATION === $this->settings->account_creation();
 
 		return $data;
 	}
 
 	/**
-	 * §6.14 — the coupon as the page should draw it.
+	 * The coupon as the page should draw it.
 	 *
-	 * Apply reloads the product page with the code in the query, so the state
-	 * shown is whatever the URL asks for, priced by `Checkout::preview()`. That
-	 * writes nothing and spends nothing; the code rides the buy submit and
-	 * `Checkout` judges it again there.
+	 * Apply reloads the product page with the code in the query, so the state shown is whatever the URL asks for, priced by `Checkout::preview()`.
+	 *
+	 * That writes nothing and spends nothing, and the code rides the buy submit where `Checkout` judges it again.
 	 *
 	 * @param int $product_id The product.
 	 * @param int $user_id    Who is looking, 0 signed out.
@@ -134,9 +126,7 @@ class Product_Offer implements Hookable {
 	 * @return array{code: string, applied: bool, discount: int, total: int, error: string}
 	 */
 	private function coupon( int $product_id, int $user_id, int $price ): array {
-		// A code in the query prices a page and buys nothing. Nothing is
-		// written and no form is processed, so there is nothing for a nonce to
-		// protect — as with the error flag above.
+		// A code in the query prices a page and buys nothing, so there is nothing to nonce.
 		$raw = $_GET[ Checkout_Action::COUPON_FIELD ] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; see above.
 
 		$code = sanitize_text_field( wp_unslash( (string) $raw ) );
@@ -155,10 +145,9 @@ class Product_Offer implements Hookable {
 	}
 
 	/**
-	 * Which of the six §7.6 states this person is in.
+	 * Which of the six states this person is in.
 	 *
-	 * Ordered by what matters most to say: that you already have it beats
-	 * every other message, and that you cannot buy it beats its price.
+	 * Ordered by what matters most to say: that you already have it beats every other message, and that you cannot buy it beats its price.
 	 *
 	 * @param WP_Post            $product The product.
 	 * @param int                $user_id Who is looking, 0 signed out.
@@ -188,8 +177,7 @@ class Product_Offer implements Hookable {
 	/**
 	 * Whether every item this product grants is already theirs.
 	 *
-	 * Every one, not any: a product bundling four things is not "held" because
-	 * one of them arrived another way.
+	 * Every one, not any: a product bundling four things is not "held" because one of them arrived another way.
 	 *
 	 * @param int                $user_id Who is looking.
 	 * @param array<int, string> $items   Its `type:identifier` entries.
@@ -209,8 +197,7 @@ class Product_Offer implements Hookable {
 	/**
 	 * Whether any of it is access they used to have.
 	 *
-	 * Any, not every — one lapsed item is enough for the page to say the
-	 * access ended rather than presenting it as a first purchase.
+	 * Any, not every: one lapsed item is enough for the page to say the access ended rather than presenting it as a first purchase.
 	 *
 	 * @param int                $user_id Who is looking.
 	 * @param array<int, string> $items   Its `type:identifier` entries.
@@ -299,13 +286,10 @@ class Product_Offer implements Hookable {
 	/**
 	 * The message for a checkout that came back refused.
 	 *
-	 * `Checkout_Action` redirects here carrying the error's code rather than
-	 * its sentence, so the wording is chosen here. An unrecognised code still
-	 * says something — a silent failed purchase is the worst of the options.
+	 * `Checkout_Action` redirects here carrying the error's code rather than its sentence, so the wording is chosen here, and an unrecognised code still says something, because a silent failed purchase is the worst option.
 	 */
 	private function error(): string {
-		// A flag chosen from a fixed list of wordings; nothing is written and
-		// no form is processed, so there is nothing for a nonce to protect.
+		// A flag chosen from a fixed list of wordings, and nothing is written and no form is processed, so there is nothing for a nonce to protect.
 		$raw = $_GET[ Checkout_Action::ERROR_FLAG ] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only; see above.
 
 		$code = sanitize_key( wp_unslash( (string) $raw ) );

@@ -16,14 +16,13 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 /**
  * Moves active records past their expiry to the expired status, daily.
  *
- * Housekeeping, not enforcement: the resolver compares dates against now on
- * every read, so if this never ran nothing would leak (architecture.md §2).
- * It exists so the admin list and the account area read sensibly. Every move
- * goes through `Access_Writer::expire()` — the sweep changes no record itself.
+ * Housekeeping, not enforcement: `Resolver` compares dates against now on every read, so nothing would leak if this never ran, and it exists so the admin list and the account area read sensibly.
+ *
+ * Every move goes through `Access_Writer::expire()`, and the sweep changes no record itself.
  */
 class Sweep implements Hookable {
 
-	/** The cron hook, daily (specification.md §9). */
+	/** The cron hook, daily. */
 	public const HOOK = 'gatedmedia_sweep_expired';
 
 	/**
@@ -73,9 +72,7 @@ class Sweep implements Hookable {
 	/**
 	 * Active records whose expiry is set and behind now.
 	 *
-	 * The status is named, never 'any' — all three of ours are registered
-	 * with exclude_from_search, and 'any' would skip them. Lifetime records
-	 * hold '' in the meta, which the first clause drops.
+	 * The status is named, never 'any', which would skip all three of ours. Lifetime records hold '' in the meta, which the first clause drops.
 	 *
 	 * @return array<int, int>
 	 */

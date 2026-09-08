@@ -10,13 +10,9 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Settings;
 
 /**
- * The one settings option, `gatedmedia_settings`, an array (specification.md
- * §8). This class only reads it — the screen that writes it is the round 5
- * Settings build, so today every key answers with its default.
+ * The one settings option, `gatedmedia_settings`, an array this class only reads and `Settings_Page` writes.
  *
- * One reader per setting keeps every accessor the same shape, so the method
- * count grows with the option — Glynn's round 6 ruling: keep them together
- * and quiet the counter.
+ * One reader per setting keeps every accessor the same shape, so the method count grows with the option, and they stay together with the counter quieted.
  *
  * @SuppressWarnings("PHPMD.TooManyPublicMethods")
  */
@@ -31,7 +27,7 @@ class Settings {
 	/** Real money. */
 	public const MODE_LIVE = 'live';
 
-	/** Revoke marks the record revoked — the default, history kept. */
+	/** Revoke marks the record revoked. The default, keeping history. */
 	public const REVOKE_BEHAVIOUR_REVOKE = 'revoke';
 
 	/** Expire pulls the record's date to now. */
@@ -52,8 +48,7 @@ class Settings {
 	/**
 	 * What revoking a record does on this site: revoke, expire or delete.
 	 *
-	 * Defaults to revoke — records are kept as history (requirements.md) —
-	 * and anything unrecognised lands back there.
+	 * Defaults to revoke, so records are kept as history, and anything unrecognised lands back there.
 	 */
 	public function revoke_behaviour(): string {
 		$settings  = get_option( self::OPTION );
@@ -72,9 +67,7 @@ class Settings {
 	}
 
 	/**
-	 * The currency the shop sells in — every product is priced in it.
-	 * A real ISO code or the GBP default; filter `gatedmedia_currency`
-	 * has the last word.
+	 * The currency the shop sells in, and every product is priced in it. A real ISO code or the GBP default, with `gatedmedia_currency` having the last word.
 	 */
 	public function currency(): string {
 		$settings = get_option( self::OPTION );
@@ -91,8 +84,7 @@ class Settings {
 	}
 
 	/**
-	 * Whether deleting the plugin also takes the payments table, the access
-	 * records, the products and the coupons. Off unless asked for.
+	 * Whether deleting the plugin also takes the payments table, the access records, the products and the coupons, off unless asked for.
 	 */
 	public function purge_on_uninstall(): bool {
 		$settings = get_option( self::OPTION );
@@ -107,9 +99,7 @@ class Settings {
 	}
 
 	/**
-	 * The path segment a product's UUID URL lives under —
-	 * `/{segment}/{uuid}` is the only public way to a product. Default
-	 * `access`; filter `gatedmedia_product_path` has the last word.
+	 * The path segment a product's UUID URL lives under, since `/{segment}/{uuid}` is the only public way to a product. Default `access`, with `gatedmedia_product_path` having the last word.
 	 */
 	public function product_path(): string {
 		$settings = get_option( self::OPTION );
@@ -128,9 +118,7 @@ class Settings {
 	/**
 	 * Whether the plugin's own `/account/` route is registered at all.
 	 *
-	 * Off means a site places the account blocks on its own pages instead —
-	 * both roads render the same blocks, which is what stops them drifting.
-	 * Default on; filter `gatedmedia_account_route` has the last word.
+	 * Off means a site places the account blocks on its own pages instead, and both roads render the same blocks. Default on, with `gatedmedia_account_route` having the last word.
 	 */
 	public function account_route(): bool {
 		$settings = get_option( self::OPTION );
@@ -145,13 +133,9 @@ class Settings {
 	}
 
 	/**
-	 * How someone gets an account: registration, admin or purchase
-	 * (requirements.md). Only this plugin's own sign-up obeys it — core's
-	 * `users_can_register` is never read and never written, so wp-login.php
-	 * keeps whatever policy the site already gave it.
+	 * How someone gets an account: registration, admin or purchase. Only this plugin's own sign-up obeys it, and core's `users_can_register` is never read or written, so wp-login.php keeps its own policy.
 	 *
-	 * Default registration; filter `gatedmedia_account_creation` has the last
-	 * word, and anything unrecognised lands back there.
+	 * Registration by default, `gatedmedia_account_creation` has the last word, and anything unrecognised lands back there.
 	 */
 	public function account_creation(): string {
 		$settings = get_option( self::OPTION );
@@ -172,8 +156,7 @@ class Settings {
 	/**
 	 * Whether a thin account is asked to complete itself on first sign-in.
 	 *
-	 * Default off — a prompt that interrupts everyone is worse than a profile
-	 * left thin. Filter `gatedmedia_profile_prompt` has the last word.
+	 * Default off, because a prompt interrupting everyone is worse than a thin profile. `gatedmedia_profile_prompt` has the last word.
 	 */
 	public function profile_prompt(): bool {
 		$settings = get_option( self::OPTION );
@@ -188,8 +171,7 @@ class Settings {
 	}
 
 	/**
-	 * Which Stripe the site talks to: test unless live is stored, and never
-	 * anything else. Filter `gatedmedia_stripe_mode` has the last word.
+	 * Which Stripe the site talks to: test unless live is stored, never anything else, and `gatedmedia_stripe_mode` has the last word.
 	 */
 	public function stripe_mode(): string {
 		$settings = get_option( self::OPTION );
@@ -227,8 +209,7 @@ class Settings {
 	}
 
 	/**
-	 * Whether one notification type sends at all. On unless switched off;
-	 * filter `gatedmedia_notification_enabled` has the last word.
+	 * Whether one notification type sends at all, on unless switched off, and `gatedmedia_notification_enabled` has the last word.
 	 *
 	 * @param string $type The notification type key.
 	 */
@@ -246,9 +227,7 @@ class Settings {
 	}
 
 	/**
-	 * A stored template override for one notification type — subject and
-	 * body, each '' where the shipped default should be used. Filter
-	 * `gatedmedia_notification_template` has the last word.
+	 * A stored template override for one notification type: subject and body, each '' where the shipped default should be used. `gatedmedia_notification_template` has the last word.
 	 *
 	 * @param string $type The notification type key.
 	 * @return array{subject: string, body: string}
@@ -277,9 +256,7 @@ class Settings {
 	}
 
 	/**
-	 * How many days before a timed record lapses the warning is sent.
-	 * Default 7, never below 1; filter `gatedmedia_expiry_warning_days`
-	 * has the last word (spec §9).
+	 * How many days before a timed record lapses the warning is sent: 7 by default, never below 1, and `gatedmedia_expiry_warning_days` has the last word.
 	 */
 	public function expiry_warning_days(): int {
 		$settings = get_option( self::OPTION );
@@ -296,10 +273,7 @@ class Settings {
 	}
 
 	/**
-	 * The address every enabled notification is copied to, or '' when the
-	 * admin-copy switch is off. Defaults to the site admin email once
-	 * switched on; filter `gatedmedia_notification_admin_copy` has the
-	 * last word.
+	 * The address every enabled notification is copied to, or '' when the admin-copy switch is off, defaulting to the site admin email once switched on, with `gatedmedia_notification_admin_copy` having the last word.
 	 */
 	public function admin_copy_address(): string {
 		$settings = get_option( self::OPTION );
@@ -321,11 +295,9 @@ class Settings {
 	}
 
 	/**
-	 * The one credential read (architecture §7: exactly one place reads
-	 * them): `stripe_{mode}_{suffix}` from the option, filtered so wp-config
-	 * can keep keys out of the database entirely.
+	 * The one credential read, and the only place they are read: `stripe_{mode}_{suffix}` from the option, filtered so wp-config can keep keys out of the database entirely.
 	 *
-	 * @param string           $suffix      key, secret, or webhook_secret — spec §8's names.
+	 * @param string           $suffix      key, secret, or webhook_secret.
 	 * @param non-empty-string $filter_name The filter with the last word.
 	 */
 	private function credential( string $suffix, string $filter_name ): string {

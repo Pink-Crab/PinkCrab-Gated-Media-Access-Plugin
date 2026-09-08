@@ -10,13 +10,11 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Support;
 
 /**
- * Turns a stored expiry timestamp into the state and wording the expiry block
- * declares — one of the four values `blocks/expiry/block.json` enumerates.
+ * Turns a stored expiry timestamp into the state and wording the expiry block declares, one of the four values `blocks/expiry/block.json` enumerates.
  *
- * Shared because more than one view says the same thing about the same date:
- * My Access says it about access held, and an order detail says it about the
- * access that order created. Two copies would drift, and the "soon" threshold
- * is filterable, so they would drift for third parties too.
+ * Shared because more than one view says the same thing about the same date: My Access says it about access held, and an order detail says it about the access that order created.
+ *
+ * Two copies would drift, and the "soon" threshold is filterable, so they would drift for third parties too.
  */
 class Expiry {
 
@@ -61,9 +59,7 @@ class Expiry {
 	/**
 	 * Access that ran out.
 	 *
-	 * `describe()` floors a past date at one day, because everywhere it is
-	 * asked about live access that is the only sensible reading. A view that
-	 * lists records whatever their status asks for this instead.
+	 * `describe()` floors a past date at one day, because everywhere it is asked about live access that is the only sensible reading, and a view listing records whatever their status asks for this instead.
 	 *
 	 * @return array{state: string, label: string}
 	 */
@@ -77,8 +73,7 @@ class Expiry {
 	/**
 	 * Access taken back, which is not the same as access that ran out.
 	 *
-	 * A revoke leaves the stored date alone, so the date is never the thing to
-	 * report here: a refunded lifetime record would read "Lifetime".
+	 * A revoke leaves the stored date alone, so the date is never the thing to report here, or a refunded lifetime record would read "Lifetime".
 	 *
 	 * @return array{state: string, label: string}
 	 */

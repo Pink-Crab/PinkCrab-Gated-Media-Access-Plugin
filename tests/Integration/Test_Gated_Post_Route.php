@@ -22,16 +22,11 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * The status is a trigger, not a second access model: setting it applies the
- * marker term, so everything restriction already means comes with it.
+ * The status is a trigger, not a second access model: setting it applies the marker term, so everything restriction already means comes with it.
  *
- * What is genuinely new is the addressing, and that is what most of these
- * assert — the UUID is the only road in, and the slug is closed to **everyone**
- * including holders, which is what separates this from an ordinary restricted
- * post.
+ * The addressing is what is new, and what most of these assert: the UUID is the only road in, and the slug is closed to **everyone**, holders included.
  *
- * The refusal is a 404 and never a redirect: bouncing a slug request to the
- * real UUID would make the slug an oracle for discovering it.
+ * The refusal is a 404 and never a redirect, or the slug becomes an oracle for discovering the UUID.
  *
  * @group integration
  */
@@ -106,9 +101,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The gated status is a status, so every reader that admits only `publish`
-	 * drops the post — and the group holder is 404ed at the one URL that was
-	 * meant to work.
+	 * Every reader admitting only `publish` drops the post, 404ing the group holder at the one URL meant to work.
 	 *
 	 * @testdox A gated post inside a granted group is reachable at its UUID.
 	 */
@@ -133,8 +126,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 
 		$group_uuid = $this->granted_group_holding( $post_id );
 
-		// The page is opened by the holder: to everyone else the marker term
-		// keeps it out of every query, which is Restriction doing its job.
+		// Opened by the holder: to anyone else the marker keeps it out of every query.
 		wp_set_current_user( $this->user_id );
 
 		$this->assertContains( $post_id, ( new Access_Taxonomy() )->contents( $group_uuid ) );
@@ -172,8 +164,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 	public function test_the_status_applies_the_marker(): void {
 		[ $post_id ] = $this->make_gated_post();
 
-		// The marker is hidden from every term list via list_terms_exclusions;
-		// a reader that genuinely needs it opts in (Restriction's docblock).
+		// The marker is hidden from every term list, so a reader that needs it opts in.
 		$slugs = wp_get_object_terms(
 			$post_id,
 			Access_Taxonomy::TAXONOMY,
@@ -208,11 +199,9 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @testdox The slug is a 404 for a holder too — the UUID is the only road in.
+	 * @testdox The slug is a 404 for a holder too, because the UUID is the only road in.
 	 *
-	 * The assertion that matters most here. An ordinary restricted post keeps
-	 * its permalink and is merely refused to people without access; this one
-	 * closes the slug to everybody.
+	 * An ordinary restricted post keeps its permalink and is merely refused. This one closes the slug to everybody.
 	 */
 	public function test_the_slug_is_a_404_even_for_a_holder(): void {
 		[ $post_id ] = $this->make_gated_post();
@@ -242,9 +231,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 	/**
 	 * @testdox A gated child page's slug is a 404 too, path and all.
 	 *
-	 * A hierarchical page arrives as pagename=parent/child, and a post_name
-	 * lookup can never match a two-segment path — so the whole refusal was
-	 * skipped and the child page opened at its ordinary URL.
+	 * A hierarchical page arrives as pagename=parent/child, and a post_name lookup can never match a two-segment path, so the refusal was skipped entirely.
 	 */
 	public function test_a_gated_child_page_slug_is_a_404(): void {
 		$parent_id = self::factory()->post->create(
@@ -300,7 +287,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 		$this->assertTrue( is_404() );
 	}
 
-	/** @testdox An ordinary published post is untouched — it keeps its slug and its permalink. */
+	/** @testdox An ordinary published post is untouched, keeping its slug and its permalink. */
 	public function test_an_ordinary_post_is_left_alone(): void {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		$post    = get_post( $post_id );
@@ -325,12 +312,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 	/**
 	 * @testdox The block editor can set the status: a REST save carries it through and the marker follows.
 	 *
-	 * The editor's own status control offers a fixed list and does not read the
-	 * registry, so the plugin ships a control of its own — but the saving is
-	 * core's, over REST. This proves the route that control drives: the schema
-	 * enum is `get_post_stati( [ 'internal' => false ] )` and
-	 * `handle_status_param()` passes a registered status straight through, so a
-	 * status that failed either would silently become a draft.
+	 * The plugin ships its own status control, but the saving is core's over REST, and this proves that route: a status failing either the schema enum or `handle_status_param()` would silently become a draft.
 	 */
 	public function test_a_rest_save_sets_the_status(): void {
 		$editor = self::factory()->user->create( array( 'role' => 'administrator' ) );
@@ -366,9 +348,7 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 	/**
 	 * @testdox The admin list names a gated post, so a row does not read as an ordinary published one.
 	 *
-	 * Called directly rather than through `display_post_states`: the filter is
-	 * registered with the loader's `admin_filter`, which attaches only when
-	 * `is_admin()` — decided at boot, long before this runs.
+	 * Called directly, because the filter attaches only under `is_admin()`, decided at boot long before this runs.
 	 */
 	public function test_the_admin_list_names_it(): void {
 		[ $post_id ] = $this->make_gated_post();

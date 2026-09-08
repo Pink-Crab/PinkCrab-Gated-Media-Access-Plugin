@@ -1,14 +1,10 @@
 <?php
 /**
- * §6.13 Price block — the standalone price on a product page.
+ * Price block: the standalone price on a product page.
  *
- * Distinct from the inline price in a row (§6.7): left-aligned, stacked tight,
- * and the payable amount set at the h1 size — **but it is not a heading**, so
- * it is a span rather than an h-tag.
+ * Distinct from the inline price in a row: left-aligned, stacked tight, and the payable amount set at the h1 size. **It is not a heading**, so it is a span rather than an h-tag.
  *
- * Four forms: plain, discounted (original struck through inline before the
- * payable amount), free (the word, never a zero), and not applicable (an em
- * dash, for access an administrator added with no order behind it).
+ * Four forms: plain, discounted with the original struck through inline before the payable amount, free as the word rather than a zero, and not applicable as a dash, for access an administrator added with no order behind it.
  *
  * The duration line still shows in the free form.
  *

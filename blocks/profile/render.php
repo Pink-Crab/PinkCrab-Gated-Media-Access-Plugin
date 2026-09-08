@@ -1,22 +1,16 @@
 <?php
 /**
- * §7.5 Profile — one view, three states.
+ * Profile: one view, three states.
  *
- * Standard, forced completion, and saved. The mockup labels them Panel 1/2/3;
- * those are specimen labels for the sheet, not three pages.
+ * Standard, forced completion, and saved. One page, not three.
  *
- * Three things here are easy to get wrong and are called out in the spec:
+ * Three things here are easy to get wrong:
  *
- * - **The email field is read-only.** Rendered disabled with a helper line
- *   beneath saying so. Every other field is editable.
- * - **Forced completion shows only the missing fields**, inside a bordered
- *   card on wide and the plain column on narrow. It is not the full form with
- *   a notice on top.
- * - **The forced-completion notice is not dismissible**, which is expressed by
- *   it having no dismiss button at all rather than by a flag.
+ * - **The email field is read-only**, rendered disabled with a helper line beneath saying so, while every other field is editable.
+ * - **Forced completion shows only the missing fields**, inside a bordered card on wide and the plain column on narrow, rather than the full form with a notice on top.
+ * - **The forced-completion notice is not dismissible**, expressed by it having no dismiss button at all rather than by a flag.
  *
- * Actions are Save beside a Cancel text link, left-aligned and not full width
- * on wide; on narrow Save goes full width and Cancel becomes a centred link.
+ * Actions are Save beside a Cancel text link, left-aligned and not full width on wide, and on narrow Save goes full width and Cancel becomes a centred link.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -42,8 +36,7 @@ $gatedmedia_values  = Profile_Writer::values_for( $gatedmedia_user->ID );
 $gatedmedia_fields  = Profile_Writer::fields();
 $gatedmedia_missing = Profile_Writer::missing_for( $gatedmedia_user->ID );
 
-// ?profile=saved comes back from the writer's redirect; ?profile=complete is
-// how the forced-completion state is reached.
+// ?profile=saved comes back from the writer's redirect, and ?profile=complete is how the forced-completion state is reached.
 $gatedmedia_state = isset( $_GET['profile'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display state only, changes nothing.
 	? sanitize_key( wp_unslash( $_GET['profile'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	: '';
@@ -75,7 +68,7 @@ if ( $gatedmedia_is_saved ) {
 		array(
 			'kind' => 'info',
 			'text' => __( 'Please complete your details before continuing.', 'gated-media-access' ),
-			// Deliberately not dismissible — that is what makes it forced.
+			// Deliberately not dismissible, which is what makes it forced.
 		)
 	);
 } elseif ( array() !== $gatedmedia_missing ) {

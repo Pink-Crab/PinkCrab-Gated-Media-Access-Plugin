@@ -1,6 +1,6 @@
 <?php
 /**
- * Which of §7.7's four states the auth view is in, and what it says.
+ * Which of the four states the auth view is in, and what it says.
  *
  * @package PinkCrab\Gated_Access
  */
@@ -15,17 +15,11 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * The `auth` block cannot reach the container, so it raises
- * `gatedmedia_auth_data` and this answers it — the same arrangement as
- * `gatedmedia_product_data` and `Product_Offer`.
+ * The `auth` block cannot reach the container, so it raises `gatedmedia_auth_data` and this answers it, the same arrangement `Product_Offer` uses.
  *
- * Everything here is read from the request. The handlers in `Auth_Action` do
- * the writing and come back with a code in the URL; this turns that code into
- * a notice and a set of invalid fields, and nothing else.
+ * Everything here is read from the request: `Auth_Action` does the writing and comes back with a code in the URL, and this turns that code into a notice and a set of invalid fields.
  *
- * The state is a query argument rather than a route of its own, so this is also
- * the only place that decides what an absent or unrecognised argument means:
- * sign in, always.
+ * The state is a query argument rather than a route of its own, so this is also the only place that decides what an absent or unrecognised argument means, which is sign in, always.
  */
 class Auth_State implements Hookable {
 
@@ -76,9 +70,7 @@ class Auth_State implements Hookable {
 	/**
 	 * Whether this site lets people sign themselves up.
 	 *
-	 * Only `registration` does. Under `admin` and `purchase` the sign-up state
-	 * is not drawn and nothing links to it — a page must never offer a route
-	 * that does not exist, which is the fault this round exists to fix.
+	 * Only `registration` does. Under `admin` and `purchase` the sign-up state is not drawn and nothing links to it, because a page must never offer a route that does not exist.
 	 */
 	public function signup_offered(): bool {
 		return Settings::ACCOUNT_CREATION_REGISTRATION === $this->settings->account_creation();
@@ -87,8 +79,7 @@ class Auth_State implements Hookable {
 	/**
 	 * Which state the URL asks for, refusing sign-up when it is not offered.
 	 *
-	 * `sent` is reached by its own argument rather than a state value, because
-	 * it is where the reset form lands and a reload of it must not re-send.
+	 * `sent` is reached by its own argument rather than a state value, because it is where the reset form lands and a reload of it must not re-send.
 	 */
 	public function current_state(): string {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display state only; nothing is written here.
@@ -119,8 +110,7 @@ class Auth_State implements Hookable {
 	}
 
 	/**
-	 * The address they typed, so a failed attempt does not make them type it
-	 * again. The password is never carried back — it would be in the URL.
+	 * The address they typed, so a failed attempt does not make them type it again. The password is never carried back, since it would be in the URL.
 	 */
 	private function submitted_email(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display state only.
@@ -130,8 +120,7 @@ class Auth_State implements Hookable {
 	/**
 	 * Where to go once they are in, validated against this site.
 	 *
-	 * `wp_validate_redirect()` with an empty fallback means an off-site value
-	 * becomes no redirect at all rather than a redirect somewhere else.
+	 * `wp_validate_redirect()` with an empty fallback means an off-site value becomes no redirect at all rather than a redirect elsewhere.
 	 */
 	private function redirect(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display state only.
@@ -143,9 +132,7 @@ class Auth_State implements Hookable {
 	/**
 	 * The notice text for a failure code.
 	 *
-	 * A failed sign-in never says which half was wrong — that would confirm
-	 * whether an address has an account, which §7.7 forbids on the reset state
-	 * and is no more acceptable here.
+	 * A failed sign-in never says which half was wrong, because that would confirm whether an address has an account.
 	 *
 	 * @param string $code The failure code, '' for none.
 	 */
@@ -169,9 +156,7 @@ class Auth_State implements Hookable {
 	/**
 	 * Which fields wear the invalid treatment for a failure code.
 	 *
-	 * A failed sign-in marks **both** fields, per §7.7 — the notice alone is
-	 * not the design, and neither is marking only one, which would say which
-	 * half was wrong.
+	 * A failed sign-in marks **both** fields, because marking only one would say which half was wrong.
 	 *
 	 * @param string $code The failure code, '' for none.
 	 * @return array<int, string>

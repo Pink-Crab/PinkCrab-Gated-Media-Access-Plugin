@@ -14,13 +14,9 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Access_Row;
 
 /**
- * Every row is built from something that may no longer be there. An access
- * record outlives the post it points at, and the three builders each answer
- * null rather than draw a row for a thing that has gone.
+ * An access record outlives the post it points at, so `group()`, `post()` and `file()` each answer null rather than draw a row for a thing that has gone.
  *
- * **The refusals are the point.** Nothing had ever run the deleted post, the
- * unpublished post, the missing group or the id that is not an attachment, so
- * "no row" was a promise the class made and nobody had checked.
+ * **The refusals are the point.** Nothing had ever run the deleted post, the unpublished post, the missing group or the id that is not an attachment.
  *
  * @group integration
  */

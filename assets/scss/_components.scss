@@ -1,28 +1,18 @@
 // =============================================================================
-// §6 — the components.
+// The components.
 //
-// The complete vocabulary, sixteen of them, in spec order. Every view in §7 is
-// assembled from these and nothing else; a view needing something absent means
-// this file is wrong and gets the addition first.
+// Sixteen of them, one nested block each. Narrow overrides sit inside the block they change.
 //
-// One nested block per component, named after the component §6 names, so a
-// component is a single place to read and its elements cannot drift away from
-// it. Narrow overrides sit inside the block they change rather than in one
-// media query at the foot of the file.
-//
-// This is also the public contract: a third-party section added through
-// `gatedmedia_account_sections` renders inside our shell and is expected to
-// build from these classes.
+// The public contract: a section added through `gatedmedia_account_sections` builds from these classes.
 // =============================================================================
 
 @use "mixins" as *;
 
 // -----------------------------------------------------------------------------
-// §6.1 Account nav
+// Account nav
 //
 // Wide: a 256px column, the active item marked down its left edge.
-// Narrow: the same items as a horizontally scrolling strip, the active one
-// underlined. Replaced, not collapsed — the corpus draws no hamburger.
+// Narrow: the same items as a scrolling strip, the active one underlined.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-account-nav {
@@ -57,10 +47,7 @@
 	}
 }
 
-// The narrow form of the same navigation.
-//
-// Scrolls with the page rather than sticking: the theme owns the top of the
-// viewport and may have a sticky header of its own to collide with.
+// The narrow form of the same navigation. Scrolls with the page, never sticks.
 .gatedmedia-tab-strip {
 	display: none;
 
@@ -101,13 +88,11 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.2 Row
+// Row
 //
-// The workhorse: a file, a post, a group, an order. Four states, all drawn.
+// The workhorse: a file, a post, a group, an order. Four states.
 //
-// Narrow is the single biggest reflow in the design — the row stacks and its
-// action goes full width beneath. Wide, groups and posts carry no action at
-// all; narrow, they do.
+// Narrow stacks it and puts the action full width beneath. Groups and posts have no action on wide.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-row {
@@ -151,16 +136,14 @@
 		}
 	}
 
-	// §7.1 narrow — groups and posts gain a full-width action they do not have
-	// on wide. Absent above the breakpoint entirely.
+	// Narrow only.
 	&__action {
 		display: none;
 
 		@include narrow {
 			display: block;
 
-			// The button sits inside its own block-level host, so both have to
-			// fill the row for the full-width action §7.1 specifies.
+			// Host and button both fill the row.
 			.gatedmedia-inline-host,
 			.gatedmedia-button {
 				width: 100%;
@@ -181,8 +164,7 @@
 		text-decoration: line-through;
 	}
 
-	// §7.3 — Orders is the one row that does not stack. Price and status stay
-	// right-aligned at every width.
+	// Never stacks.
 	&--order {
 
 		@include narrow {
@@ -198,7 +180,7 @@
 	}
 }
 
-// §6.2 loading — the only loading state anywhere in the design (§9).
+// Row loading, the only loading state anywhere.
 .gatedmedia-skeleton {
 	background: var(--gatedmedia-outline-variant);
 	border-radius: var(--gatedmedia-radius);
@@ -245,10 +227,9 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.3 Buttons — primary, secondary, and the text link.
+// Buttons: primary, secondary, and the text link.
 //
-// Every button is 44px tall; the corpus has no exception. Narrow drops the
-// minimum width and goes full width.
+// Every button is 44px tall, no exceptions. Narrow drops the minimum width and goes full width.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-button {
@@ -297,7 +278,7 @@
 		width: 100%;
 	}
 
-	// Stacked full-width buttons sit sm apart — never flush against each other.
+	// Stacked full-width buttons sit sm apart, never flush.
 	&--full + &--full {
 		margin-top: var(--gatedmedia-sm);
 	}
@@ -324,10 +305,9 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.4 Notice — information, error, success.
+// Notice: information, error, success.
 //
-// Tinted, per §8 conflict: a border-only notice in a page already drawn from
-// hairlines does not read as a distinct thing.
+// Tinted, so it reads as distinct from the hairlines around it.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-notice {
@@ -354,8 +334,7 @@
 		min-width: 0;
 	}
 
-	// Rendered only where the notice is genuinely dismissible — §7.5's forced
-	// completion prompt depends on its absence.
+	// Only when dismissible.
 	&__dismiss {
 		flex-shrink: 0;
 		background: none;
@@ -385,7 +364,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.5 Expiry — bare in lists, a chip in detail panels.
+// Expiry: bare in lists, a chip in detail panels.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-expiry {
@@ -416,7 +395,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.6 Status pill.
+// Status pill.
 //
 // complete, refunded, active, expired, revoked.
 // -----------------------------------------------------------------------------
@@ -435,9 +414,9 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.7 Price, inline.
+// Price, inline.
 //
-// Zero renders as the word "Free", never an amount — decided in PHP, not here.
+// Zero renders as the word "Free", decided in PHP, not here.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-price {
@@ -456,7 +435,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.8 Form field.
+// Form field.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-field {
@@ -491,8 +470,7 @@
 		}
 	}
 
-	// Doubles as the helper line and the validation message — they occupy the
-	// same place and never both appear.
+	// Helper line and validation message share this slot, never both at once.
 	&__message {
 
 		@include meta-secondary;
@@ -519,10 +497,9 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.9 Section heading.
+// Section heading.
 //
-// Uppercase 12px, tracked, at both widths. It is a label rather than a title —
-// the page already has its heading, and keeping this small stops it competing.
+// Uppercase 12px, tracked, at both widths. A label, not a title.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-section-heading {
@@ -536,10 +513,9 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.10 Empty state.
+// Empty state.
 //
-// One box, at page level, and only when the view has nothing at all. The only
-// deliberately airy thing in the design.
+// One box, at page level, only when the view has nothing at all.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-empty-state {
@@ -564,10 +540,9 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.11 Filter.
+// Filter.
 //
-// Search stays at every width — §8 conflict 8. Dropping it on the device most
-// likely to have a long list is backwards. Narrow swaps the select for chips.
+// Search at every width. Narrow swaps the select for chips.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-filter {
@@ -631,10 +606,9 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.12 Contents list.
+// Contents list.
 //
-// A statement of what something contains, not a list you can act on: no rules
-// between rows, no right-hand column, no actions.
+// What something contains, not a list you can act on. No rules, no actions.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-contents {
@@ -657,8 +631,7 @@ textarea.gatedmedia-field__input {
 		flex-shrink: 0;
 	}
 
-	// Used in order detail to record that the contents are frozen as they were
-	// on the order date.
+	// Order detail: the contents as they were on the order date.
 	&__note {
 
 		@include meta-secondary;
@@ -668,10 +641,7 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.13 Price block.
-//
-// The standalone price on a product page, distinct from the inline price in a
-// row (§6.7). The amount is set at the h1 size but is not a heading.
+// Price block. The standalone price on a product page. h1 size, not a heading.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-price-block {
@@ -696,7 +666,7 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.14 Coupon field.
+// Coupon field.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-coupon {
@@ -735,12 +705,7 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.15 Pinned action bar. Narrow only, Product only.
-//
-// The only pinned bottom element in the design: §8 conflict 3 dropped the
-// bottom tab bar, because a fixed bar owns the bottom of a viewport that is not
-// ours to take. This survives because it is one action on a public page rather
-// than navigation. It must never be used on an account view.
+// Pinned action bar. Narrow only, Product only, never on an account view.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-action-bar {
@@ -774,10 +739,7 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §6.16 Summary.
-//
-// The one-line form of the contents list (§6.12), for where the count is
-// incidental to something else rather than the point of it.
+// Summary. The one-line form of the contents list.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-summary {
@@ -786,11 +748,9 @@ textarea.gatedmedia-field__input {
 }
 
 // -----------------------------------------------------------------------------
-// §7.8 Payment status.
+// Payment status.
 //
-// Centred, because it is the whole of what the page is saying — a buyer back
-// from Stripe is waiting for one answer, and everything else on the order
-// detail is beneath it.
+// Centred: a buyer back from Stripe is waiting for one answer.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-payment-status {
@@ -813,8 +773,7 @@ textarea.gatedmedia-field__input {
 	}
 }
 
-// The confirming state's spinner. Reduced motion gets a still ring rather than
-// nothing, so the state still reads as "working".
+// The confirming spinner. Reduced motion gets a still ring, not nothing.
 .gatedmedia-spinner {
 	width: 40px;
 	height: 40px;

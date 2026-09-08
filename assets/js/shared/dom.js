@@ -1,16 +1,13 @@
 /**
  * Shared DOM helpers.
  *
- * Imported by both front.js and admin.js. Webpack copies these into each
- * bundle rather than emitting a third — two small duplicated helpers cost less
- * than a shared chunk both entries would have to declare a dependency on.
+ * Imported by both front.js and admin.js, and Webpack copies these into each bundle rather than emitting a third, because two small duplicated helpers cost less than a shared chunk both entries would have to declare a dependency on.
  */
 
 /**
  * Runs a callback once the DOM is parsed, whether or not that has happened.
  *
- * Scripts are enqueued in the footer, so readyState is usually past loading
- * already and the listener would never fire.
+ * Scripts are enqueued in the footer, so readyState is usually past loading already and the listener would never fire.
  *
  * @param {Function} callback Invoked once.
  */

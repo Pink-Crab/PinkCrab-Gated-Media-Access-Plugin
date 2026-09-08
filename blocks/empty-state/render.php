@@ -1,16 +1,10 @@
 <?php
 /**
- * §6.10 Empty state — a dashed box, everything centred.
+ * Empty state: a dashed box, everything centred.
  *
- * The only deliberately airy thing in the design, and §8 conflict 6 settled
- * that there is exactly one of it: at page level, only when the view has
- * nothing at all. Three dashed boxes down a page read as three failures rather
- * than one empty account, so an empty *section* is simply not rendered.
+ * There is exactly one of it, at page level, and only when the view has nothing at all. Three dashed boxes down a page read as three failures rather than one empty account, so an empty section is simply not rendered.
  *
- * The message is not optional. §6.10 is explicit that the line beneath the
- * headline always states what would put something here — the box is never a
- * dead end — so this renders nothing without one rather than drawing a box
- * that leaves someone stuck.
+ * The message is not optional: the line beneath the headline always states what would put something here, so this renders nothing without one rather than drawing a dead end.
  *
  * @package PinkCrab\Gated_Access
  *

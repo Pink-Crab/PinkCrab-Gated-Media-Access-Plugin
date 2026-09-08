@@ -18,20 +18,15 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * Type, value, limits and expiry (spec §1b, §7), behind
- * `gatedmedia_manage_products`. The code itself is the title — core keeps
- * `post_name` unique per post type, which is the whole uniqueness story.
+ * Type, value, limits and expiry, behind `gatedmedia_manage_products`. The code itself is the title, and core keeps `post_name` unique per post type, which is the whole uniqueness story.
  *
- * Usage is never stored: both limits count completed payments carrying the
- * coupon (`Payment_Store::coupon_completions()`), so an abandoned checkout
- * consumes nothing. A checkout in flight reserves one use for a short window
- * on top of that (`Coupon_Hold`), which is what stops buyers arriving together
- * from all passing the same limit.
+ * Usage is never stored: both limits count completed payments carrying the coupon through `Payment_Store::coupon_completions()`, so an abandoned checkout consumes nothing.
  *
- * A fixed value is typed and stored in the shop currency's own minor units
- * (`Settings::currency()`), because `Coupon_Pricing::discount()` subtracts it
- * straight from a price held in those same units. The
- * `gatedmedia_coupon_discount` filter has the last word at checkout either way.
+ * A checkout in flight reserves one use for a short window through `Coupon_Hold`, which is what stops buyers arriving together from all passing the same limit.
+ *
+ * A fixed value is typed and stored in the shop currency's minor units, because `Coupon_Pricing::discount()` subtracts it straight from a price held in those same units.
+ *
+ * The `gatedmedia_coupon_discount` filter has the last word at checkout either way.
  */
 class Coupon_Metabox implements Hookable {
 
@@ -120,7 +115,7 @@ class Coupon_Metabox implements Hookable {
 		$per_user   = (string) get_post_meta( $post->ID, self::META_PER_USER_LIMIT, true );
 		$expires    = (string) get_post_meta( $post->ID, self::META_EXPIRES_AT, true );
 		?>
-		<p class="description"><?php esc_html_e( 'The code is the title. It must be unique — WordPress keeps it so.', 'gated-media-access' ); ?></p>
+		<p class="description"><?php esc_html_e( 'The code is the title. It must be unique, and WordPress keeps it so.', 'gated-media-access' ); ?></p>
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="gatedmedia_discount_type"><?php esc_html_e( 'Discount', 'gated-media-access' ); ?></label></th>
@@ -209,8 +204,7 @@ class Coupon_Metabox implements Hookable {
 	}
 
 	/**
-	 * A typed expiry day to the stored UTC datetime — usable through that
-	 * whole day. Anything not a date stores empty, which is never.
+	 * A typed expiry day to the stored UTC datetime, usable through that whole day. Anything that is not a date stores empty, which means never.
 	 *
 	 * @param string $expires The typed day, Y-m-d.
 	 */
@@ -233,8 +227,7 @@ class Coupon_Metabox implements Hookable {
 	}
 
 	/**
-	 * The typed value to what is stored: whole percent capped at 100, or
-	 * minor units at the shop currency's own digits.
+	 * The typed value to what is stored: whole percent capped at 100, or minor units at the shop currency's own digits.
 	 *
 	 * @param bool   $is_percent Whether the coupon is percent-off.
 	 * @param string $value      The typed value.
@@ -248,7 +241,7 @@ class Coupon_Metabox implements Hookable {
 	}
 
 	/**
-	 * One definition per key (spec §1b). Single, typed, never in REST.
+	 * One definition per key. Single, typed, never in REST.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */

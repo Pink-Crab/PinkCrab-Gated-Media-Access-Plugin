@@ -14,8 +14,7 @@ use PinkCrab\Gated_Access\Notifications\Notification_Sender;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * The send contract, end to end at the `pre_wp_mail` boundary: templates,
- * placeholders, the switches, both filters and the take-over action.
+ * The send contract at the `pre_wp_mail` boundary: templates, placeholders, the switches, both filters and the take-over action.
  *
  * @group integration
  */
@@ -161,7 +160,7 @@ class Test_Notification_Sender extends WP_UnitTestCase {
 		$this->assertSame( array( 'holder@example.test', 'copies@example.test' ), $this->outbox[0]['to'] );
 	}
 
-	/** @testdox An explicit address replaces the holder lookup — guest invites have no account. */
+	/** @testdox An explicit address replaces the holder lookup, because guest invites have no account. */
 	public function test_explicit_address_wins(): void {
 		$this->sender->send(
 			Notification_Sender::TYPE_INVITE_GUEST_FREE,

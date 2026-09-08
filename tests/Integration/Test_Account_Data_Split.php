@@ -17,17 +17,11 @@ use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Products\Product_Offer;
 
 /**
- * These five classes were one class, `View_Data`, answering for two blocks
- * under a name that described neither. Splitting them is only correct if every
- * filter still has exactly one answer and no block lost its own.
+ * These five classes were one class, `View_Data`, answering for two blocks, so the split is only correct if every filter still has exactly one answer.
  *
- * The behaviour each produces is covered where it belongs — `Test_Held_Access`,
- * `Test_Order_History`, `Test_Product_Offer`. What is asserted here is the
- * wiring, which nothing else looks at: that the classes exist, that they are
- * booted, and that asking a filter gets a reply rather than the defaults back.
+ * `Test_Held_Access`, `Test_Order_History` and `Test_Product_Offer` cover what each produces; asserted here is the wiring nothing else looks at.
  *
- * A split that quietly dropped one hook would leave a page rendering its empty
- * state, which reads as "you have nothing" rather than as a fault.
+ * A dropped hook would leave a page rendering its empty state, which reads as "you have nothing" rather than as a fault.
  *
  * @group integration
  */

@@ -17,23 +17,15 @@ use PinkCrab\Gated_Access\Payments\Checkout;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * When an address joins a published product's allow-list, that person is
- * invited: an existing user gets the product's UUID link — and for a free
- * product, access itself, granted on the spot through the same
- * `Checkout::grant_items()` a claim uses (round 6 decision); an address
- * with no account gets a create-an-account variant instead. Four emails,
- * one per user-by-price combination.
+ * When an address joins a published product's allow-list, that person is invited. An existing user gets the product's UUID link, plus access itself on a free product, granted through the same `Checkout::grant_items()` a claim uses. An address with no account gets a create-an-account variant. Four emails, one per user-by-price combination.
  *
- * Sent dates live in one JSON map on the product, owned and registered
- * here — the block's allow-list rows read it for their status column.
- * Removing an address drops its entry, so removing and re-adding sends a
- * fresh invite (round 6 decision). The per-product switch
- * (`Product_Meta::META_SEND_INVITES`) and the per-type switches in
- * Settings both gate the sending.
+ * Sent dates live in one JSON map on the product, which the block's allow-list rows read for their status column. Removing an address drops its entry, so re-adding sends a fresh invite.
+ *
+ * The per-product switch and the per-type switches in Settings both gate the sending.
  */
 class Invites implements Hookable {
 
-	/** The source on invite grants — the access-created mail leaves these to us. */
+	/** The source on invite grants, which the access-created mail leaves to us. */
 	public const SOURCE_INVITE = 'invite';
 
 	/** The JSON map of address to sent date (UTC `Y-m-d H:i:s`). */
@@ -51,13 +43,11 @@ class Invites implements Hookable {
 	/**
 	 * The map's registration and the save listener.
 	 *
-	 * `wp_after_insert_post`, not `save_post`: the block editor saves the
-	 * allow-list as REST meta, which `WP_REST_Posts_Controller` writes
-	 * *after* `wp_update_post()` has already fired `save_post`. Listening
-	 * there read the previous list, so an address added in a save was not
-	 * invited until the next one. This hook fires once the post, its terms
-	 * and its meta are all written, on the REST and the classic path alike.
-	 * It carries no post type, so `process()` checks.
+	 * `wp_after_insert_post`, not `save_post`: the block editor saves the allow-list as REST meta, which `WP_REST_Posts_Controller` writes *after* `wp_update_post()` has already fired `save_post`.
+	 *
+	 * Listening there read the previous list, so an address added in a save was not invited until the next one.
+	 *
+	 * This hook fires once the post, its terms and its meta are all written, on the REST and the classic path alike, and it carries no post type, so `process()` checks.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -68,8 +58,7 @@ class Invites implements Hookable {
 	}
 
 	/**
-	 * Declares the one key this class writes. Server-side only — the block
-	 * reads it through the editor data, never writes it.
+	 * Declares the one key this class writes. Server-side only, since the block reads it through the editor data and never writes it.
 	 */
 	public function register_meta(): void {
 		register_post_meta(
@@ -97,9 +86,7 @@ class Invites implements Hookable {
 	}
 
 	/**
-	 * The save listener: keeps the sent map in step with the allow-list,
-	 * and invites every address new to it. Every post type reaches here, so
-	 * anything but a product leaves at once.
+	 * The save listener: keeps the sent map in step with the allow-list and invites every address new to it, and since every post type reaches here anything but a product leaves at once.
 	 *
 	 * @param int $post_id The post being saved.
 	 */
@@ -117,7 +104,7 @@ class Invites implements Hookable {
 		$allowed = array_map( 'strtolower', array_map( 'strval', (array) get_post_meta( $post_id, Product_Meta::META_EMAILS, false ) ) );
 		$sent    = $this->sent_map( $post_id );
 
-		// Removed addresses forget their invite — re-adding sends afresh.
+		// Removed addresses forget their invite, so re-adding sends afresh.
 		$sent = array_intersect_key( $sent, array_flip( $allowed ) );
 
 		if ( $this->invites_enabled( $post_id ) && 'publish' === $product->post_status ) {
@@ -144,9 +131,7 @@ class Invites implements Hookable {
 	}
 
 	/**
-	 * One address's invite: the variant follows who they are and what the
-	 * product costs — and an existing user on a free product holds access
-	 * before the email is even built.
+	 * One address's invite. The variant follows who they are and what the product costs, and an existing user on a free product holds access before the email is built.
 	 *
 	 * @param WP_Post $product The product inviting.
 	 * @param string  $address The invited address.

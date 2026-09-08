@@ -1,14 +1,9 @@
 /**
- * The shop face, end to end — ui-spec.md §7.6, §7.3, §7.4 and the group page.
+ * The shop face end to end: the product page, orders, one order, and the group page.
  *
- * These walk what unit tests cannot see: that the product's own single template
- * actually renders the block, that the buy form carries what `Checkout_Action`
- * demands, and that an order opens from the list.
+ * These walk what unit tests cannot see: that the product's own single template actually renders the block, that the buy form carries what `Checkout_Action` demands, and that an order opens from the list.
  *
- * **Nothing here submits a priced purchase.** That would call Stripe, and a
- * test suite that reaches a payment provider is a test suite that fails when
- * somebody else's service is down. The paid product is inspected; only the free
- * product, which never touches Stripe, is submitted.
+ * Nothing here submits a priced purchase, because that would call Stripe. Only the free product, which never touches Stripe, is submitted.
  */
 
 const { test, expect } = require( '@playwright/test' );
@@ -16,23 +11,19 @@ const { test, expect } = require( '@playwright/test' );
 const USER = process.env.WP_USER || 'admin';
 const PASSWORD = process.env.WP_PASSWORD || 'password';
 
-// Set by global-setup.js from the shop fixture — a product's URL carries a
-// uuid minted when the fixture ran, so it cannot be written down here.
+// Set by global-setup.js: a product's URL carries a uuid minted at fixture time.
 const PAID_URL = process.env.GATEDMEDIA_PAID_URL;
 const FREE_URL = process.env.GATEDMEDIA_FREE_URL;
 const PAID_ID = process.env.GATEDMEDIA_PAID_ID;
 
-// A product granting something the admin does not hold, so its page shows the
-// buy form rather than "you already have this".
+// A product granting something the admin does not hold, so its page shows the buy form rather than "you already have this".
 const BUY_URL = process.env.GATEDMEDIA_BUY_URL;
 const BUY_ID = process.env.GATEDMEDIA_BUY_ID;
 
-// An unlimited 20% coupon, so §6.14's apply step can be walked repeatedly.
+// An unlimited 20% coupon, so the apply step can be walked repeatedly.
 const COUPON = process.env.GATEDMEDIA_COUPON_CODE;
 
-// Rows are reached by their link text: the row block draws a div with the link
-// inside its title, not an anchor wrapping the row (§6.2), so clicking the row
-// itself navigates nowhere.
+// Rows are reached by their link text: the link is inside the title, not wrapping the row.
 
 /**
  * Signs in through the ordinary login form.
@@ -68,8 +59,7 @@ test.describe( 'the product page', () => {
 			'£49.00'
 		);
 
-		// §7.6 signed-out: the buy control is real and posts, rather than a
-		// link that loses the product on the way to logging in.
+		// Signed out, the buy control still posts rather than linking away.
 		await expect(
 			page.getByRole( 'button', {
 				name: 'Create an account to continue',
@@ -83,8 +73,7 @@ test.describe( 'the product page', () => {
 	test( 'the theme supplies the only h1', async ( { page } ) => {
 		await page.goto( PAID_URL );
 
-		// §2 conflict 4 — the product is rendered as its own post, so the theme
-		// has already printed the title.
+		// Rendered as its own post, so the theme has already printed the title.
 		await expect( page.locator( 'h1' ) ).toHaveCount( 1 );
 	} );
 
@@ -109,13 +98,7 @@ test.describe( 'the product page', () => {
 			form.locator( 'input[name="_wpnonce"]' )
 		).not.toHaveValue( '' );
 
-		// The coupon is no longer typed inside this form. Apply used to be a
-		// submit on it, so pressing Apply went straight to Stripe at full
-		// price; §6.14's flow is apply, see the discount, then buy. The typed
-		// field now lives in its own GET form, and only a code that actually
-		// priced the page rides the buy submit — as a hidden input, under the
-		// name Checkout_Action reads. A hyphen there and the code never
-		// arrives.
+		// The typed field lives in its own GET form. Only a code that priced the page rides the buy submit, as a hidden input named exactly as Checkout_Action reads it.
 		await expect(
 			form.locator( 'input[name="gatedmedia_coupon"]' )
 		).toHaveCount( 0 );
@@ -145,14 +128,12 @@ test.describe( 'the product page', () => {
 		);
 		await page.getByRole( 'button', { name: 'Apply' } ).click();
 
-		// Apply reloads this page with the code on it rather than buying
-		// anything — the buyer is still here, and still on the product.
+		// Apply reloads this page with the code on it rather than buying anything.
 		await expect( page ).toHaveURL(
 			new RegExp( `gatedmedia_coupon=${ COUPON }` )
 		);
 
-		// §6.14: the input and its button are replaced by a confirmation, not
-		// decorated with one.
+		// The input and its button are replaced by a confirmation, not decorated with one.
 		await expect(
 			page.locator( '.gatedmedia-coupon__applied' )
 		).toContainText( COUPON );
@@ -199,8 +180,7 @@ test.describe( 'the product page', () => {
 		await signIn( page );
 		await page.goto( `${ BUY_URL }?gatedmedia_coupon=not-a-coupon` );
 
-		// §6.8's invalid treatment: the error replaces the helper line rather
-		// than joining it, so it is the field's own message element.
+		// The error replaces the helper line, so it is the field's own message element.
 		await expect(
 			page.locator( '.gatedmedia-field__message' )
 		).toContainText( 'That coupon cannot be used.' );
@@ -218,10 +198,7 @@ test.describe( 'the product page', () => {
 	} );
 
 	/**
-	 * §6.15 — the one pinned element in the design, and the one thing round 7
-	 * shipped without: the browser pass only looked at the wide viewport, so a
-	 * narrow-only component that was never composed went unnoticed. It is
-	 * asserted at both viewports here for exactly that reason.
+	 * The pinned bar is narrow only, so it is asserted at both viewports.
 	 */
 	test( 'a priced product pins its buy action on narrow, and only there', async ( {
 		page,
@@ -240,12 +217,10 @@ test.describe( 'the product page', () => {
 
 		await expect( bar ).toBeVisible();
 
-		// The price is in the button's own label — one control, not a price
-		// sitting beside a button.
+		// The price is in the button's own label, not beside it.
 		await expect( bar ).toContainText( 'Get access' );
 
-		// It submits the buy form it is not inside, by naming it. Without the
-		// form attribute this is a button that does nothing without script.
+		// It submits the buy form it is not inside by naming it, and without the form attribute it would do nothing without script.
 		const id = await page
 			.locator( 'form.gatedmedia-buy' )
 			.getAttribute( 'id' );
@@ -268,7 +243,7 @@ test.describe( 'the product page', () => {
 		await signIn( page );
 		await page.goto( '/account/orders/' );
 
-		// §6.15 is explicit, and nothing but the composer can enforce it.
+		// Never on an account view, and nothing but the composer can enforce it.
 		await expect( page.locator( '.gatedmedia-action-bar' ) ).toHaveCount(
 			0
 		);
@@ -396,9 +371,7 @@ test.describe( 'orders', () => {
 
 		test.skip( ! uuid, 'The shop fixture did not run.' );
 
-		// The state §7.8 exists for: Stripe has returned the buyer, its webhook
-		// has not landed. Every other order in the suite is complete, so this
-		// panel had never been drawn on a real page.
+		// Stripe has returned the buyer and its webhook has not landed yet.
 		await page.goto( `/account/orders/${ uuid }/?new_order=${ uuid }` );
 
 		await expect(
@@ -414,9 +387,7 @@ test.describe( 'orders', () => {
 			page.getByRole( 'link', { name: 'Go to my access' } )
 		).toHaveCount( 0 );
 
-		// And it is watching rather than sitting there. The panel carries what
-		// the poll needs; without these attributes the buyer has to reload by
-		// hand, which is what round 7 shipped.
+		// And it is watching rather than sitting there: without these attributes the buyer has to reload by hand.
 		const panel = page.locator( '.gatedmedia-payment-status--pending' );
 
 		await expect( panel ).toHaveAttribute( 'data-gatedmedia-poll', uuid );
@@ -452,9 +423,7 @@ test.describe( 'orders', () => {
 			.poll( () => asked.length, { timeout: 15_000 } )
 			.toBeGreaterThan( 0 );
 
-		// The row never moves, so the page must still be confirming — never an
-		// error, and never a claim that access arrived. They have paid either
-		// way.
+		// The row never moves, so the page stays confirming, never an error.
 		await expect(
 			page.locator( '.gatedmedia-payment-status--pending' )
 		).toBeVisible();

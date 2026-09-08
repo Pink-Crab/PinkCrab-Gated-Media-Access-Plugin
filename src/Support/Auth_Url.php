@@ -10,21 +10,15 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Support;
 
 /**
- * §7.7 is one view in four states, and it is one URL to match: the state rides
- * as a query argument rather than earning a route of its own. Sign in is the
- * bare URL, so the state argument only ever appears when it is not the default.
+ * The auth view is one view in four states and one URL to match, with the state riding as a query argument rather than earning a route of its own, and sign in as the bare URL, so the state argument appears only when it is not the default.
  *
- * This is `Account_Url`'s counterpart and exists for the same reason — round 8
- * found four copies of the account slug and made that class the only resolver.
- * Every link into the auth view is built here so a site renaming the segment
- * renames all of them at once.
+ * `Account_Url`'s counterpart, for the same reason: one resolver, so no copy of the slug can drift, and every link into the auth view is built here so a site renaming the segment renames all of them at once.
  *
- * wp-login.php is left alone. This does not replace it, filter `login_url`, or
- * redirect it; it runs alongside it, and core's reset link still lands there.
+ * wp-login.php is left alone, not replaced, not filtered through `login_url`, not redirected: it runs alongside this, and core's reset link still lands there.
  */
 class Auth_Url {
 
-	/** Sign in — the bare URL, so this value is never written into one. */
+	/** Sign in, the bare URL, so this value is never written into one. */
 	public const STATE_SIGNIN = 'signin';
 
 	/** Create an account. */
@@ -42,7 +36,7 @@ class Auth_Url {
 	/** The query argument marking the sent state, whose value is always 1. */
 	public const ARG_SENT = 'sent';
 
-	/** Where to go once they are signed in — core's own argument name. */
+	/** Where to go once they are signed in, using core's own argument name. */
 	public const ARG_REDIRECT = 'redirect_to';
 
 	/**
@@ -98,9 +92,7 @@ class Auth_Url {
 			$url = add_query_arg( self::ARG_STATE, $state, $url );
 		}
 
-		// Not encoded here: add_query_arg() encodes the value, and PHP decodes
-		// it again filling $_GET. Encoding first would double it, and the
-		// matching decode would then have to be got right in four places.
+		// Not encoded here: add_query_arg() encodes the value and PHP decodes it again filling $_GET, so encoding first would double it and the matching decode would have to be right in four places.
 		if ( '' !== $redirect ) {
 			$url = add_query_arg( self::ARG_REDIRECT, $redirect, $url );
 		}
@@ -111,15 +103,12 @@ class Auth_Url {
 	/**
 	 * The auth view's own segment.
 	 *
-	 * Public because `Auth_Route` needs the bare segment for its rewrite rule,
-	 * where there is no whole URL to return.
+	 * Public because `Auth_Route` needs the bare segment for its rewrite rule, where there is no whole URL to return.
 	 */
 	public static function slug(): string {
 		$filtered = apply_filters( 'gatedmedia_auth_slug', 'sign-in' );
 
-		// A filter returning an array would raise a conversion warning on the
-		// cast, and an empty one would give `//` — a protocol-relative URL to
-		// another host rather than a page on this site.
+		// An array would warn on the cast, and an empty string would give `//`, a protocol-relative URL to another host.
 		$slug = is_string( $filtered ) ? sanitize_title( $filtered ) : '';
 
 		return '' === $slug ? 'sign-in' : $slug;

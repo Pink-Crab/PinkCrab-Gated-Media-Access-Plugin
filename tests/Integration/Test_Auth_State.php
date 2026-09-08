@@ -1,6 +1,6 @@
 <?php
 /**
- * Which of §7.7's four states the auth view is in.
+ * Which of the four states the auth view is in.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
@@ -16,13 +16,9 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * The state comes from the URL, so this is where a hostile or nonsense URL is
- * turned into something safe to draw.
+ * The state comes from the URL, so this is where a hostile or nonsense URL is turned into something safe to draw.
  *
- * The two that matter: an unrecognised state is sign in rather than nothing at
- * all, and `?state=signup` on a site that does not create accounts that way is
- * sign in too — a page must never offer a route that does not exist, which is
- * the whole fault round 9 exists to fix.
+ * The two that matter: an unrecognised state is sign in rather than nothing, and `?state=signup` on a site that does not create accounts that way is sign in too.
  *
  * @group integration
  */
@@ -100,7 +96,7 @@ class Test_Auth_State extends WP_UnitTestCase {
 		}
 	}
 
-	/** @testdox A failed sign-in marks both fields invalid, not one — marking only one would say which half was wrong. */
+	/** @testdox A failed sign-in marks both fields invalid, because marking one would say which half was wrong. */
 	public function test_a_failed_signin_marks_both_fields(): void {
 		$this->assertSame( array( 'email', 'password' ), Auth_State::invalid_for( 'credentials' ) );
 	}
@@ -128,8 +124,7 @@ class Test_Auth_State extends WP_UnitTestCase {
 	/**
 	 * @testdox An off-site destination is dropped rather than carried, so the form cannot be turned into an open redirect.
 	 *
-	 * Not `example.org` — that is `WP_TESTS_DOMAIN`, so it is this site and
-	 * would rightly be kept.
+	 * Not `example.org`, which is `WP_TESTS_DOMAIN` and would rightly be kept.
 	 */
 	public function test_an_offsite_destination_is_dropped(): void {
 		$_GET[ Auth_Url::ARG_REDIRECT ] = 'https://somewhere-else.invalid/phish';

@@ -6,7 +6,7 @@
 	"title": "Status pill",
 	"category": "widgets",
 	"icon": "marker",
-	"description": "ui-spec.md §6.6. Seven values: complete, refunded, active, expired, revoked, and a payment's own pending and failed.",
+	"description": "Seven values: complete, refunded, active, expired, revoked, and a payment's own pending and failed.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"value": {

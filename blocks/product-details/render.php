@@ -1,20 +1,12 @@
 <?php
 /**
- * §7.6 Product — the page a visitor reaches at `/{segment}/{uuid}`.
+ * The product page, reached at `/{segment}/{uuid}`.
  *
- * The block is locked into every product's content (`Post_Types`' template,
- * healed by `Product_Route::ensure_block()`), so the product's own single
- * template renders this through `the_content` — there is no separate route or
- * page for a product, only its post.
+ * Locked into every product's content and healed by `Product_Route::ensure_block()`, so the product's own template renders it through `the_content`.
  *
- * **The title is the theme's.** The post is rendered as itself, so the theme
- * has already printed the product's title as the page heading; printing our
- * own would put two h1s on the page, which §2 conflict 4 settled against.
+ * The title is the theme's: the post renders as itself, and a second h1 here would be one too many.
  *
- * The buy control is a form posting to `admin-post.php` — `Checkout_Action`
- * takes it from there, with the coupon riding along in the same submit. The
- * state decides what is offered; `Checkout` decides what may actually happen,
- * and is asked again on submit. Nothing here grants anything.
+ * The buy control posts to `admin-post.php` for `Checkout_Action`, coupon and all. Nothing here grants anything; `Checkout` is asked again on submit.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -33,7 +25,7 @@ use PinkCrab\Gated_Access\Support\Money;
 
 defined( 'ABSPATH' ) || exit;
 
-// Editor-side this block draws its own form; only the front end composes §7.6.
+// Editor-side the block draws its own form; only the front end composes this.
 if ( is_admin() ) {
 	return;
 }
@@ -45,8 +37,7 @@ if ( false === $gatedmedia_product_id ) {
 }
 
 /**
- * Supplied by Product_Offer; the defaults are what an unknown product
- * renders, which is nothing at all.
+ * Supplied by Product_Offer. The defaults render nothing.
  *
  * @var array<string, mixed> $gatedmedia_data
  */
@@ -76,7 +67,7 @@ if ( '' === $gatedmedia_state ) {
 
 $gatedmedia_body = '';
 
-// A refused checkout comes back here carrying its reason (§6.4).
+// A refused checkout comes back here carrying its reason.
 if ( '' !== (string) ( $gatedmedia_data['error'] ?? '' ) ) {
 	$gatedmedia_body .= Block::render(
 		'gated-media-access/notice',
@@ -87,8 +78,7 @@ if ( '' !== (string) ( $gatedmedia_data['error'] ?? '' ) ) {
 	);
 }
 
-// What you get (§6.12), fenced by hairlines as the design draws it — the
-// product's own description sits above the first one.
+// What you get, fenced by hairlines, with the description above the first one.
 $gatedmedia_items = is_array( $gatedmedia_data['items'] ?? null ) ? $gatedmedia_data['items'] : array();
 
 if ( array() !== $gatedmedia_items ) {
@@ -106,16 +96,13 @@ if ( array() !== $gatedmedia_items ) {
 		. '<hr class="gatedmedia-rule" />';
 }
 
-// An applied coupon, as Product_Offer priced it. Empty on every page that
-// was not asked for one, which is the ordinary case.
+// An applied coupon, as Product_Offer priced it. Usually empty.
 $gatedmedia_coupon_data = is_array( $gatedmedia_data['coupon'] ?? null ) ? $gatedmedia_data['coupon'] : array();
 $gatedmedia_applied     = true === ( $gatedmedia_coupon_data['applied'] ?? false );
 $gatedmedia_price       = (int) ( $gatedmedia_data['price'] ?? 0 );
 $gatedmedia_currency    = (string) ( $gatedmedia_data['currency'] ?? 'GBP' );
 
-// The price (§6.13). A held or lapsed page still shows what it costs. With a
-// coupon on it, the total is the price and the full price is struck through —
-// which is what `original` is for.
+// The price. Held and lapsed still show it; a coupon strikes the full price through as `original`.
 $gatedmedia_body .= Block::render(
 	'gated-media-access/price-block',
 	array(
@@ -127,13 +114,10 @@ $gatedmedia_body .= Block::render(
 	)
 );
 
-// The buy form's id, so §6.15's pinned bar can submit it from outside. A
-// button may name the form it submits, which keeps the bar working with no
-// JavaScript and without a second copy of the hidden fields.
+// The buy form's id, so the pinned bar can submit it from outside with no JavaScript.
 $gatedmedia_form_id = 'gatedmedia-buy-' . $gatedmedia_product_id;
 
-// What every buy form carries: the action Checkout_Action answers to, its
-// nonce, and which product is being bought.
+// What every buy form carries: the action, its nonce, and the product.
 $gatedmedia_fields = sprintf(
 	'<input type="hidden" name="action" value="%s" /><input type="hidden" name="_wpnonce" value="%s" /><input type="hidden" name="gatedmedia_product" value="%d" />',
 	esc_attr( \PinkCrab\Gated_Access\Payments\Checkout_Action::ACTION ),
@@ -141,10 +125,7 @@ $gatedmedia_fields = sprintf(
 	(int) $gatedmedia_product_id
 );
 
-// -----------------------------------------------------------------------
-// The action, per state. Only `free` and `paid` offer a control that buys;
-// the rest explain why there is nothing to press.
-// -----------------------------------------------------------------------
+// The action, per state. Only `free` and `paid` offer a control that buys.
 if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 	$gatedmedia_body .= Block::render(
 		'gated-media-access/notice',
@@ -169,15 +150,7 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		)
 	);
 } elseif ( Product_Offer::STATE_SIGNED_OUT === $gatedmedia_state ) {
-	// Two controls, two destinations. Before round 9 both of these resolved to
-	// the same `wp_login_url()` — one button said "create an account" and did
-	// the same thing as the one beside it, on a site whose account route did
-	// not exist at all.
-	//
-	// The submit still posts the buy form, so the product and the typed coupon
-	// travel with it and `Checkout_Action::require_login()` decides which state
-	// of §7.7 to open. Where this site does not create accounts on the front
-	// end, it does not offer to.
+	// Two controls, two destinations. The submit posts the buy form, so the product and coupon travel with it and `Checkout_Action::require_login()` picks the auth state.
 	$gatedmedia_signup_offered = true === ( $gatedmedia_data['signup_offered'] ?? false );
 
 	$gatedmedia_signed_out = Block::render(
@@ -223,27 +196,14 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		)
 		: '';
 
-	// -------------------------------------------------------------------
-	// §6.14 — the coupon is its own GET form, not part of the buy form.
-	//
-	// Apply used to be a submit inside the buy form, so pressing it went to
-	// Stripe at full price. It now reloads this page with the code in the
-	// query; Product_Offer prices it and the state below is drawn from that.
-	// A form cannot nest inside a form, which is why it sits outside rather
-	// than carrying a second action.
-	//
-	// Nothing here is trusted: the code rides the buy submit as a hidden
-	// field and Checkout judges it again before a penny moves.
-	// -------------------------------------------------------------------
+	// The coupon is its own GET form: Apply reloads the page with the code in the query and Product_Offer prices it. Checkout judges it again before a penny moves.
 	$gatedmedia_page_url = (string) ( $gatedmedia_data['page_url'] ?? '' );
 	$gatedmedia_code     = (string) ( $gatedmedia_coupon_data['code'] ?? '' );
 
 	$gatedmedia_coupon = '';
 
 	if ( ! $gatedmedia_free ) {
-		// A GET form throws away whatever query string its action carries, so
-		// on plain permalinks the product itself would be lost. Put those args
-		// back as hidden fields; on pretty permalinks there are none.
+		// A GET form drops its action's query string, so plain permalinks lose the product. Put those args back as hidden fields.
 		$gatedmedia_query  = (string) wp_parse_url( $gatedmedia_page_url, PHP_URL_QUERY );
 		$gatedmedia_hidden = '';
 		$gatedmedia_args   = array();
@@ -255,8 +215,7 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 				$gatedmedia_hidden .= sprintf(
 					'<input type="hidden" name="%s" value="%s" />',
 					esc_attr( strval( $gatedmedia_key ) ),
-					// An `a[]=` style arg parses to an array; it has no place
-					// in a product permalink and is dropped rather than guessed.
+					// An `a[]=` arg parses to an array and is dropped, not guessed.
 					esc_attr( is_scalar( $gatedmedia_value ) ? strval( $gatedmedia_value ) : '' )
 				);
 			}
@@ -284,8 +243,7 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		);
 	}
 
-	// The applied code travels with the purchase. Only when it actually
-	// priced this page — a rejected code must not be smuggled to checkout.
+	// The code travels with the purchase only if it actually priced this page.
 	$gatedmedia_carried = $gatedmedia_applied
 		? sprintf(
 			'<input type="hidden" name="%s" value="%s" />',
@@ -312,19 +270,7 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		)
 	);
 }
-// -----------------------------------------------------------------------------
-// §6.15 — the pinned bar, narrow only, and only where there is something to
-// press. Held and ineligible offer no purchase, so they get no bar: CSS hides
-// it at wide, and this decides whether it exists at all.
-//
-// §6.15 is explicit that it must not appear on account views. Nothing but the
-// composer can enforce that, and this is the only view that composes it.
-// -----------------------------------------------------------------------------
-// §6.15 pins the *priced* buy action: the price is in the button's own label,
-// which is the whole shape of it. So a product with a price to pay gets the
-// bar, and the states that have no price to show do not — signed out, where
-// the action is making an account, and free, where "Join" would simply repeat
-// the button already on screen under the same name.
+// The pinned bar carries the priced buy action, so only a product with a price to pay gets one. CSS hides it at wide; this decides whether it exists at all.
 $gatedmedia_bar = '';
 
 if ( $gatedmedia_price > 0
@@ -334,7 +280,7 @@ if ( $gatedmedia_price > 0
 		array(
 			'label' => sprintf(
 				/* translators: %s: the price, already formatted. */
-				__( 'Get access — %s', 'gated-media-access' ),
+				__( 'Get access, %s', 'gated-media-access' ),
 				Money::format(
 					$gatedmedia_applied ? (int) $gatedmedia_coupon_data['total'] : $gatedmedia_price,
 					$gatedmedia_currency

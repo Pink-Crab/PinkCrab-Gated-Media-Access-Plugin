@@ -1,8 +1,7 @@
 /**
- * Sign in / sign up / reset — ui-spec.md §7.7.
+ * Sign in, sign up and reset.
  *
- * Not placeable: the state comes from the URL, so this only means anything on
- * the plugin's own auth route. Registered so the block exists server-side.
+ * Not placeable, because the state comes from the URL and this only means anything on the plugin's own auth route, and registered so the block exists server-side.
  */
 
 import { registerBlockType } from '@wordpress/blocks';

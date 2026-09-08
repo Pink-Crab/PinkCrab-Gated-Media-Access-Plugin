@@ -18,17 +18,14 @@ use PinkCrab\Gated_Access\Blocks\Sprite;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * The routing half of the account area: that the catch-all rule resolves every
- * section without a per-section rule, that the second segment survives, and
- * that a signed-out visitor is sent to log in.
+ * The routing half of the account area: the catch-all rule resolves every section without a per-section rule, the second segment survives, and a signed-out visitor is sent to log in.
  *
  * @group integration
  */
 class Test_Account_Route extends WP_UnitTestCase {
 
 	/**
-	 * Pretty permalinks, so rewrite rules are consulted at all. The default
-	 * test install uses plain ones, where every rule is ignored.
+	 * Pretty permalinks, so rewrite rules are consulted at all: the test install defaults to plain ones, where every rule is ignored.
 	 */
 	public function set_up(): void {
 		parent::set_up();
@@ -55,9 +52,7 @@ class Test_Account_Route extends WP_UnitTestCase {
 	/**
 	 * @testdox The three query vars are added to the public list, so get_query_var can read them.
 	 *
-	 * Asserted through the filter rather than against `WP::$public_query_vars`,
-	 * because that property holds core's own list and is never written back to
-	 * — the filtered result is what `WP::parse_request()` actually consults.
+	 * Asserted through the filter, not `WP::$public_query_vars`: that property holds core's own list, and the filtered result is what `WP::parse_request()` consults.
 	 */
 	public function test_registers_its_query_vars(): void {
 		$vars = apply_filters( 'query_vars', array() );
@@ -117,12 +112,9 @@ class Test_Account_Route extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @testdox The account slug is filterable, per the brief.
+	 * @testdox The account slug is filterable.
 	 *
-	 * The rules have to be registered again, not merely flushed: they were
-	 * added on `init` with the old slug, and flushing only rewrites what is
-	 * currently registered. On a real site the filter is in place before `init`
-	 * runs, so this is a test-ordering detail rather than a caveat.
+	 * The rules are registered again, not merely flushed, because they were added on `init` with the old slug. On a real site the filter is in place before `init`, so this is test ordering only.
 	 */
 	public function test_the_slug_is_filterable(): void {
 		add_filter( 'gatedmedia_account_slug', static fn(): string => 'my-stuff' );

@@ -12,13 +12,11 @@ namespace PinkCrab\Gated_Access\Account\Sections;
 use PinkCrab\Gated_Access\Account\Account_Section;
 
 /**
- * The landing view for the account area — ui-spec.md §7.1.
+ * The landing view for the account area.
  *
  * Everything a person holds: groups, posts and files, with the expiry on each.
  *
- * It is first in the nav, which makes it what the bare `/account` route lands
- * on — `Section_Collection::first()` sorts by position, so the ordering here is
- * the routing decision as well as the visual one.
+ * It is first in the nav, which makes it what the bare `/account` route lands on, because `Section_Collection::first()` sorts by position, so the ordering here is the routing decision as well as the visual one.
  */
 class My_Access_Section implements Account_Section {
 
@@ -37,8 +35,7 @@ class My_Access_Section implements Account_Section {
 	}
 
 	/**
-	 * §7.1 is drawn with no sub-line at all — the empty string is the design,
-	 * not a gap.
+	 * Drawn with no sub-line at all, so the empty string is deliberate.
 	 */
 	public function description(): string {
 		return '';
@@ -73,8 +70,7 @@ class My_Access_Section implements Account_Section {
 	}
 
 	/**
-	 * Anyone signed in. The account area is a person's own record, so there is
-	 * no version of it a signed-out visitor should see.
+	 * Anyone signed in, because the account area is a person's own record.
 	 *
 	 * @param int $user_id The user viewing, 0 when signed out.
 	 */

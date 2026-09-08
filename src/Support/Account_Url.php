@@ -12,13 +12,9 @@ namespace PinkCrab\Gated_Access\Support;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * The account segment is a filter rather than a setting — `Account_Route`'s
- * docblock says why: it is the sort of thing a site changes in code, and
- * making it a setting invites someone to break their own links with it.
+ * The account segment is a filter rather than a setting, because a setting invites someone to break their own links with it.
  *
- * Which means every place that builds an account URL has to resolve that
- * filter the same way. This is that one way, so a site renaming its account
- * area renames every link into it at once.
+ * Which means every place that builds an account URL has to resolve that filter the same way, and this is that one way, so a site renaming its account area renames every link into it at once.
  */
 class Account_Url {
 
@@ -35,7 +31,7 @@ class Account_Url {
 	 * One thing inside a section, e.g. `/account/orders/{uuid}/`.
 	 *
 	 * @param string $section    The section slug.
-	 * @param string $identifier The second segment — always an opaque uuid.
+	 * @param string $identifier The second segment, always an opaque uuid.
 	 */
 	public static function detail( string $section, string $identifier ): string {
 		$built = home_url( sprintf( '/%s/%s/', self::slug(), $section ) ) . rawurlencode( $identifier ) . '/';
@@ -46,11 +42,9 @@ class Account_Url {
 	/**
 	 * The setting, then the filter, applied to every link alike.
 	 *
-	 * Switched off, `Account_Route` registers no rewrite rules, so the built
-	 * URL is a 404 — the home page is a poor destination but an answering one.
-	 * A site placing the blocks on its own pages says where they are through
-	 * the filter, which is also how a section gains a page of its own while
-	 * the route stays on.
+	 * Switched off, `Account_Route` registers no rewrite rules, so the built URL is a 404 and the home page is a poor destination but an answering one.
+	 *
+	 * A site placing the blocks on its own pages says where they are through the filter, which is also how a section gains a page of its own while the route stays on.
 	 *
 	 * @param string $url        The `/account/` URL as built.
 	 * @param string $section    The section slug.
@@ -74,8 +68,7 @@ class Account_Url {
 	/**
 	 * The account area's own segment.
 	 *
-	 * Public because `Account_Route` needs the bare segment to build its
-	 * rewrite rules, where there is no whole URL to return.
+	 * Public because `Account_Route` needs the bare segment to build its rewrite rules, where there is no whole URL to return.
 	 */
 	public static function slug(): string {
 		$slug = apply_filters( 'gatedmedia_account_slug', 'account' );

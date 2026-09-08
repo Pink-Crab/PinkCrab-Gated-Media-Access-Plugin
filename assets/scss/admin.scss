@@ -1,21 +1,14 @@
 // =============================================================================
-// wp-admin — build/css/admin.css
+// wp-admin, built to build/css/admin.css.
 //
-// Two layers live here:
+// Two layers: the few things core has no class for (pickers, metabox widths), and the designed plugin pages under `.gatedmedia-admin`.
 //
-//   1. The handful of things core has no class for (pickers, metabox column
-//      widths) — core's own CSS covers the rest of wp-admin.
-//   2. Since round 6: the designed plugin pages. The product editor block set
-//      the visual language (blocks/product-details/edit.js STYLES — Stitch
-//      project 17998674859270043397); the Settings and Notifications pages
-//      speak it through the .gatedmedia-admin classes below. The edit.js
-//      values are the source of truth — change there, mirror here.
+// `blocks/product-details/edit.js` STYLES is the source of truth for the second. Change it there, mirror it here.
 // =============================================================================
 
 @use "tokens";
 
-// The pickers' autocomplete menu (src/Admin/Pickers) — jQuery UI ships no
-// CSS in wp-admin, so the dropdown gets the minimum to read as a menu.
+// The pickers' autocomplete menu. jQuery UI ships no CSS in wp-admin.
 .ui-autocomplete {
 	position: absolute;
 	z-index: 100000;
@@ -71,8 +64,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// The designed pages — the product editor's language for PHP-rendered admin.
-// Values mirror blocks/product-details/edit.js STYLES verbatim.
+// The designed pages. Values mirror blocks/product-details/edit.js STYLES verbatim.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-admin {
@@ -120,7 +112,7 @@
 		}
 	}
 
-	// The section tabs — the block's GROUP/POST/FILE tab voice.
+	// The section tabs.
 	.gatedmedia-admin-tabs {
 		display: flex;
 		align-items: center;
@@ -197,7 +189,7 @@
 		color: $ink;
 		box-shadow: none;
 
-		// §6.3: focus is never removed, and never a colour change alone.
+		// Focus is never removed, and never a colour change alone.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;
@@ -217,7 +209,7 @@
 		color: $ink;
 		box-shadow: none;
 
-		// §6.3, as above.
+		// As above.
 		&:focus {
 			border-color: $ink-soft;
 			box-shadow: none;
@@ -227,8 +219,7 @@
 	}
 
 	input[type="checkbox"] {
-		// Native rendering with a dark accent — WP's blue SVG check is
-		// the wrong palette here, in every browser the same way.
+		// Native rendering with a dark accent: WP's blue check is the wrong palette here.
 		appearance: auto;
 		accent-color: #2b2b2e;
 		width: 16px;
@@ -246,9 +237,7 @@
 		align-items: center;
 		gap: 8px;
 
-		// The button's 24px top margin is for standing alone under a field.
-		// On a row beside an input it pushes the button off the input's line,
-		// and `align-items: center` then centres the pair around the offset.
+		// Drop the standalone top margin so the button sits on the input's line.
 		.gatedmedia-admin-button {
 			margin-top: 0;
 			align-self: stretch;
@@ -293,7 +282,7 @@
 		}
 	}
 
-	// One notification's template panel — <details> so the page needs no JS.
+	// One notification's template panel, a <details> so the page needs no JS.
 	.gatedmedia-admin-panel {
 		border: $panel-rule;
 		margin: 20px 0 0;
@@ -324,14 +313,10 @@
 		}
 	}
 
-	// What a group holds, and who holds it. A plain list rather than a table:
-	// two facts per row, and a table's header would be heavier than the
-	// content under it.
+	// What a group holds, and who holds it. A list, not a table: two facts per row.
 	.gatedmedia-admin-list {
 		margin: 8px 0 20px;
-		// Held to the width of the fields above it. Left to the container the
-		// row's action lands at the far edge of a wide screen, a hand-span
-		// away from the thing it acts on.
+		// Held to the fields' width, or the row's action lands at the far screen edge.
 		max-width: 680px;
 
 		li {

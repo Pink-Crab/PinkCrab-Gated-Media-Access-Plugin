@@ -14,11 +14,9 @@ use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Grouping content marks it restricted, grouping an attachment restricts its
- * file, removal undoes neither, and the marker stays out of term lists.
+ * Grouping content marks it restricted, grouping an attachment restricts its file, removal undoes neither, and the marker stays out of term lists.
  *
- * The booted plugin's own Restriction instance is live on `set_object_terms`
- * throughout — these tests assign terms and watch what follows.
+ * The booted plugin's own `Restriction` is live on `set_object_terms` throughout, so these assign terms and watch what follows.
  *
  * @group integration
  */
@@ -142,8 +140,7 @@ class Test_Restriction extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An attachment with a real file inside the uploads directory, so the
-	 * dependency's move-to-protected genuinely runs.
+	 * An attachment with a real file inside uploads, so the dependency's move-to-protected genuinely runs.
 	 */
 	private function make_uploaded_attachment(): int {
 		$upload = wp_upload_dir();

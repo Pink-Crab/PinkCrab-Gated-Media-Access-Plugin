@@ -30,10 +30,9 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Deliveries signed with the SDK's own header generator, verified by the
- * gateway for real. The row is the replay guard: a repeated completion
- * grants nothing twice, a repeated refund revokes nothing twice, and
- * access lands only when the confirmation moves the row.
+ * Deliveries signed with the SDK's own header generator and verified by the gateway for real.
+ *
+ * The row is the replay guard: a repeated completion grants nothing twice, a repeated refund revokes nothing twice, and access lands only when the confirmation moves the row.
  *
  * @group integration
  */
@@ -99,7 +98,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$this->assertSame( Payment::STATUS_PENDING, $this->store->find_by_uuid( $payment->uuid )->status );
 	}
 
-	/** @testdox The confirmation completes the row, grants the snapshot, and announces — exactly once. */
+	/** @testdox The confirmation completes the row, grants the snapshot, and announces, exactly once. */
 	public function test_completion_grants_once(): void {
 		$payment = $this->pending_payment();
 
@@ -142,7 +141,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
 	}
 
-	/** @testdox A refund revokes every record the payment created and announces — exactly once. */
+	/** @testdox A refund revokes every record the payment created and announces, exactly once. */
 	public function test_refund_revokes(): void {
 		$payment = $this->pending_payment();
 		$this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid ) ) );
@@ -174,14 +173,9 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	/**
 	 * @testdox Refunding a renewal takes back only the days it bought, and leaves the rest standing.
 	 *
-	 * The whole purchase path, not just the writer: two payments for the same
-	 * timed product, the second stacking onto the first's live record, then a
-	 * refund of the second.
+	 * The whole purchase path, not just the writer: two payments for the same timed product, the second stacking onto the first's live record, then a refund of the second.
 	 *
-	 * Before this, `stack_onto_live()` wrote only the expiry, so no record
-	 * carried the second payment's uuid: `records_for_reference()` found
-	 * nothing, the refund revoked nothing, and the buyer kept the days they
-	 * had been repaid for.
+	 * `stack_onto_live()` used to write only the expiry, so no record carried the second payment's uuid and the refund revoked nothing.
 	 */
 	public function test_refunding_a_renewal_takes_back_only_its_own_days(): void {
 		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
@@ -225,14 +219,9 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	/**
 	 * @testdox A grant that fails leaves the row pending and asks Stripe to deliver again.
 	 *
-	 * The row used to move to complete before anything was granted, and
-	 * `grant_snapshot()` threw away the writer's WP_Error. A snapshot item
-	 * deleted between purchase and confirmation therefore produced a paid,
-	 * complete payment with no access — and because the status move was the
-	 * replay guard, Stripe's retry returned early and could never repair it.
+	 * The row used to move to complete before anything was granted, so a snapshot item deleted between purchase and confirmation produced a paid, complete payment with no access that Stripe's retry could never repair.
 	 *
-	 * Granting first is safe: the writer's per-item reference guard means a
-	 * redelivery writes nothing twice.
+	 * Granting first is safe, because the writer's per-item reference guard means a redelivery writes nothing twice.
 	 */
 	public function test_a_failed_grant_keeps_the_row_pending_and_asks_for_a_retry(): void {
 		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
@@ -268,12 +257,9 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	/**
 	 * @testdox A refusal tells an unauthenticated caller nothing about the site.
 	 *
-	 * The route is open on purpose — the signature is the authentication — so
-	 * anyone can post to it. It used to answer with the Stripe SDK's own
-	 * exception text, or with "The webhook secret is not configured.", which
-	 * between them tell a stranger the plugin is installed and whether Stripe
-	 * is set up. The detail belongs in the 500, which only a caller holding
-	 * the webhook secret can reach.
+	 * The route is open on purpose, since the signature is the authentication, so anyone can post to it. It used to answer with the SDK's exception text, which tells a stranger the plugin is installed and whether Stripe is set up.
+	 *
+	 * The detail belongs in the 500, which only a caller holding the webhook secret can reach.
 	 */
 	public function test_a_refusal_gives_nothing_away(): void {
 		$payment = $this->pending_payment();
@@ -288,8 +274,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 			'the body must be one fixed token, whatever went wrong'
 		);
 
-		// An unconfigured shop answers exactly the same, so the two are not
-		// distinguishable from outside.
+		// An unconfigured shop answers the same, so the two look identical from outside.
 		delete_option( Settings::OPTION );
 
 		$this->assertSame( array( 'error' => Stripe_Webhook::REFUSED ), $this->deliver( $body, 't=1,v1=nonsense' )->get_data() );
@@ -298,8 +283,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	/**
 	 * @testdox A late confirmation cannot re-grant a payment that was refunded.
 	 *
-	 * Granting before the status move means the guard against re-granting is
-	 * the row's own status, not `mark_complete()`. Only a pending row grants.
+	 * Granting before the status move makes the row's own status the guard, not `mark_complete()`, and only a pending row grants.
 	 */
 	public function test_a_late_completion_cannot_regrant_a_refunded_payment(): void {
 		$payment = $this->pending_payment();
@@ -346,17 +330,14 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	/**
 	 * @testdox A completed checkout whose money has not been collected grants nothing and stays pending.
 	 *
-	 * Stripe completes the session for a delayed method — a direct debit, a
-	 * bank transfer — before the money is collected, and says so in the
-	 * session's `payment_status`. Granting on the event alone hands over
-	 * what was bought before it is paid for.
+	 * Stripe completes the session for a delayed method before the money is collected and says so in `payment_status`, so granting on the event alone hands over what was bought before it is paid for.
 	 */
 	public function test_an_unpaid_completion_grants_nothing(): void {
 		$payment = $this->pending_payment();
 
 		$response = $this->deliver( (string) wp_json_encode( $this->completed_event( $payment->uuid, 'unpaid' ) ) );
 
-		$this->assertSame( 200, $response->get_status(), 'there is nothing for Stripe to retry — the money is simply not here yet' );
+		$this->assertSame( 200, $response->get_status(), 'there is nothing for Stripe to retry, the money is simply not here yet' );
 		$this->assertSame( Payment::STATUS_PENDING, $this->store->find_by_uuid( $payment->uuid )->status );
 		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
 	}
@@ -371,7 +352,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$this->assertCount( 0, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
 	}
 
-	/** @testdox A checkout that needed no payment at all still grants — a coupon can take the price to nothing. */
+	/** @testdox A checkout that needed no payment at all still grants, because a coupon can take the price to nothing. */
 	public function test_a_checkout_needing_no_payment_grants(): void {
 		$payment = $this->pending_payment();
 
@@ -381,7 +362,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) );
 	}
 
-	/** @testdox The money landing later grants the access and completes the row — exactly once. */
+	/** @testdox The money landing later grants the access and completes the row, exactly once. */
 	public function test_the_money_landing_later_grants(): void {
 		$payment = $this->pending_payment();
 
@@ -493,8 +474,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Any checkout session event, carrying what Stripe carries: the payment
-	 * it belongs to, its intent, and where the money has got to.
+	 * Any checkout session event, carrying what Stripe carries: the payment it belongs to, its intent, and where the money has got to.
 	 *
 	 * @param string $type           The event type.
 	 * @param string $uuid           The payment it belongs to.

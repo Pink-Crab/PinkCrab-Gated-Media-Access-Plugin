@@ -2,13 +2,9 @@
 /**
  * Creates the page the component e2e tests run against.
  *
- * Every §6 component, in the states §6 documents, on an ordinary page — which
- * is the point. The account route wraps everything in the shell, so a suite
- * that only visits `/account/` proves nothing about a component standing on
- * its own. Three faults reached the browser that way.
+ * Every component, in every state, on an ordinary page: the account route wraps everything in the shell, so a suite that only visits `/account/` proves nothing about a component standing on its own.
  *
- * Run by tests/e2e/global-setup.js before the suite, and idempotent: it
- * updates the page if it is already there.
+ * Run by tests/e2e/global-setup.js before the suite, and idempotent: it updates the page if it is already there.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
@@ -18,9 +14,7 @@ declare( strict_types = 1 );
 /**
  * One block comment.
  *
- * JSON_UNESCAPED_UNICODE matters: without it "·" is written as a \u escape,
- * and the block comment carries the escape through to the page as literal
- * text — "PDF u00b7 4.2 MB".
+ * JSON_UNESCAPED_UNICODE matters: without it "·" is written as a \u escape and reaches the page as literal text, as "PDF u00b7 4.2 MB".
  *
  * @param string               $name  Block name, without the namespace.
  * @param array<string, mixed> $attrs Attributes.
@@ -48,9 +42,9 @@ function gatedmedia_fixture_group( string $label, string $body ): string {
 
 $content = '';
 
-// §6.3 Buttons — every variant, plus the icon and full-width forms.
+// Buttons, every variant, plus the icon and full-width forms.
 $content .= gatedmedia_fixture_group(
-	'6.3 Buttons',
+	'Buttons',
 	gatedmedia_fixture_block( 'button', array( 'label' => 'Primary' ) )
 	. gatedmedia_fixture_block( 'button', array( 'label' => 'Secondary', 'variant' => 'secondary' ) )
 	. gatedmedia_fixture_block( 'button', array( 'label' => 'Text link', 'variant' => 'link', 'href' => '#' ) )
@@ -58,18 +52,18 @@ $content .= gatedmedia_fixture_group(
 	. gatedmedia_fixture_block( 'button', array( 'label' => 'Full width', 'full' => true ) )
 );
 
-// §6.4 Notice — three kinds, and the dismissible form.
+// Notice, three kinds, and the dismissible form.
 $content .= gatedmedia_fixture_group(
-	'6.4 Notice',
+	'Notice',
 	gatedmedia_fixture_block( 'notice', array( 'kind' => 'info', 'text' => 'Information. Your profile is incomplete.' ) )
 	. gatedmedia_fixture_block( 'notice', array( 'kind' => 'error', 'text' => 'Error. That payment could not be taken.' ) )
 	. gatedmedia_fixture_block( 'notice', array( 'kind' => 'success', 'text' => 'Success. Your details have been saved.' ) )
-	. gatedmedia_fixture_block( 'notice', array( 'kind' => 'info', 'text' => 'Dismissible — carries a close button.', 'dismissible' => true ) )
+	. gatedmedia_fixture_block( 'notice', array( 'kind' => 'info', 'text' => 'Dismissible, carries a close button.', 'dismissible' => true ) )
 );
 
-// §6.5 Expiry — four states, and the chip form.
+// Expiry, four states, and the chip form.
 $content .= gatedmedia_fixture_group(
-	'6.5 Expiry',
+	'Expiry',
 	gatedmedia_fixture_block( 'expiry', array( 'state' => 'lifetime', 'label' => 'Lifetime' ) )
 	. gatedmedia_fixture_block( 'expiry', array( 'state' => 'dated', 'label' => 'Expires 12 March 2027' ) )
 	. gatedmedia_fixture_block( 'expiry', array( 'state' => 'soon', 'label' => 'Expires in 3 days' ) )
@@ -77,33 +71,33 @@ $content .= gatedmedia_fixture_group(
 	. gatedmedia_fixture_block( 'expiry', array( 'state' => 'dated', 'label' => 'Chip form', 'chip' => true ) )
 );
 
-// §6.6 Status pill — all five values.
+// Status pill, all five access values.
 $pills = '';
 foreach ( array( 'complete', 'refunded', 'active', 'expired', 'revoked' ) as $value ) {
 	$pills .= gatedmedia_fixture_block( 'status-pill', array( 'value' => $value ) );
 }
-$content .= gatedmedia_fixture_group( '6.6 Status pill', $pills );
+$content .= gatedmedia_fixture_group( 'Status pill', $pills );
 
-// §6.7 Price — the four forms.
+// Price, the four forms.
 $content .= gatedmedia_fixture_group(
-	'6.7 Price, inline',
+	'Price, inline',
 	gatedmedia_fixture_block( 'price', array( 'amount' => 4900 ) )
 	. gatedmedia_fixture_block( 'price', array( 'amount' => 3675, 'original' => 4900 ) )
 	. gatedmedia_fixture_block( 'price', array( 'amount' => 0 ) )
 	. gatedmedia_fixture_block( 'price', array( 'notApplicable' => true ) )
 );
 
-// §6.13 Price block — including Free, which must never be an amount.
+// Price block, including Free, which must never be an amount.
 $content .= gatedmedia_fixture_group(
-	'6.13 Price block',
+	'Price block',
 	gatedmedia_fixture_block( 'price-block', array( 'amount' => 4900, 'term' => 'One year' ) )
 	. gatedmedia_fixture_block( 'price-block', array( 'amount' => 3675, 'original' => 4900, 'term' => 'One year' ) )
 	. gatedmedia_fixture_block( 'price-block', array( 'amount' => 0, 'term' => 'Lifetime' ) )
 );
 
-// §6.8 Field — including the invalid state, which the tests assert on.
+// Field, including the invalid state, which the tests assert on.
 $content .= gatedmedia_fixture_group(
-	'6.8 Form field',
+	'Form field',
 	gatedmedia_fixture_block( 'field', array( 'name' => 'sink-name', 'label' => 'First name', 'value' => 'Glynn' ) )
 	. gatedmedia_fixture_block( 'field', array( 'name' => 'sink-help', 'label' => 'Email', 'value' => 'a@b.com', 'message' => 'We never share this.' ) )
 	. gatedmedia_fixture_block( 'field', array( 'name' => 'sink-bad', 'label' => 'Postcode', 'value' => 'XX', 'error' => 'That postcode is not valid.' ) )
@@ -111,9 +105,9 @@ $content .= gatedmedia_fixture_group(
 	. gatedmedia_fixture_block( 'field', array( 'name' => 'sink-area', 'label' => 'Notes', 'multiline' => true ) )
 );
 
-// §6.2 Row — four states, and the aside composed from other components.
+// Row, four states, and the aside composed from other components.
 $content .= gatedmedia_fixture_group(
-	'6.2 Row',
+	'Row',
 	gatedmedia_fixture_block(
 		'row',
 		array( 'title' => 'Annual report.pdf', 'meta' => 'PDF · 4.2 MB' ),
@@ -135,7 +129,7 @@ $content .= gatedmedia_fixture_group(
 	)
 );
 
-// §6.1 Account nav — both variants; CSS shows one per width.
+// Account nav, both variants; CSS shows one per width.
 $items = array(
 	array( 'label' => 'My Access', 'href' => '#', 'icon' => 'i-access', 'active' => true ),
 	array( 'label' => 'Files', 'href' => '#', 'icon' => 'i-files' ),
@@ -143,14 +137,14 @@ $items = array(
 	array( 'label' => 'Profile', 'href' => '#', 'icon' => 'i-profile' ),
 );
 $content .= gatedmedia_fixture_group(
-	'6.1 Account nav',
+	'Account nav',
 	gatedmedia_fixture_block( 'account-nav', array( 'items' => $items, 'variant' => 'sidebar' ) )
 	. gatedmedia_fixture_block( 'account-nav', array( 'items' => $items, 'variant' => 'tabs' ) )
 );
 
-// §6.11 Filter — search plus the type list, drawn as select and chips.
+// Filter, search plus the type list, drawn as select and chips.
 $content .= gatedmedia_fixture_group(
-	'6.11 Filter',
+	'Filter',
 	gatedmedia_fixture_block(
 		'filter',
 		array(
@@ -166,9 +160,9 @@ $content .= gatedmedia_fixture_group(
 	)
 );
 
-// §6.12 Contents list, with its frozen-on-date note.
+// Contents list, with its frozen-on-date note.
 $content .= gatedmedia_fixture_group(
-	'6.12 Contents list',
+	'Contents list',
 	gatedmedia_fixture_block(
 		'contents',
 		array(
@@ -182,9 +176,9 @@ $content .= gatedmedia_fixture_group(
 	)
 );
 
-// §6.16 Summary — counts phrased on the server.
+// Summary, counts phrased on the server.
 $content .= gatedmedia_fixture_group(
-	'6.16 Summary',
+	'Summary',
 	gatedmedia_fixture_block(
 		'summary',
 		array(
@@ -196,17 +190,17 @@ $content .= gatedmedia_fixture_group(
 	)
 );
 
-// §6.14 Coupon — waiting, rejected, applied.
+// Coupon, waiting, rejected, applied.
 $content .= gatedmedia_fixture_group(
-	'6.14 Coupon field',
+	'Coupon field',
 	gatedmedia_fixture_block( 'coupon', array() )
 	. gatedmedia_fixture_block( 'coupon', array( 'code' => 'BAD', 'error' => 'That code is not recognised.' ) )
 	. gatedmedia_fixture_block( 'coupon', array( 'code' => 'SAVE25', 'applied' => true, 'discount' => '£12.25', 'removeHref' => '#' ) )
 );
 
-// §6.10 Empty state.
+// Empty state.
 $content .= gatedmedia_fixture_group(
-	'6.10 Empty state',
+	'Empty state',
 	gatedmedia_fixture_block(
 		'empty-state',
 		array(
@@ -217,25 +211,23 @@ $content .= gatedmedia_fixture_group(
 	)
 );
 
-// §6.15 Pinned action bar — narrow only.
+// Pinned action bar, narrow only.
 $content .= gatedmedia_fixture_group(
-	'6.15 Pinned action bar',
-	gatedmedia_fixture_block( 'action-bar', array( 'label' => 'Get access — £49.00', 'href' => '#' ) )
+	'Pinned action bar',
+	gatedmedia_fixture_block( 'action-bar', array( 'label' => 'Get access, £49.00', 'href' => '#' ) )
 );
 
-// §7 — the four section views, which draw the viewer's own record.
+// The four section views, which draw the viewer's own record.
 foreach ( array(
-	'7.1 My Access' => 'my-access',
-	'7.2 Files'     => 'files',
-	'7.3 Orders'    => 'orders',
-	'7.5 Profile'   => 'profile',
+	'My Access' => 'my-access',
+	'Files'     => 'files',
+	'Orders'    => 'orders',
+	'Profile'   => 'profile',
 ) as $label => $block ) {
 	$content .= gatedmedia_fixture_group( $label . ' (section view)', gatedmedia_fixture_block( $block ) );
 }
 
-// §7 data — the account specs sign in as this user, so give them something to
-// hold: a post, a group containing it, and a file. The writer's source and
-// reference pair makes every grant idempotent across fixture re-runs.
+// Give the user the account specs sign in as a post, a group and a file.
 $e2e_login = getenv( 'WP_USER' );
 $e2e_user  = get_user_by( 'login', is_string( $e2e_login ) && '' !== $e2e_login ? $e2e_login : 'admin' );
 
@@ -251,8 +243,7 @@ if ( $e2e_user instanceof WP_User ) {
 		)
 	);
 
-	// A real file on disk, so the dependency can genuinely move and serve it —
-	// the boundary spec downloads it and reads these exact bytes back.
+	// A real file on disk, so the boundary spec can download it and read these bytes back.
 	$granted_file    = get_page_by_path( 'e2e-granted-file', OBJECT, 'attachment' );
 	$granted_file_id = $granted_file instanceof WP_Post ? $granted_file->ID : wp_insert_attachment(
 		array(
@@ -262,9 +253,7 @@ if ( $e2e_user instanceof WP_User ) {
 		)
 	);
 
-	// Bytes and metadata are settled outside the create path, healing an
-	// attachment left fileless by fixtures that ran before the file boundary
-	// existed. Skipped once restricted — the file has moved by then.
+	// Bytes and metadata are settled outside the create path, and skipped once restricted, since the file has moved by then.
 	if ( is_int( $granted_file_id ) && ! rmfa_is_media_restricted( $granted_file_id ) ) {
 		$e2e_upload = wp_upload_dir();
 		$e2e_file   = $e2e_upload['basedir'] . '/e2e-granted-file.txt';
@@ -302,8 +291,7 @@ if ( $e2e_user instanceof WP_User ) {
 	}
 }
 
-// The other side of the boundary: restricted content nobody is granted. The
-// boundary spec asserts the hard 404 and its absence from search.
+// The other side of the boundary: restricted content nobody is granted, where the boundary spec asserts the hard 404 and its absence from search.
 $refused_post    = get_page_by_path( 'e2e-refused-post', OBJECT, 'post' );
 $refused_post_id = $refused_post instanceof WP_Post ? $refused_post->ID : wp_insert_post(
 	array(

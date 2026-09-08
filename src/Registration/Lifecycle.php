@@ -19,16 +19,11 @@ use PinkCrab\Gated_Access\Products\Product_Route;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Deactivating stops the two daily events, which would otherwise keep firing
- * at code that is no longer loaded. Deleting the plugin also takes every
- * option (the Stripe secrets among them) and the four capabilities.
+ * Deactivating stops the two daily events, which would otherwise keep firing at code that is no longer loaded, and deleting the plugin also takes every option, the Stripe secrets among them, and the four capabilities.
  *
- * Payments and access records are business history, so a delete keeps them
- * unless the site has ticked "Delete all data on uninstall", which takes the
- * payments table, the records, the products, the coupons and their terms.
+ * Payments and access records are business history, so a delete keeps them unless the site has ticked "Delete all data on uninstall", which takes the payments table, the records, the products, the coupons and their terms.
  *
- * Static throughout: `uninstall.php` runs with nothing booted, so there is no
- * container to resolve a service from.
+ * Static throughout, because `uninstall.php` runs with nothing booted and there is no container to resolve a service from.
  */
 class Lifecycle {
 
@@ -50,8 +45,7 @@ class Lifecycle {
 	}
 
 	/**
-	 * On deactivation: the two daily events go, and the rewrite rules are
-	 * flushed so ours stop pointing at query vars nothing registers.
+	 * On deactivation: the two daily events go, and the rewrite rules are flushed so ours stop pointing at query vars nothing registers.
 	 */
 	public static function deactivate(): void {
 		wp_clear_scheduled_hook( Sweep::HOOK );
@@ -61,11 +55,10 @@ class Lifecycle {
 	}
 
 	/**
-	 * On delete: the credentials, the options and the capabilities always;
-	 * the data only when the site asked for it.
+	 * On delete: the credentials, the options and the capabilities always, and the data only when the site asked for it.
 	 */
 	public static function uninstall(): void {
-		// Read before the options are deleted — the flag lives in one of them.
+		// Read before the options are deleted, since the flag lives in one.
 		$purge = ( new Settings() )->purge_on_uninstall();
 
 		self::deactivate();
@@ -101,14 +94,12 @@ class Lifecycle {
 	}
 
 	/**
-	 * Everything the plugin ever stored: the payments table, every record,
-	 * product and coupon, their terms, and the profile fields on users.
+	 * Everything the plugin ever stored: the payments table, every record, product and coupon, their terms, and the profile fields on users.
 	 */
 	private static function purge_content(): void {
 		global $wpdb;
 
-		// Core's delete functions want the types registered, and uninstall.php
-		// boots nothing.
+		// Core's delete functions want the types registered, and uninstall.php boots nothing.
 		( new Post_Types() )->register();
 		( new Access_Taxonomy() )->register();
 

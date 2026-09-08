@@ -1,17 +1,13 @@
 // =============================================================================
 // Mixins
 //
-// The type roles (§2) and the one breakpoint (§3), so neither is retyped.
+// The type roles and the one breakpoint, so neither is retyped.
 // =============================================================================
 
 @use "tokens" as *;
 
 // -----------------------------------------------------------------------------
-// §3 — the single breakpoint, 782px.
-//
-// Written max-width because the design is described wide-first and reflows
-// down: the corpus draws the two-column frame on 9 screens and describes
-// narrow as what replaces it.
+// The single breakpoint, 782px. Written max-width because the design is wide first and reflows down.
 // -----------------------------------------------------------------------------
 
 @mixin narrow {
@@ -29,8 +25,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §2 — type roles. Five named plus a small size. Only two weights are in real
-// use across the corpus; anything else is drift.
+// Type roles. Five named plus a small size, on two weights.
 // -----------------------------------------------------------------------------
 
 // The page title. Exactly one per page.
@@ -40,7 +35,7 @@
 	font-weight: 700;
 }
 
-// The title of a row — a file, an order, a group.
+// The title of a row: a file, an order, a group.
 @mixin h4-row {
 	font-size: 18px;
 	line-height: 1.4;
@@ -61,7 +56,7 @@
 	font-weight: 700;
 }
 
-// The muted second line — file type, size, date, expiry.
+// The muted second line: file type, size, date, expiry.
 @mixin meta-secondary {
 	font-size: 14px;
 	line-height: 1.4;
@@ -77,8 +72,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// §6.3 — focus. "Never removed, never replaced with a colour change alone."
-// One mixin so that is true by construction.
+// Focus. One mixin, so it is never removed or reduced to a colour change.
 // -----------------------------------------------------------------------------
 
 @mixin focus-ring {
@@ -87,8 +81,7 @@
 }
 
 // -----------------------------------------------------------------------------
-// Visually hidden — for labels a sighted user gets from context.
-// Matches core's .screen-reader-text so it behaves the same in wp-admin.
+// Visually hidden, matching core's .screen-reader-text.
 // -----------------------------------------------------------------------------
 
 @mixin visually-hidden {

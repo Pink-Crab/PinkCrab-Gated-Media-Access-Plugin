@@ -20,8 +20,7 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The form's fields become one writer grant — the only admin door into a
- * record — and the page sits behind the give-access capability.
+ * The form's fields become one writer grant, the only admin door into a record, and the page sits behind the give-access capability.
  *
  * @group integration
  */
@@ -40,8 +39,7 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->writer = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 		$this->page   = new Add_Access_Page( $this->writer );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
@@ -111,7 +109,7 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->assertSame( '', get_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, true ) );
 	}
 
-	/** @testdox The writer's refusal comes back whole — nothing is written for bad input. */
+	/** @testdox The writer's refusal comes back whole, and nothing is written for bad input. */
 	public function test_invalid_input_is_refused(): void {
 		$refused = $this->page->create(
 			array(
@@ -143,7 +141,7 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->assertSame( Capabilities::GIVE_ACCESS, $entries[0][1] );
 	}
 
-	/** @testdox The form renders the four fields, nonced, posting to admin-post — every picker the same searchable pattern. */
+	/** @testdox The form renders the four fields, nonced, posting to admin-post, every picker the same searchable pattern. */
 	public function test_form_renders_the_fields(): void {
 		ob_start();
 		$this->page->render();

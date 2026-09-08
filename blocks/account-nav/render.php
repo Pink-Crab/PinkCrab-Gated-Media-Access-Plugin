@@ -1,20 +1,12 @@
 <?php
 /**
- * §6.1 Account nav — the same four items, drawn two ways.
+ * Account nav: the same four items, drawn two ways.
  *
- * Wide is a 256px column with the active item marked down its left edge;
- * narrow is a horizontally scrolling strip with the active one underlined.
- * §3 is explicit that the sidebar is **replaced, not collapsed** — there is no
- * hamburger anywhere in the corpus.
+ * Wide is a 256px column with the active item marked down its left edge, and narrow is a horizontally scrolling strip with the active one underlined. The sidebar is **replaced, not collapsed**, and there is no hamburger anywhere.
  *
- * Both variants render and CSS shows one, so switching width needs no JS and
- * no server-side guess about the device. The hidden one is `display: none`, so
- * it is out of the accessibility tree and its `aria-current` is not announced
- * twice.
+ * Both variants render and CSS shows one, so switching width needs no JS and no server-side guess about the device, and the hidden one is `display: none`, so it is out of the accessibility tree and its `aria-current` is not announced twice.
  *
- * Items are data rather than inner blocks: they come from the section list,
- * which is filtered, so nobody authors them and there is nothing for an editor
- * to compose.
+ * Items are data rather than inner blocks: they come from the filtered section list, so nobody authors them and there is nothing for an editor to compose.
  *
  * @package PinkCrab\Gated_Access
  *

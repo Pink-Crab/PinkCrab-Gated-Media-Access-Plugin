@@ -19,13 +19,11 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * Shapes the core list table for access records: who has what, its status,
- * when it expires, where it came from (architecture.md §9).
+ * Shapes the core list table for access records: who has what, its status, when it expires and where it came from.
  *
- * The screen itself is core's — search, pagination, the status views all come
- * with the post type. This class only supplies the columns and strips the row
- * actions core would offer, because a record is pure data: nothing edits one
- * directly, everything goes through `Access_Writer`.
+ * The screen itself is core's, so search, pagination and the status views all come with the post type.
+ *
+ * This class supplies the columns and strips the row actions core would offer, because a record is pure data and every change goes through `Access_Writer`.
  */
 class Access_List implements Hookable {
 
@@ -92,12 +90,9 @@ class Access_List implements Hookable {
 	/**
 	 * Two fixes to the list's main query, admin side only.
 	 *
-	 * The All view names our statuses: with none given, core falls back to
-	 * behaviour that skips statuses registered `exclude_from_search` — all
-	 * three of ours — and the screen shows counts above an empty list.
+	 * The All view names our statuses, because with none given core skips all three and the screen shows counts above an empty list.
 	 *
-	 * The expiry column's orderby becomes a meta sort. Every record carries
-	 * the key ('' for lifetime), so the join drops no rows.
+	 * The expiry column's orderby becomes a meta sort, and every record carries the key, '' for lifetime, so the join drops no rows.
 	 *
 	 * @param WP_Query $query The list query.
 	 */
@@ -121,9 +116,7 @@ class Access_List implements Hookable {
 	}
 
 	/**
-	 * Two row actions, both writer-bound: Edit (the record's expiry, on the
-	 * Edit Access page) and, on active rows, Revoke. A revoked record gets
-	 * neither — revocation is final, and a fresh grant is the way back.
+	 * Two row actions, both writer-bound: Edit, which is the record's expiry on the Edit Access page, and Revoke on active rows. A revoked record gets neither, because revocation is final and a fresh grant is the way back.
 	 *
 	 * @param array<string, string> $actions Core's actions, discarded.
 	 * @param WP_Post               $post    The row's record.
@@ -198,8 +191,7 @@ class Access_List implements Hookable {
 	/**
 	 * What the record points at: its type, and the target's current name.
 	 *
-	 * A record outlives its target (requirements.md) — a missing target still
-	 * renders, marked removed.
+	 * A record outlives its target, so a missing one still renders, marked removed.
 	 *
 	 * @param int $post_id The access record.
 	 */
@@ -223,7 +215,7 @@ class Access_List implements Hookable {
 		}
 
 		if ( null === $name ) {
-			/* translators: %s: the item type — file, post or group. */
+			/* translators: %s: the item type, file, post or group. */
 			return esc_html( sprintf( __( '%s (removed)', 'gated-media-access' ), $type_label ) );
 		}
 
