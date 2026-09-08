@@ -7,8 +7,7 @@
  *   assets/js/*.js          → build/js/*.js
  *   assets/scss/*.scss      → build/css/*.css
  *
- * Everything else — JSX, SCSS, the `.asset.php` dependency files, RTL — comes
- * from the @wordpress/scripts default and is not restated here.
+ * Everything else, JSX, SCSS, the `.asset.php` dependency files and RTL, comes from the @wordpress/scripts default and is not restated here.
  */
 
 const path = require( 'path' );
@@ -24,9 +23,7 @@ const blocksDir = path.join( root, 'blocks' );
 /**
  * Every JS entry inside blocks/, discovered rather than listed.
  *
- * A block is a directory holding a block.json. `index.js` is its editor
- * script, `view.js` its optional front-end script. Adding a block means adding
- * the directory — this file does not change.
+ * A block is a directory holding a block.json, with `index.js` as its editor script and `view.js` its optional front-end script, so adding a block means adding the directory and this file does not change.
  *
  * @return {Object} Entry name to absolute path.
  */
@@ -55,11 +52,9 @@ function blockEntries() {
 }
 
 /**
- * The standalone bundles, for the two places that are not a block: the
- * plugin's own account route, and wp-admin.
+ * The standalone bundles, for the two places that are not a block: the plugin's own account route, and wp-admin.
  *
- * Shared code lives in assets/js/shared and assets/scss/shared and is pulled
- * into both — there is no third bundle to coordinate at runtime.
+ * Shared code lives in assets/js/shared and assets/scss/shared and is pulled into both, so there is no third bundle to coordinate at runtime.
  */
 const assetEntries = {
 	'js/front': path.join( root, 'assets/js/front.js' ),
@@ -78,8 +73,7 @@ module.exports = {
 	} ),
 
 	plugins: [
-		// The default CopyPlugin reads from `src`, which here is the PSR-4 PHP
-		// tree — it would copy every class into build/. Point it at blocks/.
+		// The default CopyPlugin reads from `src`, which here is the PSR-4 PHP tree, so it would copy every class into build/. Point it at blocks/.
 		...defaultConfig.plugins.filter(
 			( plugin ) => plugin.constructor.name !== 'CopyPlugin'
 		),

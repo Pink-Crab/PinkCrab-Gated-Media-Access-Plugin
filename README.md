@@ -16,6 +16,17 @@ three behaviours, the daily expiry sweep); Stripe checkout with the webhook
 and the payments table; the six notification emails; and the Settings screen
 with its fields, `revoke_behaviour` control included.
 
+## What it looks like
+
+| | |
+|---|---|
+| ![My Access](docs/images/account-my-access.png) | ![A product for sale](docs/images/product-for-sale.png) |
+| What a person holds, at `/account/` | A product page, at its own UUID URL |
+| ![Groups](docs/images/admin-groups.png) | ![The product editor](docs/images/admin-product-editor.png) |
+| Groups: what each holds, and who holds it | The product form, one locked block |
+
+Every screen, front and admin, is in [`docs/`](docs/README.md).
+
 ## Requires
 
 | | |
@@ -103,6 +114,8 @@ request. There is a note on `Plugin::SERVICES` saying so.
 | `.karkinos/workflows/` | Workflows for the local act runner |
 
 ## The account area
+
+Screens: [the account area](docs/account-area.md), [buying access](docs/buying.md), [signing in](docs/signing-in.md).
 
 Lives at `/account/`, and at `/account/{section}/` for each section. The slug
 comes from `gatedmedia_account_slug`, a filter rather than a setting.
@@ -210,6 +223,8 @@ Everything is prefixed `gatedmedia`, in CSS as well as PHP. No abbreviations,
 because short prefixes collide.
 
 ## The admin screens
+
+Screens: [administration](docs/administration.md).
 
 Native wp-admin: core list tables, no admin framework. Every screen
 requires a capability rather than a role, and every capability is filtered
@@ -577,4 +592,13 @@ context:
 
 ## Documentation
 
-This README is the documentation that ships.
+This README and [`docs/`](docs/README.md) are the documentation that ships. The
+README says how the plugin is built; `docs/` shows every screen, captured from a
+real site.
+
+| | |
+| --- | --- |
+| [The account area](docs/account-area.md) | What a person holds, their files, their orders, their profile |
+| [Buying access](docs/buying.md) | The product page, coupons, free products, and the wait for Stripe |
+| [Signing in](docs/signing-in.md) | Sign in, sign up and password reset |
+| [Administration](docs/administration.md) | Access records, groups, products, payments and settings |
