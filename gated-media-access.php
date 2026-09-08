@@ -33,19 +33,15 @@ define( 'GATEDMEDIA_DIR_URL', plugin_dir_url( __FILE__ ) );
 
 require_once GATEDMEDIA_DIR_PATH . 'vendor/autoload.php';
 
-// Outside the boot below on purpose: the two daily events must be cleared even
-// if restrict-media-file-access has gone and we never booted.
+// Outside the boot below on purpose: the two daily events must be cleared even where restrict-media-file-access has gone and nothing booted.
 register_deactivation_hook( __FILE__, array( Lifecycle::class, 'deactivate' ) );
 
 /**
  * Boots the plugin, once restrict-media-file-access is confirmed present.
  *
- * That plugin owns the files — it moves them, serves them and refuses them.
- * Without it we would look alive while files sat unprotected, so we do not
- * half-run: we show a notice and boot nothing.
+ * That plugin owns the files, moving them, serving them and refusing them, so without it this would look alive while files sat unprotected, and rather than half-run it shows a notice and boots nothing.
  *
- * The check is a runtime one rather than the `Requires Plugins` header,
- * because the dependency is not distributed through wordpress.org.
+ * The check is a runtime one rather than the `Requires Plugins` header, because the dependency is not distributed through wordpress.org.
  */
 add_action(
 	'plugins_loaded',
@@ -58,9 +54,7 @@ add_action(
 		$plugin = new Plugin();
 		$plugin->boot();
 
-		// The file boundary attaches here, not in Plugin::SERVICES — files
-		// are served on parse_request, before the main query. The class
-		// behind both hooks is built on the first call, not now.
+		// The file boundary attaches here rather than in Plugin::SERVICES, because files are served on parse_request before the main query, and the class behind both hooks is built on the first call rather than now.
 		add_filter(
 			'restrict_media_file_access_protect_file',
 			static fn ( $refuse, $protected_file ): bool => $plugin->file_boundary()->protect_file( (bool) $refuse, (string) $protected_file ),

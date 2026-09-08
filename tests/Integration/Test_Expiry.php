@@ -13,10 +13,7 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Support\Expiry;
 
 /**
- * Every account view says when access runs out, and says it from here. Two of
- * the three states were covered only incidentally, through whichever caller
- * happened to produce them — and `soon`, the one that prints a counted-down
- * number of days to a customer, was not covered at all.
+ * Every account view says when access runs out, and says it from here. Two of the three states were covered only through whichever caller happened to produce them, and `soon`, which prints a counted-down number of days to a customer, was not covered at all.
  *
  * @group integration
  */
@@ -69,7 +66,7 @@ class Test_Expiry extends WP_UnitTestCase {
 		$this->assertSame( 'Expires in 1 day', $expiry['label'] );
 	}
 
-	/** @testdox The threshold is the documented seven days, at its boundary. */
+	/** @testdox The threshold is seven days, asserted at its boundary. */
 	public function test_the_threshold_is_seven_days(): void {
 		$this->assertSame( 'soon', Expiry::describe( time() + ( 7 * DAY_IN_SECONDS ) - MINUTE_IN_SECONDS )['state'] );
 		$this->assertSame( 'dated', Expiry::describe( time() + ( 8 * DAY_IN_SECONDS ) )['state'] );
@@ -79,8 +76,7 @@ class Test_Expiry extends WP_UnitTestCase {
 	public function test_the_threshold_is_filterable(): void {
 		add_filter( 'gatedmedia_expiry_soon_days', static fn (): int => 60 );
 
-		// Thirty days is comfortably "dated" by default; under a sixty-day
-		// threshold it is soon.
+		// Thirty days is "dated" by default and soon under a sixty-day threshold.
 		$this->assertSame( 'soon', Expiry::describe( time() + ( 30 * DAY_IN_SECONDS ) )['state'] );
 	}
 }

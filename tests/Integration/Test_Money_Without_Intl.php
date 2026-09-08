@@ -13,23 +13,11 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * A product page used to fatal outright on any host without the intl
- * extension — most shared hosting, and WordPress Playground:
+ * A product page used to fatal outright on any host without the intl extension, which is most shared hosting, with `Uncaught Error: Class "Locale" not found` out of `Money::format()` by way of `Money::digits()` and `Currencies::exists()`.
  *
- *     Uncaught Error: Class "Locale" not found
- *       in vendor/symfony/intl/ResourceBundle.php:58
- *       Currencies::exists('GBP') ← Money::digits() ← Money::format()
+ * `symfony/intl` is not a polyfill for the extension: it carries ICU's *data*, and every reader reaches `\Locale` on the way to it. `symfony/polyfill-intl-icu` supplies that class.
  *
- * `symfony/intl` was believed to be a polyfill for the extension. It is not:
- * it carries ICU's *data*, and every reader reaches `\Locale` on the way to
- * it. `symfony/polyfill-intl-icu` supplies that class, which is what makes the
- * data readable at all.
- *
- * These run on a host that *does* have the extension, so they cannot prove the
- * no-extension path end to end. What they can prove is the part that was
- * actually wrong: that the class is reachable either way, and that the
- * fraction digits — which drive the minor-unit division, so getting them wrong
- * misprices — come out right for the currencies where 2 is the wrong answer.
+ * These run on a host that *does* have the extension, so they prove only the part that was wrong: that the class is reachable either way, and that the fraction digits come out right for the currencies where 2 is the wrong answer.
  *
  * @group integration
  */
@@ -38,13 +26,12 @@ class Test_Money_Without_Intl extends WP_UnitTestCase {
 	/**
 	 * @testdox The Locale class the ICU data readers need is present, extension or not.
 	 *
-	 * The single assertion that the fix turns on. Without it every
-	 * `Currencies::` call in the plugin throws rather than answering.
+	 * The assertion the fix turns on: without it every `Currencies::` call throws.
 	 */
 	public function test_locale_is_always_available(): void {
 		$this->assertTrue(
 			class_exists( \Locale::class ),
-			'symfony/intl cannot read its own data without \Locale — add symfony/polyfill-intl-icu.'
+			'symfony/intl cannot read its own data without \Locale. Add symfony/polyfill-intl-icu.'
 		);
 	}
 
@@ -69,9 +56,7 @@ class Test_Money_Without_Intl extends WP_UnitTestCase {
 	/**
 	 * @testdox Zero-decimal and three-decimal currencies keep their own division.
 	 *
-	 * The reason a fallback of "always 2" would not have done: JPY has no
-	 * minor unit and KWD has three, so 1000 minor units is ¥1,000 and KD 1.000
-	 * — not 10.00 of either.
+	 * Why "always 2" would not have done: JPY has no minor unit and KWD has three, so 1000 minor units is ¥1,000 and KD 1.000, not 10.00 of either.
 	 *
 	 * @dataProvider currencies
 	 *
@@ -89,9 +74,9 @@ class Test_Money_Without_Intl extends WP_UnitTestCase {
 	 */
 	public static function currencies(): array {
 		return array(
-			'GBP — two decimals'  => array( 'GBP', '10.00' ),
-			'JPY — none'          => array( 'JPY', '1000' ),
-			'KWD — three'         => array( 'KWD', '1.000' ),
+			'GBP, two decimals' => array( 'GBP', '10.00' ),
+			'JPY, none'         => array( 'JPY', '1000' ),
+			'KWD, three'        => array( 'KWD', '1.000' ),
 		);
 	}
 

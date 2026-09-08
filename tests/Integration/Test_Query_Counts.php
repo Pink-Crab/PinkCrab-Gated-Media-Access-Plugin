@@ -23,9 +23,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * Every read here used to cost one query per row (§29). The assertions are
- * deliberately about *scaling* rather than an exact count: a read that costs
- * the same for ten items as for two is not an N+1, whatever the constant is.
+ * Every read here used to cost one query per row, and the assertions are about *scaling* rather than an exact count: a read that costs the same for ten items as for two is not an N+1, whatever the constant is.
  *
  * @group integration
  */
@@ -51,8 +49,7 @@ class Test_Query_Counts extends WP_UnitTestCase {
 
 	/** @testdox Listing a group's contents costs the same for ten items as for two. */
 	public function test_group_contents_block_does_not_scale(): void {
-		// Discarded: the first measurement leaves restricted content behind,
-		// which puts an exclusion on the next one's queries.
+		// Discarded: the first measurement leaves restricted content behind, which puts an exclusion on the next one's queries.
 		$this->cost_of_listing_a_group_of( 1 );
 
 		$small = $this->cost_of_listing_a_group_of( 2 );

@@ -17,8 +17,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * Access is personal and is not inherited. Deleting a user takes their access
- * with them, whether or not their content is reassigned to somebody else.
+ * Access is personal and is not inherited: deleting a user takes their access with them, whether or not their content is reassigned to somebody else.
  *
  * @group integration
  */

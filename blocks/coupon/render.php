@@ -1,17 +1,12 @@
 <?php
 /**
- * §6.14 Coupon field — a labelled input paired with an action.
+ * Coupon field: a labelled input paired with an action.
  *
- * Applied is the state most easily got wrong: §6.14 says the pair is
- * **replaced** by a confirmation line — check icon, the code and what it took
- * off, and a Remove text link on the right. Not annotated, not disabled with a
- * tick beside it. Replaced.
+ * Applied is the state most easily got wrong. The pair is **replaced** by a confirmation line carrying a check icon, the code, what it took off, and a Remove link. Not annotated, not disabled with a tick beside it. Replaced.
  *
- * Rejected takes the invalid treatment from §6.8, which the field block owns,
- * so passing `error` through is the whole of it.
+ * Rejected takes the field block's own invalid treatment, so passing `error` through is the whole of it.
  *
- * Wide puts input and Apply side by side; narrow stacks them full width. That
- * is CSS on `__row`, not two renderings.
+ * Wide puts input and Apply side by side and narrow stacks them full width, which is CSS on `__row` rather than two renderings.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -26,9 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_code = isset( $attributes['code'] ) ? (string) $attributes['code'] : '';
 
-// -----------------------------------------------------------------------------
-// Applied — the input and its button are gone, not decorated.
-// -----------------------------------------------------------------------------
+// Applied: the input and its button are gone, not decorated.
 if ( true === ( $attributes['applied'] ?? false ) && '' !== $gatedmedia_code ) {
 	$gatedmedia_discount = isset( $attributes['discount'] ) ? (string) $attributes['discount'] : '';
 
@@ -53,7 +46,7 @@ if ( true === ( $attributes['applied'] ?? false ) && '' !== $gatedmedia_code ) {
 			echo esc_html(
 				'' !== $gatedmedia_discount
 					/* translators: 1: coupon code, 2: what it took off, e.g. £12.25. */
-					? sprintf( __( '%1$s applied — %2$s off', 'gated-media-access' ), $gatedmedia_code, $gatedmedia_discount )
+					? sprintf( __( '%1$s applied, %2$s off', 'gated-media-access' ), $gatedmedia_code, $gatedmedia_discount )
 					/* translators: %s: coupon code. */
 					: sprintf( __( '%s applied', 'gated-media-access' ), $gatedmedia_code )
 			);
@@ -79,10 +72,7 @@ $gatedmedia_field = do_blocks(
 		'<!-- wp:gated-media-access/field %s /-->',
 		(string) wp_json_encode(
 			array(
-				// The name Checkout_Action reads off the buy submit — an
-				// underscore, matching `$_POST['gatedmedia_coupon']`. A hyphen
-				// here would post a field nothing collects, and the purchase
-				// would go through at full price without saying so.
+				// The exact name Checkout_Action reads off the buy submit.
 				'name'  => 'gatedmedia_coupon',
 				'label' => $gatedmedia_label,
 				'value' => $gatedmedia_code,

@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit smoke tests — the suite runs and the plugin's classes autoload.
+ * Unit smoke tests: the suite runs and the plugin's classes autoload.
  *
  * @since   0.1.0
  * @package PinkCrab\Gated_Access\Tests\Unit

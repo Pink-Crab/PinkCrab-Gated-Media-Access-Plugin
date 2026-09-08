@@ -12,34 +12,17 @@ namespace PinkCrab\Gated_Access\Support;
 use Symfony\Component\Intl\Currencies;
 
 /**
- * Turns minor units into something a person reads, and typed amounts back
- * into minor units for storage.
+ * Turns minor units into something a person reads, and typed amounts back into minor units for storage.
  *
- * Amounts are held in minor units throughout (specification.md §1a), so every
- * display of one has to divide and format. Doing that in each template is how
- * two screens end up disagreeing about whether zero is "Free" or "£0.00" — and
- * ui-spec.md §6.7 and §6.13 are both emphatic that it is "Free".
+ * Amounts are held in minor units throughout, so every display of one has to divide and format, and doing that in each template is how two screens end up disagreeing about whether zero is "Free" or "£0.00". It is "Free".
  *
- * No hand-kept currency tables. ICU answers every currency question — the
- * fraction digits that drive the minor-unit division, the symbol, the
- * placement — for all of ISO 4217, on every host.
+ * No hand-kept currency tables: ICU answers every currency question, the fraction digits that drive the minor-unit division, the symbol and the placement, for all of ISO 4217, on every host.
  *
- * **Two different things are needed, and they are not interchangeable.**
- * `symfony/intl` carries ICU's *data*; the intl *extension* provides
- * `\NumberFormatter` for locale-aware layout and `\Locale`, which every
- * `symfony/intl` reader reaches for on its way to the data.
+ * **Two different things are needed, and they are not interchangeable.** `symfony/intl` carries ICU's *data*, and the intl *extension* provides `\NumberFormatter` for locale-aware layout plus `\Locale`, which every `symfony/intl` reader reaches for on its way to the data.
  *
- * `symfony/polyfill-intl-icu` supplies `\Locale` where the extension is
- * absent, which is what makes the data readable at all — on shared hosting
- * without ext-intl, and in WordPress Playground. Its stubs are classmapped,
- * so a host that *has* the extension finds the real classes first and the
- * polyfill is never loaded.
+ * `symfony/polyfill-intl-icu` supplies `\Locale` where the extension is absent, which is what makes the data readable at all on shared hosting and in WordPress Playground, and its stubs are classmapped, so a host that *has* the extension finds the real classes first.
  *
- * The extension is therefore detected with `extension_loaded()`, never with
- * `class_exists( \NumberFormatter::class )` — the polyfill defines that class
- * too, but its constructor accepts only the locale `en` and its
- * `setTextAttribute()` throws unconditionally. Asking whether the class
- * exists gets a yes and then a fatal.
+ * The extension is therefore detected with `extension_loaded()`, never with `class_exists( \NumberFormatter::class )`, because the polyfill defines that class too and its `setTextAttribute()` throws unconditionally, so asking whether the class exists gets a yes and then a fatal.
  */
 class Money {
 
@@ -53,8 +36,7 @@ class Money {
 	/**
 	 * The ICU formatter for a currency, or null where the extension is absent.
 	 *
-	 * Built once per locale and currency: constructing one loads ICU locale
-	 * data, and `format()` used to build two of them for every price on a page.
+	 * Built once per locale and currency, because constructing one loads ICU locale data and `format()` used to build two of them for every price on a page.
 	 *
 	 * @param string $currency ISO code.
 	 */
@@ -67,9 +49,7 @@ class Money {
 			return self::$formatters[ $key ];
 		}
 
-		// The extension, not the class: `symfony/polyfill-intl-icu` defines
-		// \NumberFormatter too, but its constructor takes only the locale `en`
-		// and `setTextAttribute()` throws unconditionally.
+		// The extension, not the class: `symfony/polyfill-intl-icu` defines \NumberFormatter too, but its constructor takes only the locale `en` and `setTextAttribute()` throws unconditionally.
 		if ( ! extension_loaded( 'intl' ) ) {
 			self::$formatters[ $key ] = null;
 
@@ -87,8 +67,7 @@ class Money {
 	/**
 	 * Formats an amount for display.
 	 *
-	 * Zero is the word "Free" and never a zero amount — the one display rule
-	 * both §6.7 and §6.13 state outright.
+	 * Zero is the word "Free" and never a zero amount.
 	 *
 	 * @param int    $minor_units The amount, in minor units.
 	 * @param string $currency    ISO code.
@@ -106,16 +85,14 @@ class Money {
 	}
 
 	/**
-	 * §6.13 — where no price exists at all, an em dash. Used for access an
-	 * administrator added, which has no order behind it.
+	 * Where no price exists at all, a dash, used for access an administrator added, which has no order behind it.
 	 */
 	public static function not_applicable(): string {
-		return '—';
+		return '-';
 	}
 
 	/**
-	 * A typed decimal amount to stored minor units — "12.50" GBP is 1250,
-	 * "1250" JPY is 1250.
+	 * A typed decimal amount to stored minor units: "12.50" GBP is 1250, "1250" JPY is 1250.
 	 *
 	 * @param string $amount   A decimal amount, dot-separated, as an admin input submits it.
 	 * @param string $currency ISO code.
@@ -125,8 +102,7 @@ class Money {
 	}
 
 	/**
-	 * Stored minor units back to the plain decimal an input can hold —
-	 * 1250 GBP is "12.50", 1250 JPY is "1250".
+	 * Stored minor units back to the plain decimal an input can hold: 1250 GBP is "12.50", 1250 JPY is "1250".
 	 *
 	 * @param int    $minor_units The amount, in minor units.
 	 * @param string $currency    ISO code.
@@ -138,9 +114,7 @@ class Money {
 	}
 
 	/**
-	 * The amount as the site's locale writes it: the extension where loaded,
-	 * symbol-prefix from the bundled data where not, code-prefix where the
-	 * code is unknown to either.
+	 * The amount as the site's locale writes it: the extension where loaded, symbol-prefix from the bundled data where not, code-prefix where the code is unknown to either.
 	 *
 	 * @param float  $amount   The amount, in major units.
 	 * @param string $currency ISO code, uppercased.
@@ -163,8 +137,7 @@ class Money {
 	}
 
 	/**
-	 * How many decimal places a currency has — ICU's answer through either
-	 * door, 2 for a code neither knows (most of ISO 4217).
+	 * How many decimal places a currency has, from ICU through either door, defaulting to 2.
 	 *
 	 * @param string $currency ISO code, already uppercased.
 	 */

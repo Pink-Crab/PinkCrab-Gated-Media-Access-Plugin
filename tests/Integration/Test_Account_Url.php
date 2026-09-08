@@ -13,14 +13,9 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * Every link into the account area is built here, so a site that renames its
- * account segment through `gatedmedia_account_slug` renames all of them at
- * once. The filter is the whole reason the class exists — a link built with
- * the default slug on a site using a filtered one is a 404.
+ * Every link into the account area is built here, so `gatedmedia_account_slug` renames all of them at once: a link built with the default slug on a site using a filtered one is a 404.
  *
- * The rubbish a filter can return matters just as much: an empty string would
- * otherwise give `//orders/`, which is a protocol-relative URL to a host named
- * `orders`, not a page on this site.
+ * What a filter can return matters just as much: an empty string would give `//orders/`, a protocol-relative URL to a host named `orders`.
  *
  * @group integration
  */
@@ -38,11 +33,7 @@ class Test_Account_Url extends WP_UnitTestCase {
 	}
 
 	/**
-	 * With the account route switched off the plugin answers nothing at
-	 * `/account/`, so every link built here would be a 404. The setting is
-	 * read in this one place rather than at each call site, which is how the
-	 * emails and the checkout return URL came to keep pointing at a route
-	 * that had been turned off.
+	 * With the route off nothing answers at `/account/`, so the setting is read here rather than at each call site: reading it per site is how the emails and the checkout return URL kept pointing at a dead route.
 	 *
 	 * @testdox With the route off, links fall back to the home page rather than a page that does not answer.
 	 */

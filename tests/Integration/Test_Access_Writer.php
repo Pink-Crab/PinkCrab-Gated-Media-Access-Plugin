@@ -18,8 +18,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The record is written whole, retries write nothing, the stacking rules hold,
- * and nothing invalid gets through.
+ * The record is written whole, retries write nothing, the stacking rules hold, and nothing invalid gets through.
  *
  * @group integration
  */
@@ -35,9 +34,7 @@ class Test_Access_Writer extends WP_UnitTestCase {
 		$this->writer  = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so the boot-time registration is
-		// gone by the time any test here runs.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 	}
 
@@ -76,9 +73,7 @@ class Test_Access_Writer extends WP_UnitTestCase {
 	/**
 	 * @testdox A source and reference already seen writes nothing and returns the existing record.
 	 *
-	 * Counted with the statuses named explicitly — never 'any', which excludes
-	 * exclude_from_search statuses and once made both sides of this equally
-	 * blind while the guard itself was broken the same way.
+	 * Counted with the statuses named explicitly, never 'any', which skips exclude_from_search statuses and once made this test as blind as the guard it checks.
 	 */
 	public function test_a_repeated_reference_writes_nothing(): void {
 		$post_id = self::factory()->post->create();
@@ -106,7 +101,7 @@ class Test_Access_Writer extends WP_UnitTestCase {
 		);
 	}
 
-	/** @testdox A retry after revocation still writes nothing — the reference has been seen. */
+	/** @testdox A retry after revocation still writes nothing, because the reference has been seen. */
 	public function test_a_revoked_reference_still_blocks_a_retry(): void {
 		$post_id = self::factory()->post->create();
 
@@ -136,10 +131,7 @@ class Test_Access_Writer extends WP_UnitTestCase {
 	/**
 	 * @testdox A stacked grant is findable by its own reference, so a repeat delivery cannot extend twice.
 	 *
-	 * `stack_onto_live()` wrote only the new expiry, so the second payment's
-	 * reference was recorded nowhere. `find_by_reference()` then missed it and
-	 * the retry guard never fired: a redelivered webhook stacked the same
-	 * payment's days on a second time.
+	 * `stack_onto_live()` wrote only the new expiry, so `find_by_reference()` missed the second payment, the retry guard never fired, and a redelivered webhook stacked its days on twice.
 	 */
 	public function test_a_stacked_grant_is_findable_by_its_own_reference(): void {
 		$post_id = self::factory()->post->create();
@@ -180,9 +172,7 @@ class Test_Access_Writer extends WP_UnitTestCase {
 	/**
 	 * @testdox Refunding a stacked payment takes back only the days it paid for.
 	 *
-	 * Glynn's rule: 20 days bought against 21 remaining leaves 1 day, and
-	 * access stands. The refund subtracts that payment's contribution, never
-	 * the whole record — the earlier period was paid for separately.
+	 * 20 days bought against 21 remaining leaves 1 day and access stands: the refund subtracts that payment's own contribution, never the whole record.
 	 */
 	public function test_a_refund_takes_back_only_its_own_days(): void {
 		$post_id = self::factory()->post->create();
@@ -216,8 +206,7 @@ class Test_Access_Writer extends WP_UnitTestCase {
 		$record = $this->writer->grant( $this->user_id, 'post', (string) $post_id, 19, 'stripe', 'pi_gone_1' );
 		$this->writer->grant( $this->user_id, 'post', (string) $post_id, 20, 'stripe', 'pi_gone_2' );
 
-		// 19 + 20 = 39; refunding the 20 leaves 19 — still standing.
-		// Refunding the 19 as well leaves nothing.
+		// 19 + 20 = 39; refunding the 20 leaves 19, and the 19 as well leaves nothing.
 		$this->writer->refund( 'stripe', 'pi_gone_2' );
 		$this->writer->refund( 'stripe', 'pi_gone_1' );
 

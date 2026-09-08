@@ -14,13 +14,9 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
- * Items are stored as `type:identifier`, and a product's contents and an
- * order's snapshot both have to turn those back into words.
+ * Items are stored as `type:identifier`, and a product's contents and an order's snapshot both have to turn those back into words.
  *
- * **The fallbacks are the point.** An order outlives the thing it bought: a
- * post gets deleted, a group gets removed, and the order still has to account
- * for what was paid for. Every one of those paths existed and none had been
- * run, so "A file" and "An item" were wording nobody had ever seen.
+ * **The fallbacks are the point.** An order outlives the thing it bought, so it still has to account for a deleted post or a removed group, and "A file" and "An item" were wording nobody had ever seen.
  *
  * @group integration
  */
@@ -99,8 +95,7 @@ class Test_Item_Label extends WP_UnitTestCase {
 		$this->assertSame( array( 'post', '' ), Item_Label::split( 'post' ) );
 		$this->assertSame( array( '', '' ), Item_Label::split( '' ) );
 
-		// A uuid carries no colon of its own, but a path-ish identifier might:
-		// only the first colon separates, so the rest survives intact.
+		// Only the first colon separates, so an identifier carrying one survives intact.
 		$this->assertSame( array( 'file', '12:34' ), Item_Label::split( 'file:12:34' ) );
 	}
 }

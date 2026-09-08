@@ -12,21 +12,14 @@ namespace PinkCrab\Gated_Access\Access;
 /**
  * Where the dependency asks us whether to serve a file, and tells us it did.
  *
- * Not in Plugin::SERVICES — files are served on `parse_request`, before the
- * main query, so the bootstrap attaches the two hooks at plugin load and
- * resolves this class lazily on the first protected-file request
- * (the SERVICES docblock's one exception).
+ * Not in `Plugin::SERVICES`, because files are served on `parse_request` before the main query. The bootstrap attaches its two hooks at plugin load and resolves this class lazily on the first protected-file request.
  *
- * The boundary is narrow on purpose (architecture.md §5): the dependency's
- * own helper turns a hash into an attachment, the resolver has the last word,
- * and an unrecognised request keeps whatever decision came in.
+ * Narrow on purpose: the dependency's helper turns a hash into an attachment, the resolver has the last word, and an unrecognised request keeps whatever decision came in.
  */
 class File_Boundary {
 
 	/**
-	 * The hash as the protector splits it: hex, optional image-size suffix
-	 * (AttachmentsProtector::extract_hash_and_size_suffix — the sized URL
-	 * carries no file extension).
+	 * The hash as the protector splits it: hex, with an optional image-size suffix and no file extension.
 	 */
 	private const HASH_SHAPE = '/^([a-f0-9]+)(?:-\d+x\d+)?$/';
 
@@ -60,9 +53,7 @@ class File_Boundary {
 	/**
 	 * Re-publishes `restrict_media_file_access_before_serve` as ours.
 	 *
-	 * The dependency fires it only on the allowed path — a refusal serves the
-	 * substitute GIF and never reaches it — so every announcement is a real
-	 * download.
+	 * The dependency fires it only on the allowed path, so every announcement is a real download.
 	 *
 	 * @param int    $attachment_id The attachment served.
 	 * @param string $file_path     The absolute path being served.

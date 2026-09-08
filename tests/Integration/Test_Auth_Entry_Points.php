@@ -24,14 +24,9 @@ use PinkCrab\Gated_Access\Support\Auth_Url;
 /**
  * Four places called `wp_login_url()` and all four have moved.
  *
- * The bug this closes was two of them being the *same* destination: on the
- * product page, "Create an account to continue" and "Already have an account?
- * Sign in" both went to wp-login.php, on a site whose `users_can_register` was
- * `0`. One control said something it could not do, and the other said the same
- * thing in different words.
+ * The bug this closes was two of them being the *same* destination: on a site whose `users_can_register` was `0`, the product page's "Create an account to continue" and "Already have an account? Sign in" both went to wp-login.php.
  *
- * wp-login.php itself is untouched — these assert where our own pages point,
- * not that core's screen has gone anywhere.
+ * wp-login.php itself is untouched: these assert where our own pages point.
  *
  * @group integration
  */
@@ -45,8 +40,7 @@ class Test_Auth_Entry_Points extends WP_UnitTestCase {
 
 		$this->captured = '';
 
-		// The handlers exit after redirecting, which would take the test
-		// runner with them. Throwing from the filter stops before that.
+		// The handlers exit after redirecting, which would take the runner with them, so throw from the filter first.
 		add_filter(
 			'wp_redirect',
 			function ( $location ) {
@@ -70,9 +64,7 @@ class Test_Auth_Entry_Points extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `Profile_Writer::referer()` falls back to the profile section when the
-	 * request carries no referer, so with the route off it fell back to a
-	 * page that no longer answers.
+	 * `Profile_Writer::referer()` falls back to the profile section with no referer on the request, so with the route off it fell back to a page that no longer answers.
 	 *
 	 * @testdox With the account route off, a saved profile does not return to a page that no longer answers.
 	 */
@@ -90,9 +82,7 @@ class Test_Auth_Entry_Points extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A site placing the blocks on its own pages must be obeyed here too —
-	 * this destination used to short-circuit to the home page without ever
-	 * asking `Account_Url`, so the filter was ignored.
+	 * A site placing the blocks on its own pages must be obeyed here too, and this destination used to reach the home page without asking `Account_Url`.
 	 *
 	 * @testdox With the account route off, a signed-in visitor is sent to the site's own account page.
 	 */
@@ -130,8 +120,7 @@ class Test_Auth_Entry_Points extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The profile prompt's destination never consulted the setting at all, so
-	 * it pointed at the route whether or not the route existed.
+	 * The profile prompt's destination never consulted the setting, so it pointed at the route whether or not the route existed.
 	 *
 	 * @testdox With the route off, the profile prompt does not send a new user to a page that no longer answers.
 	 */
@@ -191,7 +180,7 @@ class Test_Auth_Entry_Points extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'wp-login', $url );
 	}
 
-	/** @testdox An applied coupon rides through with it, instead of being dropped on the way as it was before round 9. */
+	/** @testdox An applied coupon rides through with it, rather than being dropped on the way. */
 	public function test_the_coupon_survives_the_round_trip(): void {
 		$product = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
 

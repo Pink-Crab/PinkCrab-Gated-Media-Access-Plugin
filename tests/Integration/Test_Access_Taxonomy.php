@@ -13,16 +13,14 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The taxonomy exists on the right types, its object-type filter works, and it
- * is invisible to the front while exposed to the editor.
+ * The taxonomy exists on the right types, its object-type filter works, and it is invisible to the front while exposed to the editor.
  *
  * @group integration
  */
 class Test_Access_Taxonomy extends WP_UnitTestCase {
 
 	/**
-	 * Re-registers with the default types, or a filtered list would leak into
-	 * later tests.
+	 * Re-registers with the default types, or a filtered list leaks into later tests.
 	 */
 	public function tear_down(): void {
 		remove_all_filters( 'gatedmedia_access_object_types' );
@@ -62,13 +60,12 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertFalse( $taxonomy->publicly_queryable );
 	}
 
-	/** @testdox Core's free-tagging surfaces are all off — the item metabox is the assignment surface. */
+	/** @testdox Core's free-tagging surfaces are all off, leaving the item metabox as the assignment surface. */
 	public function test_editor_surfaces_are_off(): void {
 		$taxonomy = get_taxonomy( Access_Taxonomy::TAXONOMY );
 
 		$this->assertNotFalse( $taxonomy );
-		// Round 4: the editor panel (REST), the classic tag box and the
-		// quick edit field all gave a free-tagging way to mint groups.
+		// The REST editor panel, the classic tag box and the quick edit field each gave a free-tagging way to mint groups.
 		$this->assertFalse( $taxonomy->show_in_rest );
 		$this->assertFalse( $taxonomy->meta_box_cb );
 		$this->assertFalse( $taxonomy->show_in_quick_edit );
@@ -79,8 +76,7 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 	/**
 	 * @testdox The taxonomy and the access post type share the name gatedmedia_access, and both resolve.
 	 *
-	 * The shared string was a deliberate choice; this pins that the two
-	 * registries genuinely hold one entry each under it.
+	 * The shared string was a deliberate choice, and this pins that the two registries genuinely hold one entry each under it.
 	 */
 	public function test_shares_its_name_with_the_access_post_type(): void {
 		$this->assertTrue( post_type_exists( Access_Taxonomy::TAXONOMY ) );
@@ -156,7 +152,7 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertIsArray( $category );
 	}
 
-	/** @testdox REST cannot create a group — no terms route exists, and the guard 403s regardless. */
+	/** @testdox REST cannot create a group: no terms route exists, and the guard 403s regardless. */
 	public function test_rest_cannot_create_groups(): void {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		do_action( 'rest_api_init' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Booting core's own REST server for the test.
@@ -166,9 +162,7 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 
 		$response = rest_do_request( $request );
 
-		// show_in_rest false means no route at all (404); the
-		// rest_request_before_callbacks guard would 403 one if it ever
-		// came back. Either way: refused, and nothing written.
+		// show_in_rest false means no route at all, and the guard would 403 one if it came back.
 		$this->assertContains( $response->get_status(), array( 403, 404 ) );
 		$this->assertSame( array(), get_terms( array( 'taxonomy' => Access_Taxonomy::TAXONOMY, 'hide_empty' => false, 'name' => 'Sneaky REST Group' ) ) );
 	}
@@ -176,12 +170,9 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 	/**
 	 * Asks contents() from the Groups screen's side of the fence.
 	 *
-	 * Putting anything in a group restricts it, and `Post_Boundary` then drops
-	 * every restricted post into `post__not_in` on all front-of-site queries —
-	 * contents()' own `get_posts()` included. On the front that is correct: a
-	 * logged-out visitor sees nothing. These tests ask the administrator's
-	 * question, "what does this group hold", so they ask it from an admin
-	 * screen, where the boundary stands aside.
+	 * Putting anything in a group restricts it, and `Post_Boundary` then drops every restricted post into `post__not_in` on front-of-site queries, contents()' own included.
+	 *
+	 * These tests ask the administrator's question, "what does this group hold", so they ask from an admin screen where the boundary stands aside.
 	 *
 	 * @param int $term_id The group.
 	 * @return array<int, int>
@@ -228,11 +219,9 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @testdox contents() lists an attachment held by the group — a file's status is inherit, not publish, and it must not fall out of the list.
+	 * @testdox contents() lists an attachment held by the group, whose status is inherit rather than publish.
 	 *
-	 * The regression guard for the named statuses. With the query left on
-	 * its default `publish`, every file in a group disappears here while the
-	 * term's own count still counts it.
+	 * The regression guard for the named statuses: on the default `publish`, every file in a group disappears here while the term's count still counts it.
 	 */
 	public function test_contents_lists_an_attachment(): void {
 		$term = wp_insert_term( 'Holds A File', Access_Taxonomy::TAXONOMY );
@@ -241,8 +230,7 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$attachment_id = self::factory()->attachment->create();
 		$this->add_to_group( $attachment_id, $term['term_id'] );
 
-		// The whole reason the statuses are named. Read the stored column, not
-		// get_post_status() — that resolves an unattached file to `publish`.
+		// The stored column, not get_post_status(), which resolves an unattached file to publish.
 		$this->assertSame( 'inherit', get_post( $attachment_id )->post_status );
 
 		$this->assertSame(
@@ -304,7 +292,7 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertSame( array(), ( new Access_Taxonomy() )->contents( $uuid ) );
 	}
 
-	/** @testdox contents() leaves out a draft in the group — only publish and inherit are named. */
+	/** @testdox contents() leaves out a draft in the group, since only publish and inherit are named. */
 	public function test_contents_excludes_a_draft(): void {
 		$term = wp_insert_term( 'Holds A Draft', Access_Taxonomy::TAXONOMY );
 		$this->assertIsArray( $term );

@@ -17,19 +17,13 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * The writes behind `Groups_Page`: create a group, rename one, and move an
- * item in or out of one.
+ * The writes behind `Groups_Page`: create a group, rename one, and move an item in or out of one.
  *
- * Its own class rather than more methods on the screen, which was over phpmd's
- * class-complexity ceiling with both halves in it — the same call round 8 made
- * splitting `Coupon_Pricing` out of `Checkout`, and round 9 splitting
- * `Account_Fields` out of `Settings_Page`. The screen draws; this writes.
+ * Its own class rather than more methods on the screen, which was over phpmd's class-complexity ceiling with both halves in it. The screen draws, this writes.
  *
- * **Adding an item goes through `wp_set_object_terms`**, exactly as the item's
- * own Access panel does from the other end. That is the whole point: a group
- * filled from this side has to mean what a group filled from the item's side
- * means, so `Restriction`'s automatic marker applies either way and restriction
- * is not special-cased here.
+ * **Adding an item goes through `wp_set_object_terms`**, exactly as the item's own Access panel does from the other end.
+ *
+ * That is the whole point: a group filled from this side has to mean what a group filled from the item's side means, so `Restriction`'s marker applies either way and restriction is not special-cased here.
  */
 class Group_Actions implements Hookable {
 

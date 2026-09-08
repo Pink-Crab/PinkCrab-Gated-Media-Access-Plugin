@@ -24,9 +24,7 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * One payment whole: the row's facts, the access its reference wrote, and
- * the Reference column pointing here. Registered hidden behind the view
- * capability.
+ * One payment whole: the row's facts, the access its reference wrote, and the Reference column pointing here, registered hidden behind the view capability.
  *
  * @group integration
  */
@@ -113,10 +111,9 @@ class Test_Payment_Detail_Page extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `Coupon_Hold` reserves a limited coupon only briefly, so two checkouts
-	 * overlapping by longer than that can both complete. Nothing can be
-	 * refused once Stripe has the money, so the payment that went past the
-	 * limit says so here and the ones within it stay quiet.
+	 * `Coupon_Hold` reserves a limited coupon only briefly, so two checkouts overlapping by longer can both complete, and nothing can be refused once Stripe has the money.
+	 *
+	 * So the payment that went past the limit says so here, and the ones within it stay quiet.
 	 *
 	 * @testdox A payment that took a coupon past its limit says so; the one within it does not.
 	 */

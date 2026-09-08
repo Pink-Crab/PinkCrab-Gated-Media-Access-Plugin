@@ -1,10 +1,7 @@
 /**
- * §6.5 Expiry — editor.
+ * The expiry block, editor side.
  *
- * The wording is typed on the chip. The state is in the toolbar because it is
- * what you flip between while looking at it, and it changes the icon and the
- * colour together — "expiring soon" is the only one that goes red, "expired"
- * the only one that dims.
+ * The wording is typed on the chip. The state is in the toolbar because it is what you flip between while looking at it, and it changes the icon and the colour together: "expiring soon" is the only one that goes red, "expired" the only one that dims.
  *
  * Drawn client-side: an icon and a span.
  */
@@ -98,7 +95,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { chip: value } )
 						}
 						help={ __(
-							'Filled background. For detail panels — a list is already busy with rules and buttons, so leave it off there.',
+							'Filled background. For detail panels: a list is already busy with rules and buttons, so leave it off there.',
 							'gated-media-access'
 						) }
 						__nextHasNoMarginBottom

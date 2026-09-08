@@ -16,24 +16,13 @@ use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * Every route in — Stripe, an administrator, the webhook — turns its input
- * into the same four facts and hands them here. Nothing else creates or
- * revokes access (architecture.md §3).
+ * Every route in, whether Stripe, an administrator or the webhook, turns its input into the same four facts and hands them here. Nothing else creates or revokes access.
  *
- * The rules the brief names live here too: re-granting timed access while it
- * is live stacks onto the existing expiry; after expiry a fresh record; a
- * lifetime grant is always a new record even when one exists. A grant whose
- * source and reference have been seen before writes nothing, which is what
- * makes a webhook retry safe.
+ * The rules live here too. Re-granting timed access while it is live stacks onto the existing expiry, after expiry a fresh record, and a lifetime grant is always a new record. A grant whose source and reference have been seen before writes nothing, which is what makes a webhook retry safe.
  *
- * Owns its meta keys, per the round 1 decision: the class that writes a key
- * registers it. The names are specification.md §1's.
+ * Owns its meta keys: the class that writes a key registers it.
  *
- * Large on purpose, and suppressed rather than split: architecture.md §3 makes
- * this the *only* writer of access records, so grant, revoke, expire, refund
- * and the stacking rules belong together by design. Splitting them to satisfy
- * a threshold would put writes outside the one class that is supposed to hold
- * them all.
+ * Large on purpose, and suppressed rather than split. This is the *only* writer of access records, so splitting it to satisfy a threshold would put writes outside the one class meant to hold them all.
  *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
@@ -48,23 +37,16 @@ class Access_Writer implements Hookable {
 	public const META_PAYLOAD    = 'gatedmedia_payload';
 
 	/**
-	 * What each payment added to a stacked record: `source|reference|days`,
-	 * one meta row per contribution.
+	 * What each payment added to a stacked record: `source|reference|days`, one meta row per contribution.
 	 *
-	 * A record normally answers to one source and reference — the grant that
-	 * made it. Stacking breaks that: two payments become one record, and only
-	 * the first was written down. So a refund of the second found nothing to
-	 * act on, and a redelivered webhook stacked its days a second time.
+	 * A record normally answers to the one grant that made it, and stacking breaks that: two payments become one record. Without this a refund of the second finds nothing to act on.
 	 *
-	 * The days are stored rather than looked up from the product, so a refund
-	 * takes back exactly what was added even if the product's duration has
-	 * changed since.
+	 * The days are stored rather than looked up, so a refund takes back exactly what was added even if the product's duration has changed since.
 	 */
 	public const META_CONTRIBUTION = 'gatedmedia_contribution';
 
 	/**
-	 * Input checking and the read-side queries live beside the writer,
-	 * not in it.
+	 * Input checking and the read-side queries live beside the writer, not in it.
 	 *
 	 * @param Access_Validator $validator Checks a grant's four facts.
 	 * @param Access_Lookup    $lookup    The retry-guard and stacking queries.
@@ -94,8 +76,7 @@ class Access_Writer implements Hookable {
 	/**
 	 * Marks our keys protected, so nothing treats them as user-editable.
 	 *
-	 * A hook rather than a naming convention (specification.md), so it can be
-	 * switched off for debugging without renaming a thing.
+	 * A hook rather than a naming convention, so it can be switched off for debugging without renaming anything.
 	 *
 	 * @param bool   $is_protected Whether the key is already protected.
 	 * @param string $meta_key     The key being asked about.
@@ -110,8 +91,7 @@ class Access_Writer implements Hookable {
 	}
 
 	/**
-	 * Creates one access record from the four facts: who, what, how long,
-	 * where from.
+	 * Creates one access record from the four facts: who, what, how long, where from.
 	 *
 	 * @param int                  $user_id       Who holds it.
 	 * @param string               $item_type     One of file, post, group.
@@ -121,7 +101,7 @@ class Access_Writer implements Hookable {
 	 * @param string               $reference     That system's reference. Empty for admin grants.
 	 * @param array<string, mixed> $payload       Free-form meta, stored as-is.
 	 * @param int                  $created_by    The administrator who made it, when one did.
-	 * @return int|WP_Error The access record's ID — new, extended, or already existing.
+	 * @return int|WP_Error The access record's ID: new, extended, or already existing.
 	 */
 	public function grant( int $user_id, string $item_type, string $item_id, ?int $duration_days, string $source, string $reference = '', array $payload = array(), int $created_by = 0 ): int|WP_Error {
 		$invalid = $this->validator->validate( $user_id, $item_type, $item_id, $duration_days, $source );
@@ -130,9 +110,7 @@ class Access_Writer implements Hookable {
 			return $invalid;
 		}
 
-		// The retry guard: a source, reference and item we have seen writes
-		// nothing. The item is part of the guard because a product purchase
-		// writes one record per item, all with the same source and reference.
+		// The retry guard: a source, reference and item already seen writes nothing, and the item is part of it because a product purchase writes one record per item under the same source and reference.
 		if ( '' !== $reference ) {
 			$existing = $this->lookup->find_by_reference( $source, $reference, $item_type, $item_id );
 
@@ -167,22 +145,13 @@ class Access_Writer implements Hookable {
 	/**
 	 * Takes back what one payment gave, and nothing else.
 	 *
-	 * The reverse of the stack. A record built from several payments must not
-	 * be revoked outright when one of them is refunded — the other periods
-	 * were paid for separately and still stand. So the refunded grant's own
-	 * days come off the expiry, and the record is revoked only when that
-	 * leaves nothing.
+	 * The reverse of the stack. A record built from several payments is not revoked outright when one is refunded, because the other periods were paid for separately. The refunded grant's own days come off the expiry, and the record is revoked only when that leaves nothing.
 	 *
-	 * Glynn's rule: 20 days refunded against 21 remaining leaves 1 day, and
-	 * access stands. Refunded against 19 remaining, it goes.
+	 * 20 days refunded against 21 remaining leaves 1 day and access stands. Against 19 remaining, it goes.
 	 *
-	 * A record with no contribution recorded is a single grant — nothing was
-	 * stacked onto it — so there is nothing to subtract and the whole record
-	 * is revoked, which is what a refund has always meant for those.
+	 * A record with no contribution recorded is a single grant, so the whole record is revoked.
 	 *
-	 * Idempotency is the caller's: `Stripe_Webhook::refund()` acts only when
-	 * `mark_refunded()` says the row moved, so a redelivered refund never
-	 * reaches here twice.
+	 * Idempotency is the caller's: `Stripe_Webhook::refund()` acts only when the row actually moved.
 	 *
 	 * @param string $source    What granted it.
 	 * @param string $reference The grant's identifier.
@@ -212,8 +181,7 @@ class Access_Writer implements Hookable {
 	private function take_back( int $access_id, string $source, string $reference ): bool {
 		$days = $this->contribution( $access_id, $source, $reference );
 
-		// Nothing stacked, or a lifetime grant with no days to give back:
-		// the record exists because of this payment alone.
+		// Nothing stacked, so the record exists because of this payment alone.
 		if ( null === $days ) {
 			return $this->revoke( $access_id );
 		}
@@ -227,8 +195,7 @@ class Access_Writer implements Hookable {
 
 		$remaining = $expires_at - $days * DAY_IN_SECONDS;
 
-		// The contribution goes whatever happens next, so a second refund of
-		// the same grant cannot take the days twice.
+		// The contribution goes either way, so a second refund cannot take the days twice.
 		delete_post_meta( $access_id, self::META_CONTRIBUTION, $source . '|' . $reference . '|' . $days );
 
 		if ( $remaining <= time() ) {
@@ -241,8 +208,7 @@ class Access_Writer implements Hookable {
 	}
 
 	/**
-	 * How many days one grant added to a record, or null when it added none
-	 * that were written down.
+	 * How many days one grant added to a record, or null when none were written down.
 	 *
 	 * @param int    $access_id The record.
 	 * @param string $source    What granted it.
@@ -251,8 +217,7 @@ class Access_Writer implements Hookable {
 	private function contribution( int $access_id, string $source, string $reference ): ?int {
 		$prefix = $source . '|' . $reference . '|';
 
-		// `false`, said out loud: a stacked record carries one row per payment
-		// and every one of them has to be read.
+		// `false` said out loud: a stacked record carries one row per payment.
 		foreach ( (array) get_post_meta( $access_id, self::META_CONTRIBUTION, false ) as $stored ) {
 			if ( is_string( $stored ) && str_starts_with( $stored, $prefix ) ) {
 				return (int) substr( $stored, strlen( $prefix ) );
@@ -265,14 +230,9 @@ class Access_Writer implements Hookable {
 	/**
 	 * Moves one record to expired.
 	 *
-	 * Two callers, one method: the daily sweep passes records already past
-	 * their date, where only the status moves; the expire revoke behaviour
-	 * passes live ones, where the date is pulled to now first — expiry stays
-	 * a date the resolver can trust either way.
+	 * Two callers, one method. The daily sweep passes records already past their date, where only the status moves. The expire revoke behaviour passes live ones, where the date is pulled to now first.
 	 *
-	 * A revoked record is refused. Revocation is a state with no way back but a
-	 * fresh grant, and expiry is a way back — an expired record can be dated
-	 * forward from Edit Access, which a revoked one cannot.
+	 * A revoked record is refused, because revocation has no way back but a fresh grant, while an expired record can be dated forward from Edit Access.
 	 *
 	 * Fires `gatedmedia_access_expired` with the record and its holder.
 	 *
@@ -296,12 +256,11 @@ class Access_Writer implements Hookable {
 	}
 
 	/**
-	 * Moves one record's expiry to a chosen date — the Edit Access screen.
+	 * Moves one record's expiry to a chosen date, for the Edit Access screen.
 	 *
-	 * The status follows the date: future or lifetime is active, past is
-	 * expired — the resolver reads dates, and the status only mirrors them.
-	 * A revoked record is refused: revocation is a state, and undoing one
-	 * is a fresh grant, not an edit.
+	 * The status follows the date: future or lifetime is active, past is expired. The resolver reads dates and the status only mirrors them.
+	 *
+	 * A revoked record is refused, because undoing one is a fresh grant rather than an edit.
 	 *
 	 * Fires `gatedmedia_access_rescheduled` with the record and its holder.
 	 *
@@ -330,13 +289,9 @@ class Access_Writer implements Hookable {
 	}
 
 	/**
-	 * Removes one record outright — the delete revoke behaviour. No history
-	 * is kept; that is the point of the behaviour (architecture.md §9).
+	 * Removes one record outright, for the delete revoke behaviour, keeping no history at all.
 	 *
-	 * Fires `gatedmedia_access_revoked` once the record is gone, so listeners
-	 * — the resolver's forget included — see the same withdrawal a revoke
-	 * announces. The record no longer resolves by then; the IDs are what a
-	 * listener gets.
+	 * Fires `gatedmedia_access_revoked` once the record is gone, so every listener sees the same withdrawal a revoke announces. The record no longer resolves by then, so a listener gets the IDs.
 	 *
 	 * @param int $access_id The record to remove.
 	 */
@@ -359,8 +314,7 @@ class Access_Writer implements Hookable {
 	/**
 	 * The shared shape of a withdrawal: guard, move the status, announce.
 	 *
-	 * Every announcement carries the same pair the grant action does — the
-	 * record and its holder.
+	 * Every announcement carries the same pair the grant action does: the record and its holder.
 	 *
 	 * @param int              $access_id The record to move.
 	 * @param string           $status    The status it moves to.
@@ -394,17 +348,15 @@ class Access_Writer implements Hookable {
 	/**
 	 * Extends a live timed record instead of writing a second one.
 	 *
-	 * A live lifetime record is left alone — there is no expiry to stack
-	 * onto — and the caller writes a fresh record instead.
+	 * A live lifetime record is left alone, because there is no expiry to stack onto, and the caller writes a fresh record instead.
 	 *
-	 * Fires `gatedmedia_access_rescheduled` when it extends one: the date
-	 * moved, and everything watching for that has to know.
+	 * Fires `gatedmedia_access_rescheduled` when it extends one, because the date moved.
 	 *
 	 * @param int    $user_id       Who holds it.
 	 * @param string $item_type     One of file, post, group.
 	 * @param string $item_id       The target's identifier.
 	 * @param int    $duration_days The time to add.
-	 * @param string $source        What granted it — the contribution's owner.
+	 * @param string $source        What granted it, the contribution's owner.
 	 * @param string $reference     The grant's identifier, '' for none.
 	 * @return int|null The extended record's ID, or null when nothing stacked.
 	 */
@@ -423,10 +375,7 @@ class Access_Writer implements Hookable {
 				gmdate( 'Y-m-d H:i:s', $expires_at + $duration_days * DAY_IN_SECONDS )
 			);
 
-			// The record now owes its time to more than one grant. Written as
-			// repeated meta rather than replacing the originals, so
-			// `find_by_reference()` and `records_for_reference()` answer for
-			// every payment on the record with no change to their queries.
+			// Repeated meta rather than replacing the originals, so the reference lookups answer for every payment on the record.
 			if ( '' !== $reference ) {
 				add_post_meta( $record_id, self::META_SOURCE, $source );
 				add_post_meta( $record_id, self::META_REFERENCE, $reference );
@@ -502,8 +451,7 @@ class Access_Writer implements Hookable {
 	}
 
 	/**
-	 * One definition per key (specification.md §1). Single, typed, never in
-	 * REST; the payload is checked as JSON and otherwise stored as-is.
+	 * One definition per key. Single, typed, never in REST, with the payload checked as JSON.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */

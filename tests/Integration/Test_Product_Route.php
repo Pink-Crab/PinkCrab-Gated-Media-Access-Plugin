@@ -16,9 +16,7 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * `/{segment}/{uuid}` is the only road in: the UUID resolves the single, a
- * slug or an ID answers 404 — never a redirect, which would be an oracle
- * for guessing the real URL — and permalinks answer the UUID form.
+ * `/{segment}/{uuid}` is the only road in: the UUID resolves the single, permalinks answer the UUID form, and a slug or an ID answers 404 rather than a redirect, which would tell a guesser the real URL.
  *
  * @group integration
  */
@@ -79,7 +77,7 @@ class Test_Product_Route extends WP_UnitTestCase {
 		$this->assertTrue( is_404() );
 	}
 
-	/** @testdox A draft's UUID is a 404 — drafts are invisible everywhere. */
+	/** @testdox A draft's UUID is a 404, because drafts are invisible everywhere. */
 	public function test_draft_uuid_is_404(): void {
 		wp_update_post(
 			array(
@@ -103,9 +101,7 @@ class Test_Product_Route extends WP_UnitTestCase {
 	/**
 	 * @testdox A bare ?p= naming a product leaves core nothing to redirect to.
 	 *
-	 * The 404 alone is not the guarantee. Core's redirect_canonical reads `p`
-	 * off a 404 and 301s to get_permalink(), which this class rewrites to the
-	 * UUID URL — so the id has to be gone from the query, not merely refused.
+	 * The 404 alone is not the guarantee: redirect_canonical reads `p` off a 404 and 301s to get_permalink(), which this class rewrites to the UUID URL, so the id has to be gone from the query.
 	 */
 	public function test_bare_id_access_leaves_no_id_to_redirect_to(): void {
 		$this->go_to( '/?p=' . $this->product_id );
@@ -147,7 +143,7 @@ class Test_Product_Route extends WP_UnitTestCase {
 		$this->assertSame( home_url( '/access/' . $this->uuid . '/' ), $permalink );
 	}
 
-	/** @testdox A second ask answers the same identity — minting settles on first ask. */
+	/** @testdox A second ask answers the same identity, because minting settles on the first. */
 	public function test_uuid_is_stable(): void {
 		$this->assertSame( $this->uuid, Uuid::ensure( 'post', $this->product_id ) );
 	}

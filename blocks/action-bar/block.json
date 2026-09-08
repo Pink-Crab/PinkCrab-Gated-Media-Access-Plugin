@@ -6,7 +6,7 @@
 	"title": "Pinned action bar",
 	"category": "widgets",
 	"icon": "align-full-width",
-	"description": "ui-spec.md §6.15. Narrow only, Product only. The one pinned element in the design.",
+	"description": "Narrow only, Product only. The one pinned element anywhere.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"label": {
@@ -34,7 +34,7 @@
 	"render": "file:./render.php",
 	"example": {
 		"attributes": {
-			"label": "Get access — £49.00"
+			"label": "Get access, £49.00"
 		}
 	}
 }

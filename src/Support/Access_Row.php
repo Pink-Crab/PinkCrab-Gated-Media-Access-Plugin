@@ -14,17 +14,11 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * A group, a post or a file turned into the keys the row block declares:
- * `title`, `meta`, `href`, `state`, `action_label`, `expiry_state`,
- * `expiry_label`.
+ * A group, a post or a file turned into the keys the row block declares: `title`, `meta`, `href`, `state`, `action_label`, `expiry_state`, `expiry_label`.
  *
- * Shared because two pages draw the same file. My Access lists it among what
- * a person holds, and Files lists it among what they can download — one row,
- * described once, or the two pages drift apart.
+ * Shared because two pages draw the same file: My Access lists it among what a person holds and Files lists it among what they can download, so it is described once or the two pages drift apart.
  *
- * Returns null when the thing no longer resolves: a deleted post, an
- * unpublished one, a group whose term has gone. A row for something that is
- * not there is worse than no row.
+ * Returns null when the thing no longer resolves, a deleted post, an unpublished one, a group whose term has gone, because a row for something that is not there is worse than no row.
  */
 class Access_Row {
 
@@ -56,8 +50,7 @@ class Access_Row {
 			'title'        => $term->name,
 			/* translators: %d: how many files and posts the group contains. */
 			'meta'         => sprintf( _n( '%d item', '%d items', $term->count, 'gated-media-access' ), $term->count ),
-			// The row opens the group: the count was only ever half the answer,
-			// and the contents are live, so they are a page rather than a list.
+			// The row opens the group, because the count was only half the answer and the contents are live, so they are a page rather than a list.
 			'href'         => Account_Url::detail( 'my-access', $uuid ),
 			'state'        => 'normal',
 			'action_label' => '',
@@ -76,8 +69,7 @@ class Access_Row {
 	public function post( int $post_id, ?int $expires_at ): ?array {
 		$post = get_post( $post_id );
 
-		// Gated counts as readable: the status is the whole point of the
-		// grant, and its permalink is already the UUID URL.
+		// Gated counts as readable: the status is the whole point of the grant, and its permalink is already the UUID URL.
 		if ( null === $post || ! in_array( $post->post_status, array( 'publish', Post_Types::STATUS_GATED ), true ) ) {
 			return null;
 		}
@@ -129,10 +121,9 @@ class Access_Row {
 	}
 
 	/**
-	 * Which of the Files view's type filters a file answers to (§6.11).
+	 * Which of the Files view's type filters a file answers to.
 	 *
-	 * Anything outside the list answers to none of them, so it shows only
-	 * under All — the filter names four kinds, not every kind.
+	 * Anything outside the list answers to none of them and shows only under All, because the filter names four kinds rather than every kind.
 	 *
 	 * @param string $mime The attachment's mime type.
 	 */

@@ -19,8 +19,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The list shows who has what from the record's own meta, offers no way to
- * edit one, and sorts where sorting is cheap.
+ * The list shows who has what from the record's own meta, offers no way to edit one, and sorts where sorting is cheap.
  *
  * @group integration
  */
@@ -39,8 +38,7 @@ class Test_Access_List extends WP_UnitTestCase {
 		$this->list   = new Access_List( $taxonomy );
 		$this->writer = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create(
@@ -52,7 +50,7 @@ class Test_Access_List extends WP_UnitTestCase {
 		);
 	}
 
-	/** @testdox The columns are ours, whole — nothing of core's default set survives. */
+	/** @testdox The columns are ours, whole, and nothing of core's default set survives. */
 	public function test_columns_are_replaced_whole(): void {
 		$columns = $this->list->columns( array( 'cb' => '<input type="checkbox" />', 'title' => 'Title', 'date' => 'Date' ) );
 
@@ -142,7 +140,7 @@ class Test_Access_List extends WP_UnitTestCase {
 		$access_id = $this->grant_for_post();
 		$actions   = array( 'edit' => 'Edit', 'trash' => 'Trash' );
 
-		// No user is signed in, so no capability — and no actions.
+		// No user is signed in, so no capability and no actions.
 		$this->assertSame( array(), $this->list->row_actions( $actions, get_post( $access_id ) ) );
 
 		$plain_post = self::factory()->post->create_and_get();
@@ -203,7 +201,7 @@ class Test_Access_List extends WP_UnitTestCase {
 		$this->assertSame( '', $other->get( 'meta_key' ) );
 	}
 
-	/** @testdox The All view names our statuses — an empty post_status would silently skip all three. */
+	/** @testdox The All view names our statuses, because an empty post_status would silently skip all three. */
 	public function test_shape_list_query_names_the_statuses_for_all(): void {
 		$query = new WP_Query();
 		$query->set( 'post_type', Post_Types::ACCESS );
@@ -217,7 +215,7 @@ class Test_Access_List extends WP_UnitTestCase {
 			$query->get( 'post_status' )
 		);
 
-		// An explicit view — Active, say — is left exactly as asked.
+		// An explicit view, Active for instance, is left exactly as asked.
 		$active = new WP_Query();
 		$active->set( 'post_type', Post_Types::ACCESS );
 		$active->set( 'post_status', Post_Types::STATUS_ACTIVE );
@@ -241,7 +239,7 @@ class Test_Access_List extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Grants through the writer — the only path that makes records.
+	 * Grants through the writer, the only path that makes records.
 	 *
 	 * @param string   $item_type     One of file, post, group.
 	 * @param string   $item_id       The target's identifier.

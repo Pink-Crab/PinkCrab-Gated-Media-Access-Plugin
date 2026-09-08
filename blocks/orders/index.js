@@ -1,5 +1,5 @@
 /**
- * Orders — ui-spec.md §7.3.
+ * Orders.
  *
  * Placeable: an administrator can put this section on a page of their own.
  */

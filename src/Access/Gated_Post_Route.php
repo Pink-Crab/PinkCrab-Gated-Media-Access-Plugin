@@ -19,21 +19,11 @@ use PinkCrab\Gated_Access\Support\Uuid;
 /**
  * The `gatedmedia_gated` status, and the addressing it implies.
  *
- * **It is a trigger, not a second access model.** Setting the status applies
- * the marker term, which is what "restricted" has meant since round 2 — so
- * `Post_Boundary` refuses it without access, `Resolver` decides who holds it,
- * and its absence from archives, search, REST and sitemaps all follow with no
- * new code. `post` has been a grantable item type since round 1; nothing about
- * granting changes.
+ * **A trigger, not a second access model.** Setting the status applies the marker term, so `Post_Boundary` refuses it, `Resolver` decides who holds it, and its absence from archives, search, REST and sitemaps all follow with no new code.
  *
- * What the status adds is **where the post lives**. An ordinary restricted post
- * keeps its permalink and is merely refused to people without access. One
- * carrying this status answers at `/{segment}/{uuid}` and nowhere else: its
- * slug, `?p=`, and any stale permalink all 404 — for holders too.
+ * What the status adds is **where the post lives**. An ordinary restricted post keeps its permalink and is merely refused. One carrying this status answers at `/{segment}/{uuid}` and nowhere else: its slug, `?p=` and any stale permalink all 404, for holders too.
  *
- * **404, never a redirect.** `Product_Route` settled this and the reasoning is
- * the same here: bouncing a slug request to the real UUID URL would turn the
- * slug into an oracle for discovering it.
+ * **404, never a redirect**, or the slug becomes an oracle for discovering the UUID URL.
  */
 class Gated_Post_Route implements Hookable {
 
@@ -77,9 +67,7 @@ class Gated_Post_Route implements Hookable {
 	/**
 	 * The URL segment gated content sits under.
 	 *
-	 * A filter rather than a setting, as `Account_Url::slug()` is: a site
-	 * changes this in code, and making it a setting invites someone to break
-	 * every link they have already shared.
+	 * A filter rather than a setting, like `Account_Url::slug()`: a site changes this in code, and a setting would invite someone to break every link they had already shared.
 	 */
 	public static function segment(): string {
 		$filtered = apply_filters( 'gatedmedia_gated_path', 'gated' );
@@ -124,15 +112,13 @@ class Gated_Post_Route implements Hookable {
 	}
 
 	/**
-	 * Turns a UUID into that post's own single query, and refuses every other
-	 * road to a gated post.
+	 * Turns a UUID into that post's own single query, and refuses every other road to a gated post.
 	 *
 	 * @param array<string, mixed> $query_vars The main request's vars.
 	 * @return array<string, mixed>
 	 */
 	public function route_request( array $query_vars ): array {
-		// The request filter runs on admin queries too; clobbering their vars
-		// would send the editor's list table somewhere else entirely.
+		// The request filter runs on admin queries too, and clobbering their vars would send the editor's list table elsewhere.
 		if ( is_admin() ) {
 			return $query_vars;
 		}
@@ -154,9 +140,7 @@ class Gated_Post_Route implements Hookable {
 			);
 		}
 
-		// Any other main query that would land on a gated post — its slug, a
-		// bare `?p=`, a stale pretty permalink — is refused. The via-flag
-		// exempts the query this filter itself built above.
+		// Every other way to a gated post is refused, except the query built above.
 		if ( '' === (string) ( $query_vars[ self::VIA_FLAG ] ?? '' ) && $this->names_gated_post( $query_vars ) ) {
 			return array( 'error' => '404' );
 		}
@@ -165,8 +149,7 @@ class Gated_Post_Route implements Hookable {
 	}
 
 	/**
-	 * A gated post's permalink is its UUID URL, so every link the site builds
-	 * — menus, related posts, an editor's own paste — points the only way in.
+	 * A gated post's permalink is its UUID URL, so every link the site builds points the only way in.
 	 *
 	 * @param string $link The permalink core built.
 	 * @param mixed  $post The post it is for.
@@ -184,10 +167,7 @@ class Gated_Post_Route implements Hookable {
 	/**
 	 * Setting the status marks the post restricted and mints its UUID.
 	 *
-	 * Removing the status leaves the marker alone, deliberately — the same
-	 * asymmetry `Restriction` documents. Unrestricting is a manual act,
-	 * because doing it automatically would silently republish content the
-	 * moment somebody changed a dropdown.
+	 * Removing the status leaves the marker alone, the same asymmetry `Restriction` documents. Unrestricting stays a manual act, or changing a dropdown would silently republish content.
 	 *
 	 * @param string  $new_status The status being moved to.
 	 * @param string  $old_status The status being moved from.
@@ -248,8 +228,7 @@ class Gated_Post_Route implements Hookable {
 	 * @param array<string, mixed> $query_vars The main request's vars.
 	 */
 	private function names_gated_post( array $query_vars ): bool {
-		// Every pretty permalink on the site reaches here, so a site with
-		// nothing gated must not pay a lookup to find that out again.
+		// Every pretty permalink on the site reaches here, so a site with nothing gated must not pay a lookup to find that out again.
 		if ( ! $this->any_gated_post() ) {
 			return false;
 		}
@@ -311,7 +290,7 @@ class Gated_Post_Route implements Hookable {
 	}
 
 	/**
-	 * Flushes only when the rule itself changed — version or segment.
+	 * Flushes only when the rule changed, by version or segment.
 	 */
 	private function flush_once(): void {
 		$stamp = self::REWRITE_VERSION . ':' . self::segment();

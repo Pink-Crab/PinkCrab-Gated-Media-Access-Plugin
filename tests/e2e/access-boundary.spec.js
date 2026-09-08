@@ -1,11 +1,9 @@
 /**
  * The access boundary, end to end.
  *
- * What integration tests cannot see: that a refused post answers over HTTP
- * with a genuine 404 and leaks nothing of itself, that a held one renders,
- * and that the protected-file URL serves its real bytes to the holder while
- * everyone else gets the substitute image. Both viewport projects run all of
- * it, so the boundary holds on either side of 782px.
+ * What integration tests cannot see: a refused post answers over HTTP with a genuine 404 and leaks nothing of itself, a held one renders, and the protected-file URL serves its real bytes to the holder while everyone else gets the substitute image.
+ *
+ * Both viewport projects run all of it, so the boundary holds on either side of 782px.
  */
 
 const { test, expect } = require( '@playwright/test' );
@@ -83,7 +81,7 @@ test.describe( 'signed in as the granted user', () => {
 		expect( held.status() ).toBe( 200 );
 		expect( await held.text() ).toContain( 'E2E protected file contents' );
 
-		// The bare `request` fixture carries no cookies — a stranger's view.
+		// The bare `request` fixture carries no cookies, so this is a stranger's view.
 		const refused = await request.get( href );
 		expect( refused.status() ).toBe( 200 );
 		expect( refused.headers()[ 'content-type' ] ).toContain( 'image/gif' );

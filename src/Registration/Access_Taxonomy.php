@@ -15,22 +15,11 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 
 /**
- * One taxonomy for both jobs (architecture.md §6): it carries a term marking
- * content as restricted, and one term per group.
+ * One taxonomy for both jobs: a term marking content as restricted, and one term per group.
  *
- * Named `gatedmedia_access`, not the specification's `gatedmedia_gate` — a
- * naming decision taken in review: "access" and "groups" are the terms, never
- * "gate". It shares the string with the access post type deliberately; post
- * types and taxonomies live in separate registries, and with `query_var` and
- * `rewrite` off on both sides nothing collides.
+ * It shares its name with the access post type deliberately. Separate registries, and `query_var` and `rewrite` are off on both sides, so nothing collides.
  *
- * This class registers the taxonomy only. No terms are created, no group
- * identity is minted, and neither of the two `set_object_terms` behaviours —
- * a group term applying the restricted marker, a group term on an attachment
- * calling `rmfa_set_file_as_protected()` — is wired here. Those belong to the
- * restriction step, which is where group identity is settled too (decided:
- * human slug, UUID in term meta, because the core taxonomy screens write
- * `sanitize_title( $name )` as the slug and a UUID there is unreadable).
+ * Registration only. Terms, group identity and the two `set_object_terms` behaviours all belong to `Restriction`.
  */
 class Access_Taxonomy implements Hookable {
 
@@ -40,9 +29,7 @@ class Access_Taxonomy implements Hookable {
 	/**
 	 * Term meta: the group's stable identity.
 	 *
-	 * Access records point at this, not the term id or slug, so renaming or
-	 * re-slugging a group never orphans anyone's access. The key is the one
-	 * `Support\Uuid` minter's — products carry the same one on post meta.
+	 * Access records point at this rather than the term id or slug, so renaming a group never orphans anyone's access.
 	 */
 	public const UUID_META = \PinkCrab\Gated_Access\Support\Uuid::META;
 
@@ -53,18 +40,15 @@ class Access_Taxonomy implements Hookable {
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'init', array( $this, 'register' ) );
-		// created_{$taxonomy} — fires for terms made anywhere, including the
-		// core screens, which is what keeps this UI-free.
+		// created_{$taxonomy} fires for terms made anywhere, core screens included.
 		$loader->action( 'created_' . self::TAXONOMY, array( $this, 'mint_uuid' ) );
-		// Groups are created on the Groups screens only — not typed into the
-		// editors' free-tagging fields. Assigning existing groups stays.
+		// Groups are created on the Groups screens only, never typed into an editor.
 		$loader->filter( 'pre_insert_term', array( $this, 'forbid_editor_creation' ), 2 );
 		$loader->filter( 'rest_request_before_callbacks', array( $this, 'forbid_rest_creation' ), 3 );
 	}
 
 	/**
-	 * The restrictable post types — what the taxonomy registers against, and
-	 * where the item-side admin surfaces appear.
+	 * The restrictable post types, and where the item-side admin surfaces appear.
 	 *
 	 * @return array<int, string>
 	 */
@@ -90,8 +74,7 @@ class Access_Taxonomy implements Hookable {
 			self::TAXONOMY,
 			$object_types,
 			array(
-				// "Groups" is the docs' name for these screens — specification.md
-				// §2 and the architecture.md admin table both use it.
+				// "Groups" is the name these screens go by everywhere.
 				'labels'             => array(
 					'name'          => __( 'Groups', 'gated-media-access' ),
 					'singular_name' => __( 'Group', 'gated-media-access' ),
@@ -100,19 +83,10 @@ class Access_Taxonomy implements Hookable {
 					'add_new_item'  => __( 'Add New Group', 'gated-media-access' ),
 				),
 				'public'             => false,
-				// The UI stays on so core's term editing still exists for code
-				// that expects it, but it gets no menu of its own: `show_ui`
-				// with no `show_in_menu` hangs a "Groups" entry under *every*
-				// object type — Posts, Pages and Media, three doors to one
-				// thing, none of them under this plugin's menu. `Groups_Page`
-				// is the door now. A group is not a term in the ordinary
-				// sense and is not administered as one.
+				// Core's term editing stays, but with no menu: `Groups_Page` is the one door.
 				'show_ui'            => true,
 				'show_in_menu'       => false,
-				// Round 4: the item's Access metabox is the assignment
-				// surface, so core's free-tagging fields all switch off —
-				// the editor panel (REST), the classic tag box, and the
-				// quick/bulk edit field. The Groups screens stay.
+				// The item's Access metabox is the assignment surface, so free-tagging is off.
 				'show_in_rest'       => false,
 				'meta_box_cb'        => false,
 				'show_in_quick_edit' => false,
@@ -132,11 +106,7 @@ class Access_Taxonomy implements Hookable {
 	/**
 	 * Refuses a group typed into an editor's free-tagging field.
 	 *
-	 * Non-hierarchical taxonomies create unknown names on save — quick edit,
-	 * bulk edit and the classic editor all pass through here. A group is a
-	 * deliberate thing with an identity; it is made on the Groups screen, not
-	 * as a side effect of saving a post. Code calling `wp_insert_term()` —
-	 * the restricted marker included — is untouched.
+	 * Non-hierarchical taxonomies create unknown names on save, so quick edit, bulk edit and the classic editor all pass through here. Code calling `wp_insert_term()` is untouched.
 	 *
 	 * @param string|WP_Error $term     The prospective term name, or an earlier refusal.
 	 * @param string          $taxonomy The taxonomy it would land in.
@@ -161,12 +131,11 @@ class Access_Taxonomy implements Hookable {
 	}
 
 	/**
-	 * Refuses group creation over REST — the block editor's "add new" path.
+	 * Refuses group creation over REST.
 	 *
-	 * A POST to the terms collection is a create; the panel assigning
-	 * existing groups goes through the posts endpoint and passes untouched.
-	 * (Not `rest_pre_insert_{taxonomy}`: the terms controller, unlike the
-	 * posts one, never error-checks that filter's return.)
+	 * Dormant as registered, since `show_in_rest` is false and core creates no `/wp/v2/gatedmedia_access` route to POST at. It stands so turning `show_in_rest` on cannot quietly open a create path.
+	 *
+	 * Not `rest_pre_insert_{taxonomy}`: the terms controller never error-checks that filter's return.
 	 *
 	 * @param mixed                $response The dispatch result so far.
 	 * @param array<string, mixed> $handler  The matched route handler.
@@ -197,8 +166,7 @@ class Access_Taxonomy implements Hookable {
 	/**
 	 * The term's UUID, minting one if it has none.
 	 *
-	 * The backfill covers terms created before the hook existed, or inserted
-	 * directly — identity is settled the first time anything asks.
+	 * The backfill covers terms created before the hook existed, or inserted directly, so identity is settled the first time anything asks.
 	 *
 	 * @param int $term_id The term.
 	 */
@@ -209,15 +177,9 @@ class Access_Taxonomy implements Hookable {
 	/**
 	 * What a group holds right now.
 	 *
-	 * Groups are live (architecture.md §1) — an administrator moves things in
-	 * and out, and everyone holding the group sees whatever is in it today. So
-	 * this is a query rather than anything stored.
+	 * Groups are live, so this is a query rather than anything stored.
 	 *
-	 * **Statuses are named explicitly.** The taxonomy covers attachments as
-	 * well as posts and pages, and an attachment's status is `inherit`, not
-	 * `publish`. Leaving the default would silently drop every file from a
-	 * group while the term's own count still included it — a group would say
-	 * twelve items and list five.
+	 * **Statuses are named explicitly.** An attachment's status is `inherit`, and the default would silently drop every file from a group while the term's count still included it.
 	 *
 	 * @param string $uuid The group.
 	 * @return array<int, int> Post IDs, newest first.
@@ -232,8 +194,7 @@ class Access_Taxonomy implements Hookable {
 		$found = get_posts(
 			array(
 				'post_type'      => self::object_types(),
-				// Gated posts belong in a group's contents: the status is what
-				// the group is granted for, not a reason to drop them.
+				// Gated posts belong in a group's contents, not dropped for their status.
 				'post_status'    => array( 'publish', 'inherit', Post_Types::STATUS_GATED ),
 				'posts_per_page' => -1,
 				'fields'         => 'ids',

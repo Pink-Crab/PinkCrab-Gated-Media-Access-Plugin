@@ -13,13 +13,9 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 
 /**
- * §7.7 is one view in four states, so it is one URL with the state on it. Sign
- * in is the bare URL — the value `signin` must never appear in a link, or the
- * canonical address for signing in would have two spellings.
+ * One view in four states, so one URL with the state on it: sign in is the bare URL, and the value `signin` must never appear in a link or that address has two spellings.
  *
- * The destination is the part with teeth: it is carried through sign-up so a
- * buyer lands back on the product they wanted, and it arrives from a form, so
- * it is encoded on the way in and validated on the way out.
+ * The destination is the part with teeth: it is carried through sign-up so a buyer lands back on the product they wanted, and it arrives from a form, so it is encoded in and validated out.
  *
  * @group integration
  */
@@ -45,8 +41,7 @@ class Test_Auth_Url extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'state=signup', Auth_Url::signup() );
 		$this->assertStringContainsString( 'state=reset', Auth_Url::reset() );
 
-		// Sent is the reset state plus its flag, so a reload of it cannot
-		// re-send the email.
+		// Sent is the reset state plus its flag, so reloading it cannot re-send the email.
 		$sent = Auth_Url::sent();
 		$this->assertStringContainsString( 'state=reset', $sent );
 		$this->assertStringContainsString( 'sent=1', $sent );
@@ -59,8 +54,7 @@ class Test_Auth_Url extends WP_UnitTestCase {
 		foreach ( array( Auth_Url::signin( $product ), Auth_Url::signup( $product ), Auth_Url::reset( $product ) ) as $url ) {
 			$this->assertStringContainsString( 'redirect_to=', $url );
 
-			// Read back the way the page will read it: parsed out of the query
-			// string, which is what `wp_validate_redirect()` is handed.
+			// Read back the way the page reads it: out of the query string, which is what `wp_validate_redirect()` is handed.
 			$this->assertSame( $product, $this->redirect_in( $url ) );
 		}
 	}
@@ -69,8 +63,7 @@ class Test_Auth_Url extends WP_UnitTestCase {
 	public function test_a_destination_keeps_its_own_query_string(): void {
 		$product = home_url( '/access/abc/?gatedmedia_coupon=SAVE20' );
 
-		// The destination is one encoded value, so its own `?` cannot be read
-		// as an argument of the sign-in URL itself.
+		// The destination is one encoded value, so its own `?` cannot be read as an argument of the sign-in URL.
 		$this->assertSame( $product, $this->redirect_in( Auth_Url::signin( $product ) ) );
 	}
 

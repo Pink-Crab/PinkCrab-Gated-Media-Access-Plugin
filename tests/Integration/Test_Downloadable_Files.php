@@ -19,10 +19,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Access_Row;
 
 /**
- * Past access is history, and history must not keep reading the present. A
- * lapsed group record used to be expanded through the group's membership as
- * it stands today, so files added after the access ran out were listed to
- * someone the resolver would refuse (§28).
+ * Past access is history, and history must not keep reading the present: a lapsed group record was expanded through the group's membership as it stands today, so files added after the access ran out were listed to someone `Resolver` would refuse.
  *
  * @group integration
  */

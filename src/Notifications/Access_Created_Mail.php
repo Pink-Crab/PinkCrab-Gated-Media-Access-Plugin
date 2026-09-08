@@ -18,16 +18,11 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * Tells the holder when access is created, whichever route created it —
- * a listener on the writer's `gatedmedia_access_granted`, reading only
- * (spec §5: notifications hang off the writer's actions and never write).
+ * Tells the holder when access is created, whichever route created it: a listener on the writer's `gatedmedia_access_granted` that reads only, because notifications hang off the writer's actions and never write.
  *
- * A product purchase grants one record per item in the same request, so
- * grants queue per holder and one email goes out on shutdown with the item
- * labels joined — never one email per record.
+ * A product purchase grants one record per item in the same request, so grants queue per holder and one email goes out on shutdown with the item labels joined, never one email per record.
  *
- * Invite-sourced grants are skipped: the invite email is itself the
- * "you have access" message, and two emails for one act is noise.
+ * Invite-sourced grants are skipped, because the invite email is itself the "you have access" message.
  */
 class Access_Created_Mail implements Hookable {
 
@@ -39,8 +34,7 @@ class Access_Created_Mail implements Hookable {
 	private array $queued = array();
 
 	/**
-	 * Labels resolve like the admin list's: groups through the taxonomy,
-	 * everything else by title.
+	 * Labels resolve as the admin list's do: groups through the taxonomy, everything else by title.
 	 *
 	 * @param Notification_Sender $sender   The one sender.
 	 * @param Access_Taxonomy     $taxonomy Turns a group UUID back into its term.
@@ -74,8 +68,7 @@ class Access_Created_Mail implements Hookable {
 			return;
 		}
 
-		// Invite grants announce themselves through the invite email —
-		// source constant owned by Products\Invites, this round's listener.
+		// Invite grants announce themselves through the invite email.
 		if ( 'invite' === (string) get_post_meta( $access_id, Access_Writer::META_SOURCE, true ) ) {
 			return;
 		}
@@ -124,9 +117,7 @@ class Access_Created_Mail implements Hookable {
 	}
 
 	/**
-	 * The {expires} value across the queued records: 'never' when every
-	 * record is lifetime, otherwise the soonest date — conservative and
-	 * always true.
+	 * The {expires} value across the queued records: 'never' when every record is lifetime, otherwise the soonest date.
 	 *
 	 * @param array<int, int> $access_ids The holder's records this request.
 	 */

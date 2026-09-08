@@ -19,38 +19,27 @@ use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * The order of operations is architecture §7's whole point: the payment row
- * is created *before* the person leaves for Stripe — so the confirmation
- * has something to attach to and the return page something to poll — and
- * **access lands on Stripe's confirmation and nowhere else**. Nothing here
- * grants for a paid product; `Stripe_Webhook` does, when the event arrives.
+ * The order of operations is the whole point: the payment row is created *before* the person leaves for Stripe, so the confirmation has something to attach to and the return page something to poll.
  *
- * A free product involves Stripe not at all: direct Access, no payment row
- * (source `free`). A priced product a coupon takes to zero is different —
- * the coupon is spent exactly when a payment completes, so it gets its row,
- * completed on the spot, and grants immediately (source `stripe`, reference
- * the payment uuid, like every payment-backed grant).
+ * **Access lands on Stripe's confirmation and nowhere else.** Nothing here grants for a paid product, and `Stripe_Webhook` does it when the event arrives.
  *
- * Eligibility is the allow-list plus the `gatedmedia_product_eligibility`
- * filter. Unlisted never blocks a purchase — visibility restricts how the
- * product is found, not who may buy (architecture §7).
+ * A free product involves Stripe not at all: direct access, no payment row, source `free`. A priced product a coupon takes to zero is different, because the coupon is spent exactly when a payment completes, so it gets its row, completed on the spot, and grants immediately.
+ *
+ * Eligibility is the allow-list plus the `gatedmedia_product_eligibility` filter. Unlisted never blocks a purchase, because visibility restricts how the product is found, not who may buy.
  *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
- * @SuppressWarnings("PHPMD.CouplingBetweenObjects") The one place the payment
- * row, the grants, the gateway, the coupons and what the claimant already
- * holds all have to meet.
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects") The one place the payment row, the grants, the gateway, the coupons and what the claimant already holds all have to meet.
  */
 class Checkout {
 
 	/** The source on payment-backed grants; a refund finds them by it. */
 	public const SOURCE_STRIPE = 'stripe';
 
-	/** The source on free-product grants — no payment row behind them. */
+	/** The source on free-product grants, which have no payment row behind them. */
 	public const SOURCE_FREE = 'free';
 
 	/**
-	 * The row, the grants and the gateway — nothing else writes any of the
-	 * three.
+	 * The row, the grants and the gateway. Nothing else writes any of the three.
 	 *
 	 * @param Payment_Store  $store    The payments table's owner.
 	 * @param Access_Writer  $writer   The one writer of access records.
@@ -58,8 +47,7 @@ class Checkout {
 	 * @param Resolver       $resolver What the claimant can already see.
 	 */
 	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway, private Resolver $resolver ) {
-		// Built here rather than injected: they are calculations over the same
-		// store, with no lifecycle of their own and nobody else resolving them.
+		// Built here rather than injected: they are calculations over the same store, with no lifecycle of their own and nobody else resolving them.
 		$this->holds   = new Coupon_Hold();
 		$this->coupons = new Coupon_Pricing( $store, $this->holds );
 	}
@@ -79,8 +67,7 @@ class Checkout {
 	private Coupon_Hold $holds;
 
 	/**
-	 * Takes one person buying one product to the right place: straight to
-	 * access for free, to Stripe's hosted page for priced.
+	 * Takes one person buying one product to the right place: straight to access for free, to Stripe's hosted page for priced.
 	 *
 	 * @param int    $product_id  The product.
 	 * @param int    $user_id     The buyer.
@@ -110,11 +97,9 @@ class Checkout {
 	/**
 	 * What a coupon would take off, without committing to anything.
 	 *
-	 * §6.14's flow is apply, *see the discount*, then buy. This answers the
-	 * middle step and writes nothing: no payment row, no coupon spent, no
-	 * Stripe. The same `valid_coupon()` runs again inside `purchase()`, so a
-	 * coupon that expires or hits its limit between the two is refused there —
-	 * what this returns is never what a price is charged on.
+	 * The flow is apply, *see the discount*, then buy, and this answers the middle step while writing nothing: no payment row, no coupon spent, no Stripe.
+	 *
+	 * The same `valid_coupon()` runs again inside `purchase()`, so a coupon that expires or hits its limit between the two is refused there, and what this returns is never what a price is charged on.
 	 *
 	 * @param int    $product_id The product being looked at.
 	 * @param int    $user_id    Who is looking, 0 signed out.
@@ -132,9 +117,7 @@ class Checkout {
 
 		$product = get_post( $product_id );
 
-		// A free product has nothing to discount, and a coupon cannot be
-		// judged for somebody who is not signed in — per-user limits need a
-		// user. Both answer "no coupon" rather than an error.
+		// Nothing to discount, or nobody to judge per-user limits against.
 		if ( '' === $code || 0 === $price || 0 === $user_id
 			|| ! $product instanceof WP_Post || Post_Types::PRODUCT !== $product->post_type ) {
 			return $none;
@@ -182,8 +165,7 @@ class Checkout {
 	}
 
 	/**
-	 * Whether this person may buy this product: on the allow-list when one
-	 * exists, and whatever `gatedmedia_product_eligibility` decides on top.
+	 * Whether this person may buy this product: on the allow-list when one exists, and whatever `gatedmedia_product_eligibility` decides on top.
 	 *
 	 * @param WP_Post $product The product.
 	 * @param int     $user_id The would-be buyer.
@@ -199,8 +181,7 @@ class Checkout {
 		}
 
 		/**
-		 * Filters whether a user may buy a product — a site can gate on a
-		 * membership level or a CRM flag we know nothing about.
+		 * Filters whether a user may buy a product, so a site can gate on a membership level or a CRM flag we know nothing about.
 		 *
 		 * @param bool $eligible   The allow-list's answer.
 		 * @param int  $product_id The product.
@@ -210,17 +191,11 @@ class Checkout {
 	}
 
 	/**
-	 * A free product: direct Access, no payment row, Stripe uninvolved.
-	 * Free is not a zero-value order (architecture §7).
+	 * A free product: direct access, no payment row, Stripe uninvolved, because free is not a zero-value order.
 	 *
-	 * Nothing caps how often a free product may be claimed — only still
-	 * holding it does. Each claim carries its own reference, because the old
-	 * fixed one matched the claimant's own expired record and the writer's
-	 * retry guard answered with it: a free product that ran out could never be
-	 * claimed again, and the Join button did nothing for ever.
+	 * Nothing caps how often a free product may be claimed except still holding it, and each claim carries its own reference, or the writer's retry guard would match the claimant's own expired record and a lapsed free product could never be claimed again.
 	 *
-	 * Only what they cannot already see is claimed, so a second press stacks
-	 * no days onto what is still live.
+	 * Only what they cannot already see is claimed, so a second press stacks no days onto what is still live.
 	 *
 	 * @param WP_Post $product The free product.
 	 * @param int     $user_id The claimant.
@@ -264,9 +239,7 @@ class Checkout {
 	}
 
 	/**
-	 * A priced product: the pending row first, then the hosted session —
-	 * unless a coupon took it to zero, where the row completes on the spot
-	 * (the coupon is spent at completion, so the completion must exist).
+	 * A priced product: the pending row first, then the hosted session, unless a coupon took it to zero, where the row completes on the spot because the coupon is spent at completion.
 	 *
 	 * @param WP_Post      $product  The product.
 	 * @param int          $user_id  The buyer.
@@ -287,9 +260,7 @@ class Checkout {
 			return new WP_Error( 'gatedmedia_payment_row', __( 'The payment could not be started.', 'gated-media-access' ) );
 		}
 
-		// The row is the hold's name, so the reservation comes after it. A
-		// buyer who loses the race has taken nothing and is told the same
-		// thing the limit check tells everybody else.
+		// The row is the hold's name, so the reservation comes after it, and a buyer who loses the race has taken nothing and is told what the limit check tells everybody else.
 		if ( null !== $coupon && ! $this->reserve( $coupon, $payment ) ) {
 			$this->store->mark_failed( $payment->uuid );
 
@@ -302,15 +273,13 @@ class Checkout {
 	}
 
 	/**
-	 * A coupon took the total to zero: the row completes here rather than on
-	 * a confirmation that will never arrive, and grants on the spot.
+	 * A coupon took the total to zero: the row completes here rather than on a confirmation that will never arrive, and grants on the spot.
 	 *
 	 * @param Payment $payment The pending row.
 	 * @return array{redirect: string}|WP_Error
 	 */
 	private function complete_now( Payment $payment ): array|WP_Error {
-		// mark_complete() answers whether we moved the row, and only the
-		// mover grants — the same rule the webhook follows.
+		// Only the caller that moved the row grants, as the webhook does.
 		if ( ! $this->store->mark_complete( $payment->uuid ) ) {
 			return new WP_Error( 'gatedmedia_payment_row', __( 'The payment could not be completed.', 'gated-media-access' ) );
 		}
@@ -321,8 +290,7 @@ class Checkout {
 			$this->store->record_grant_error( $payment->uuid, $failed->get_error_message() );
 		}
 
-		// The completion counts from here, so the reservation standing in for
-		// it is given back.
+		// The completion counts from here, so the reservation standing in for it is given back.
 		$this->release_hold( $payment );
 
 		/** This hook is documented in Stripe_Webhook. */
@@ -332,9 +300,7 @@ class Checkout {
 	}
 
 	/**
-	 * The hosted session, and the buyer's road to it. A gateway that refuses
-	 * fails the row and gives back whatever it was holding — nothing was
-	 * charged and nobody is going to Stripe.
+	 * The hosted session, and the buyer's road to it: a gateway that refuses fails the row and gives back whatever it was holding, since nothing was charged and nobody is going to Stripe.
 	 *
 	 * @param WP_Post $product The product being bought.
 	 * @param Payment $payment The pending row.
@@ -405,9 +371,7 @@ class Checkout {
 	}
 
 	/**
-	 * Gives back whatever this payment reserved — once it has completed, once
-	 * it has failed, or once Stripe says its session expired. A payment with
-	 * no coupon reserved nothing and this does nothing.
+	 * Gives back whatever this payment reserved, once it has completed, failed or had its Stripe session expire. A payment with no coupon reserved nothing and this does nothing.
 	 *
 	 * @param Payment $payment The payment that is no longer in flight.
 	 */
@@ -416,15 +380,11 @@ class Checkout {
 	}
 
 	/**
-	 * One Access record per snapshot row — how payment-backed access lands,
-	 * on completion. The snapshot, not the product's live items: groups are
-	 * live and the contents at purchase are not recoverable later (spec §3).
-	 * Duration still reads from the product — a duration is a promise about
-	 * time, not contents.
+	 * One access record per snapshot row, which is how payment-backed access lands on completion.
 	 *
-	 * Every item that can be granted is, and the failures come back together:
-	 * a snapshot item deleted since purchase must not silently cost the buyer
-	 * the rest of what they paid for.
+	 * The snapshot, not the product's live items, because groups are live and the contents at purchase are not recoverable later, while duration still reads from the product, a duration being a promise about time rather than contents.
+	 *
+	 * Every item that can be granted is, and the failures come back together, because a snapshot item deleted since purchase must not silently cost the buyer the rest of what they paid for.
 	 *
 	 * @param Payment $payment The completed payment.
 	 * @return WP_Error|null Null when every item landed.
@@ -440,9 +400,7 @@ class Checkout {
 	}
 
 	/**
-	 * The product's duration as the writer wants it: null for lifetime, or
-	 * the day count. `Product_Meta::sanitize_duration()` normalises on write
-	 * and the key defaults to lifetime, so nothing falsey reaches here.
+	 * The product's duration as the writer wants it: null for lifetime, or the day count. `Product_Meta::sanitize_duration()` normalises on write and the key defaults to lifetime, so nothing falsey reaches here.
 	 *
 	 * @param int $product_id The product being granted from.
 	 */
@@ -453,8 +411,7 @@ class Checkout {
 	}
 
 	/**
-	 * One Access record per product item, all the same source and
-	 * reference — the writer's guard covers each item separately.
+	 * One access record per product item, all under the same source and reference, because the writer's guard covers each item separately.
 	 *
 	 * @param WP_Post $product   The product whose items grant.
 	 * @param int     $user_id   Who receives.
@@ -473,9 +430,7 @@ class Checkout {
 	}
 
 	/**
-	 * The grant loop both paths share: every `type:id` row is attempted, and
-	 * whatever the writer refused comes back as one error carrying each
-	 * refusal. Discarding these is how a buyer paid and received nothing.
+	 * The grant loop both paths share: every `type:id` row is attempted and whatever the writer refused comes back as one error carrying each refusal, because discarding these is how a buyer paid and received nothing.
 	 *
 	 * @param array<int, string> $items     The `type:id` rows.
 	 * @param int                $user_id   Who receives.
@@ -506,17 +461,14 @@ class Checkout {
 
 
 	/**
-	 * Where the buyer lands after Stripe: their own order, marked as the one
-	 * just placed. Reads only — access is granted on the confirmation and
-	 * nowhere else. Filterable, so a site can send them somewhere of its own.
+	 * Where the buyer lands after Stripe: their own order, marked as the one just placed.
+	 *
+	 * Reads only, because access is granted on the confirmation and nowhere else, and filterable, so a site can send them somewhere of its own.
 	 *
 	 * @param Payment $payment The payment they will be asking about.
 	 */
 	private function return_url( Payment $payment ): string {
-		// The order itself, flagged as just placed. §7.8's states are drawn on
-		// that page by the `payment-status` block, so there is no return page
-		// of its own — and the account area already sends a buyer whose session
-		// lapsed through wp-login and back, which a standalone page could not.
+		// The order itself, flagged as just placed. The `payment-status` block draws the states there, so there is no return page of its own.
 		$url = add_query_arg(
 			Order_History::NEW_ORDER,
 			$payment->uuid,

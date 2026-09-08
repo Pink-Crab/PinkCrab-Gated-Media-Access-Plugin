@@ -22,15 +22,11 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * POST `/gated-media-access/v1/access` (spec §4): they paid elsewhere, and
- * the sending system says so. Application-password authentication with the
- * give-access capability; the payload names a person by email — found or
- * created, profile fields filled the same as every other route (§1c) — a
- * target, a duration, and the sender's source and reference, which are the
- * retry guard: a delivery repeated writes nothing.
+ * POST `/gated-media-access/v1/access`: they paid elsewhere and the sending system says so, over application-password authentication with the give-access capability.
  *
- * A `product` target expands to its items, one record each, all carrying
- * the same source and reference. Every write goes through `Access_Writer`.
+ * The payload names a person by email, found or created with profile fields filled as every other route fills them, plus a target, a duration, and the sender's source and reference, which are the retry guard, so a repeated delivery writes nothing.
+ *
+ * A `product` target expands to its items, one record each, all carrying the same source and reference, and every write goes through `Access_Writer`.
  */
 class Access_Grant_Route implements Hookable {
 
@@ -55,8 +51,7 @@ class Access_Grant_Route implements Hookable {
 	}
 
 	/**
-	 * Registers the grant endpoint behind the give-access capability —
-	 * application passwords ride core's REST authentication.
+	 * Registers the grant endpoint behind the give-access capability, with application passwords riding core's REST authentication.
 	 */
 	public function register_route(): void {
 		register_rest_route(
@@ -71,8 +66,7 @@ class Access_Grant_Route implements Hookable {
 	}
 
 	/**
-	 * One delivery: validate, find or create the person, grant per target,
-	 * and announce the outcome either way.
+	 * One delivery: validate, find or create the person, grant per target, and announce the outcome either way.
 	 *
 	 * @param WP_REST_Request $request The delivery.
 	 * @return WP_REST_Response|WP_Error
@@ -148,8 +142,7 @@ class Access_Grant_Route implements Hookable {
 	}
 
 	/**
-	 * The person the email names, created when unknown — indistinguishable
-	 * afterwards from someone who signed up (§1c).
+	 * The person the email names, created when unknown and indistinguishable afterwards from someone who signed up.
 	 *
 	 * @param string $email The address.
 	 */
@@ -178,9 +171,7 @@ class Access_Grant_Route implements Hookable {
 	}
 
 	/**
-	 * The optional profile fields, stored where every route stores them:
-	 * name split across core's first and last, the rest as gatedmedia_ user
-	 * meta matching Profile_Writer::fields().
+	 * The optional profile fields, stored where every route stores them: the name split across core's first and last, the rest as gatedmedia_ user meta matching `Profile_Writer::fields()`.
 	 *
 	 * @param WP_User              $user    The person.
 	 * @param array<string, mixed> $payload The delivery's body.
@@ -213,8 +204,7 @@ class Access_Grant_Route implements Hookable {
 	}
 
 	/**
-	 * The target as grants: a product expands to its items, one record
-	 * each, same source and reference; anything else is one record.
+	 * The target as grants: a product expands to its items, one record each under the same source and reference, and anything else is one record.
 	 *
 	 * @param WP_User              $user    The person.
 	 * @param array<string, mixed> $payload The delivery's body.
@@ -294,7 +284,7 @@ class Access_Grant_Route implements Hookable {
 	}
 
 	/**
-	 * Every delivery is announced, accepted or not (spec §5).
+	 * Every delivery is announced, accepted or not.
 	 *
 	 * @param array<string, mixed> $payload  The delivery's body.
 	 * @param string               $source   The sending system, as claimed.

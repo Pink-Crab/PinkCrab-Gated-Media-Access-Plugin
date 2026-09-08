@@ -1,22 +1,14 @@
 <?php
 /**
- * §6.4 Notice — a bordered, tinted box.
+ * Notice: a bordered, tinted box.
  *
- * §8 settled the fill: the desktop component sheet drew notices border-only,
- * but a border-only notice in a page already built from hairlines does not
- * read as a distinct thing, so it is tinted.
+ * Tinted rather than border-only, because a border-only box in a page already built from hairlines does not read as a distinct thing.
  *
- * Three kinds, each with its own icon, border and fill; the error kind also
- * colours its text.
+ * Three kinds, each with its own icon, border and fill. The error kind also colours its text.
  *
- * **The dismiss button is rendered only when the notice is dismissible**, and
- * that is load-bearing rather than tidy: §7.5's forced-completion prompt is
- * defined by being the notice you cannot dismiss. The JS attaches to whatever
- * close buttons exist, so an undismissible notice is undismissible by having
- * no button rather than by a flag something could get wrong.
+ * **The dismiss button is rendered only when the notice is dismissible**, and that is load-bearing: forced profile completion is defined by being the notice you cannot dismiss. The JS attaches to whatever close buttons exist, so an undismissible notice is undismissible by having no button rather than by a flag.
  *
- * Inner blocks fill the body where there is one — a notice may contain a text
- * link — and the `text` attribute is the shorthand for the common case.
+ * Inner blocks fill the body where a notice contains something like a text link, and the `text` attribute is the shorthand for the common case.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -38,7 +30,7 @@ if ( '' === $gatedmedia_text && '' === $gatedmedia_body ) {
 
 $gatedmedia_kind = isset( $attributes['kind'] ) ? (string) $attributes['kind'] : 'info';
 
-// Icon and modifier per kind, from §6.4's table.
+// Icon and modifier per kind.
 $gatedmedia_kinds = array(
 	'info'    => array( 'i-info', '' ),
 	'error'   => array( 'i-error', 'gatedmedia-notice--error' ),

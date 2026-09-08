@@ -19,19 +19,15 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * Warns holders before timed access lapses — `Sweep`'s shape (spec §9):
- * daily, idempotent scheduling, named statuses, and if it never ran nothing
- * would leak. Lifetime records hold '' in the expiry meta and are never
- * warned; the lead time is the `expiry_warning_days` setting through its
- * filter.
+ * Warns holders before timed access lapses, built to `Sweep`'s shape: daily, idempotent scheduling, named statuses, and nothing would leak if it never ran.
  *
- * Warned-once bookkeeping is one meta key on the record, owned and
- * registered here — cleared again when the record is rescheduled, so a new
- * date earns a new warning.
+ * Lifetime records hold '' in the expiry meta and are never warned, and the lead time is the `expiry_warning_days` setting through its filter.
+ *
+ * Warned-once bookkeeping is one meta key on the record, cleared when the record is rescheduled so a new date earns a new warning.
  */
 class Expiry_Warning implements Hookable {
 
-	/** The cron hook, daily (specification.md §9). */
+	/** The cron hook, daily. */
 	public const HOOK = 'gatedmedia_expiry_warnings';
 
 	/** When the warning for the record's current date went out. */
@@ -54,8 +50,7 @@ class Expiry_Warning implements Hookable {
 	}
 
 	/**
-	 * Schedules on init, runs on the cron hook, forgets the warning when a
-	 * record's date moves.
+	 * Schedules on init, runs on the cron hook, and forgets the warning when a record's date moves.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -119,8 +114,7 @@ class Expiry_Warning implements Hookable {
 	 * @return int How many warnings were sent.
 	 */
 	public function run(): int {
-		// Switched off means untouched — nothing sends, and nothing is
-		// marked warned, so switching back on picks records up again.
+		// Switched off marks nothing warned, so switching back on picks records up again.
 		if ( ! $this->settings->notification_enabled( Notification_Sender::TYPE_EXPIRY_WARNING ) ) {
 			return 0;
 		}
@@ -139,9 +133,7 @@ class Expiry_Warning implements Hookable {
 				)
 			);
 
-			// Flagged only on a send that worked: the flag is what the query
-			// skips on, so writing it after a failure means that holder is
-			// never warned. Left unflagged, tomorrow's run tries again.
+			// Flagged only on a send that worked, because the flag is what the query skips on, so writing it after a failure would mean that holder is never warned and tomorrow's run would pass them by.
 			if ( ! $sent ) {
 				continue;
 			}
@@ -157,8 +149,7 @@ class Expiry_Warning implements Hookable {
 	/**
 	 * Active records expiring inside the lead window, not yet warned.
 	 *
-	 * The status is named, never 'any' (the round 1 trap). Lifetime records
-	 * hold '' and never match the window.
+	 * The status is named, never 'any', which skips exclude_from_search statuses, and lifetime records hold '' and never match the window.
 	 *
 	 * @return array<int, int>
 	 */

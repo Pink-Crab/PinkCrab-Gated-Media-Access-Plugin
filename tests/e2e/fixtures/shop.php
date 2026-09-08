@@ -1,21 +1,12 @@
 <?php
 /**
- * Creates what the round 7 e2e specs buy, hold and look at.
+ * Creates what the shop e2e specs buy, hold and look at.
  *
- * A priced product, a free one, a group the admin holds, and a completed
- * payment against the priced product — enough for the product page's states,
- * the orders list, one order's detail and a group's contents to be walked in a
- * real browser.
+ * A priced product, a free one, a group the admin holds, and a completed payment against the priced product.
  *
- * **The block delimiter is written into the product's content deliberately.**
- * `Product_Route::ensure_block()` only injects it into the REST response the
- * editor loads, so it reaches `post_content` when a person saves the product.
- * A product created here has never been near the editor, and without the
- * delimiter `do_blocks()` has nothing to render — the page would come back
- * blank and the specs would be testing an empty div.
+ * The block delimiter is written into the product's content deliberately: `Product_Route::ensure_block()` only injects it into the REST response the editor loads, and a product created here has never been near the editor.
  *
- * Run by tests/e2e/global-setup.js before the suite, and idempotent: existing
- * fixtures are reused rather than duplicated.
+ * Run by tests/e2e/global-setup.js before the suite, and idempotent: existing fixtures are reused rather than duplicated.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
@@ -89,12 +80,7 @@ $shop_post_id = $shop_post instanceof WP_Post
 		)
 	);
 
-// The order's own item. It must be something nothing else grants: a grant for
-// an item the person already holds on a live dated record is *stacked* onto
-// that record (`Access_Writer::stack_onto_live()`) rather than written as a new
-// one, so the order would create no record carrying its reference and "Access
-// this created" would be empty. Sharing a post here made the specs pass on a
-// clean database and fail on a developer's.
+// The order's own item, which nothing else may grant: `Access_Writer::stack_onto_live()` stacks a grant for an item already held on a live dated record, so the order would carry no record of its own and "Access this created" would be empty.
 $order_post    = get_page_by_path( 'e2e-order-post', OBJECT, 'post' );
 $order_post_id = $order_post instanceof WP_Post
 	? $order_post->ID
@@ -110,10 +96,7 @@ $order_post_id = $order_post instanceof WP_Post
 $paid_id = gatedmedia_shop_product( 'e2e-paid-product', 'Q3 market report bundle', 4900, array( 'post:' . $order_post_id ) );
 $free_id = gatedmedia_shop_product( 'e2e-free-product', 'The standing invitation', 0, array( 'post:' . $shop_post_id ) );
 
-// A product granting something nobody is given, so its page always shows the
-// buy form. The paid product above is bought by the order below, which makes
-// its page read "you already have this" — correct, and useless for testing the
-// form.
+// A product nobody holds, so its page always shows the buy form.
 $unheld_post    = get_page_by_path( 'e2e-unheld-post', OBJECT, 'post' );
 $unheld_post_id = $unheld_post instanceof WP_Post
 	? $unheld_post->ID
@@ -128,9 +111,7 @@ $unheld_post_id = $unheld_post instanceof WP_Post
 
 $buy_id = gatedmedia_shop_product( 'e2e-buyable-product', 'The unsold annexe bundle', 1500, array( 'post:' . $unheld_post_id ) );
 
-// Somebody who holds nothing and has bought nothing, so the empty state has a
-// place to be seen. The admin cannot serve: this fixture gives them a group and
-// an order, which is the whole point of them.
+// Somebody who holds nothing and has bought nothing, so the empty state has a place to be seen: the admin cannot serve, because this fixture gives them a group and an order.
 $empty = get_user_by( 'login', 'e2e-empty' );
 
 if ( ! $empty instanceof WP_User ) {
@@ -184,10 +165,7 @@ if ( $group instanceof WP_Term ) {
 
 $store = new Payment_Store();
 
-// Scoped to this fixture's own product. A site being developed on already has
-// payments against other products, and "has any payment at all" would skip the
-// one the specs need — which it did, silently, leaving Orders looking fine and
-// the specs failing on a row that was never created.
+// Scoped to this fixture's own product: a dev site has payments against others.
 $existing = array_filter(
 	$store->for_user( $admin->ID ),
 	static fn ( Payment $payment ): bool => $payment->product_id === $paid_id
@@ -200,9 +178,7 @@ $payment = array() === $existing
 if ( $payment instanceof Payment ) {
 	$store->mark_complete( $payment->uuid );
 
-	// Repaired rather than assumed: an order left over from an earlier run of
-	// this fixture may predate the item it now grants, and §7.4's "Access this
-	// created" reads the records back by this exact source-and-reference pair.
+	// "Access this created" reads the records back by this exact source and reference pair.
 	$created = ( new Access_Lookup() )->records_for_reference( 'stripe', $payment->uuid );
 
 	if ( array() === $created ) {
@@ -214,9 +190,7 @@ if ( $payment instanceof Payment ) {
 	}
 }
 
-// An order left pending, which is what a buyer sees for the seconds between
-// Stripe returning them and its webhook landing. Nothing else in the suite is
-// ever in that state, and it is the state §7.8 exists for.
+// An order left pending: what a buyer sees between Stripe returning them and its webhook landing.
 $pending = array_filter(
 	$store->for_user( $admin->ID ),
 	static fn ( Payment $row ): bool => $row->product_id === $buy_id
@@ -226,9 +200,7 @@ $pending_payment = array() === $pending
 	? $store->create_pending( $admin->ID, $buy_id, 1500, 'GBP', array( 'post:' . $unheld_post_id ) )
 	: array_values( $pending )[0];
 
-// A coupon with no limits, so §6.14's apply step can be walked as often as the
-// suite likes. Applying spends nothing — only a completed payment does — but a
-// limit here would still be a trap for whoever adds the next spec.
+// A coupon with no limits, so the apply step can be walked as often as the suite likes.
 $coupon = get_page_by_path( 'e2e-save20', OBJECT, Post_Types::COUPON );
 
 $coupon_id = $coupon instanceof WP_Post
@@ -245,8 +217,7 @@ $coupon_id = $coupon instanceof WP_Post
 update_post_meta( $coupon_id, 'gatedmedia_discount_type', 'percent' );
 update_post_meta( $coupon_id, 'gatedmedia_discount_value', 20 );
 
-// The specs read these off stdout rather than hardcoding a uuid that changes
-// every time the fixture is rebuilt.
+// The specs read these off stdout rather than hardcoding a uuid that changes on every rebuild.
 echo 'Fixture ready: ' . get_permalink( $paid_id ) . "\n";
 echo 'GATEDMEDIA_COUPON_CODE=e2e-save20' . "\n";
 echo 'GATEDMEDIA_PAID_URL=' . get_permalink( $paid_id ) . "\n";

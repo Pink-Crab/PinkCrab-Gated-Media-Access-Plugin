@@ -18,8 +18,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * The item's edit screen shows who holds it directly, removable through the
- * revoke action, with adding one click away.
+ * The item's edit screen shows who holds it directly, removable through the revoke action, with adding one click away.
  *
  * @group integration
  */
@@ -38,8 +37,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->writer  = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 		$this->metabox = new Item_Access_Metabox( $taxonomy, $this->writer );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create(
@@ -173,9 +171,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 	/**
 	 * @testdox Changing an item's groups needs the right to edit that item.
 	 *
-	 * Adding a group applies the restricted marker and, for an attachment,
-	 * physically moves the file — so holding manage_categories alone was
-	 * enough to restrict content the person cannot edit.
+	 * Adding a group applies the marker and physically moves an attachment's file, so manage_categories alone was enough to restrict content the person cannot edit.
 	 */
 	public function test_apply_group_needs_edit_post(): void {
 		$post_id = self::factory()->post->create();
@@ -205,20 +201,19 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 
 		$slugs = $this->object_slugs( $post_id );
 		$this->assertContains( $term->slug, $slugs );
-		// The marker arrived with the group — Restriction's behaviour.
+		// The marker arrived with the group, which is Restriction's behaviour.
 		$this->assertContains( 'restricted', $slugs );
 
 		$this->assertTrue( $this->metabox->apply_group( $post_id, $uuid, 'remove' ) );
 
 		$slugs = $this->object_slugs( $post_id );
 		$this->assertNotContains( $term->slug, $slugs );
-		// Removal never unrestricts — that stays a deliberate act.
+		// Removal never unrestricts, which stays a deliberate act.
 		$this->assertContains( 'restricted', $slugs );
 	}
 
 	/**
-	 * The object's term slugs, marker included — it is hidden from default
-	 * term queries by design.
+	 * The object's term slugs, marker included, since it is hidden from default term queries.
 	 *
 	 * @param int $object_id The post or attachment.
 	 * @return array<int, string>
@@ -252,10 +247,9 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 	/**
 	 * @testdox An inline grant is staged in the form, not fired the moment it is pressed.
 	 *
-	 * The button set window.location to an admin-post URL, so pressing it left
-	 * the editor mid-edit: whatever had been typed and not saved was lost, and
-	 * the access was written against a post the administrator might then never
-	 * save. The box carries its own fields inside the editor's form instead.
+	 * The button set window.location to an admin-post URL, so pressing it left the editor mid-edit, lost whatever had been typed and not saved, and wrote access against a post the administrator might never save.
+	 *
+	 * The box carries its own fields inside the editor's form instead.
 	 */
 	public function test_the_grant_is_staged_in_the_form(): void {
 		$post_id = self::factory()->post->create();
@@ -366,9 +360,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 	/**
 	 * @testdox An autosave grants nothing: it is not the administrator pressing Update.
 	 *
-	 * In its own process: DOING_AUTOSAVE is a constant, and a constant defined
-	 * here would stay defined for every test after it, so every later save
-	 * would return at the first line and pass for the wrong reason.
+	 * In its own process, because DOING_AUTOSAVE would stay defined for every later test and make them all pass for the wrong reason.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -485,10 +477,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 	/**
 	 * @testdox A holder's link is named Revoke, the same as on the Access list.
 	 *
-	 * Both links go to Revoke_Action, whose effect is whatever the
-	 * revoke_behaviour setting says, up to deleting the record outright.
-	 * "Remove" beside a name reads as taking that person off a list, and the
-	 * settings page calls the whole concept "Revoking access".
+	 * Both go to Revoke_Action, whose effect is whatever revoke_behaviour says, up to deleting the record. "Remove" beside a name reads as taking someone off a list.
 	 */
 	public function test_the_holder_link_is_named_revoke(): void {
 		$user_id = self::factory()->user->create(
@@ -510,9 +499,7 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 	/**
 	 * @testdox The inline grant's user box and days box are both labelled.
 	 *
-	 * The metabox gave the picker and the days field a placeholder and nothing
-	 * else, so both were announced as unlabelled edit fields — and the days
-	 * field carried no id at all, which no label could have targeted.
+	 * Both had a placeholder and nothing else, so both were announced as unlabelled edit fields, and the days field carried no id for a label to target.
 	 */
 	public function test_the_inline_grant_controls_are_labelled(): void {
 		$post_id = self::factory()->post->create();

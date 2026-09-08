@@ -16,14 +16,13 @@ use PinkCrab\Gated_Access\Admin\Pickers\Post_Picker;
 use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 
 /**
- * Each picker is a drop-in: a visible control, a hidden input carrying the
- * choice, and the data attributes the admin bundle binds to.
+ * Each picker is a drop-in: a visible control, a hidden input carrying the choice, and the data attributes the admin bundle binds to.
  *
  * @group integration
  */
 class Test_Pickers extends WP_UnitTestCase {
 
-	/** @testdox Each search picker renders the pair against its own endpoint — one pattern for all four. */
+	/** @testdox Each search picker renders the pair against its own endpoint, one pattern for all four. */
 	public function test_search_pickers_render_their_endpoints(): void {
 		$expected = array(
 			'gatedmedia_search_users'  => new User_Picker( 'the_user', 'the_user' ),

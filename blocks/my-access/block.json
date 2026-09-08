@@ -6,7 +6,7 @@
 	"title": "My Access",
 	"category": "widgets",
 	"icon": "lock",
-	"description": "Everything this person can see — groups, posts and files — with the expiry on each.",
+	"description": "Everything this person can see: groups, posts and files, with the expiry on each.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"detail": {

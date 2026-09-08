@@ -18,18 +18,15 @@ use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
 
 /**
- * One admin-post action for all three submits, told apart by an intent field —
- * §7.7 is one view and one form, so one handler answers it.
+ * One admin-post action for all three submits, told apart by an intent field, because the auth view is one view and one form.
  *
- * Thin on purpose, like `Checkout_Action`: read the form, do the one thing,
- * redirect. Every failure comes back to the view as a code in the URL, which
- * `Auth_State` turns into a notice; nothing is rendered from here.
+ * Thin on purpose, like `Checkout_Action`: read the form, do the one thing, redirect.
  *
- * **wp-login.php is untouched.** This does not replace it, filter `login_url`
- * or redirect it. The reset is core's `retrieve_password()` unchanged, so its
- * emailed link still lands on wp-login.php and core still draws the screen that
- * sets the new password — which is why §7.7 has four states and no fifth one
- * for choosing a password.
+ * Every failure comes back to the view as a code in the URL, which `Auth_State` turns into a notice, and nothing is rendered from here.
+ *
+ * **wp-login.php is untouched.** This does not replace it, filter `login_url` or redirect it, and the reset is core's `retrieve_password()` unchanged.
+ *
+ * So its emailed link still lands on wp-login.php and core still draws the screen that sets the new password, which is why there are four states and no fifth one for choosing a password.
  */
 class Auth_Action implements Hookable {
 
@@ -46,8 +43,7 @@ class Auth_Action implements Hookable {
 	public const ARG_EMAIL = 'gatedmedia_auth_email';
 
 	/**
-	 * Settings decide whether signing up is allowed and whether a thin profile
-	 * is prompted once they are in.
+	 * Settings decide whether signing up is allowed and whether a thin profile is prompted once they are in.
 	 *
 	 * @param Settings $settings The one settings reader.
 	 */
@@ -55,9 +51,7 @@ class Auth_Action implements Hookable {
 	}
 
 	/**
-	 * Signed out is the ordinary case here, so the nopriv mirror is the one
-	 * that matters — but both are registered: someone already signed in who
-	 * posts the form is sent on rather than shown an admin-post error page.
+	 * Signed out is the ordinary case, so the nopriv mirror matters most, but both are registered so an already signed-in poster is sent on rather than shown an admin-post error.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -76,8 +70,7 @@ class Auth_Action implements Hookable {
 	/**
 	 * One submit, routed by its intent field.
 	 *
-	 * The nonce is checked before anything is read, and an unrecognised intent
-	 * is treated as a sign-in rather than fataling.
+	 * The nonce is checked before anything is read, and an unrecognised intent is treated as a sign-in rather than fataling.
 	 */
 	public function handle(): void {
 		check_admin_referer( self::ACTION );
@@ -181,10 +174,7 @@ class Auth_Action implements Hookable {
 	/**
 	 * Asks core to send a reset link, and says the same thing either way.
 	 *
-	 * `retrieve_password()` returns a `WP_Error` naming an address it does not
-	 * recognise. That answer is thrown away deliberately: §7.7 says this must
-	 * not confirm whether an address has an account, so the `sent` state is
-	 * reached whether or not one did.
+	 * `retrieve_password()` returns a `WP_Error` naming an address it does not recognise, and that answer is thrown away deliberately, because this must not confirm whether an address has an account, so the `sent` state is reached either way.
 	 */
 	private function send_reset(): void {
 		$email = $this->posted_email();
@@ -199,10 +189,7 @@ class Auth_Action implements Hookable {
 	/**
 	 * Where someone lands once they are in.
 	 *
-	 * An explicit destination always wins — they were part-way through buying
-	 * something and interrupting that to ask for a phone number would lose the
-	 * sale. The profile prompt is for the plain arrival, and only when the
-	 * profile is actually thin.
+	 * An explicit destination always wins, because interrupting a purchase to ask for a phone number would lose the sale. The profile prompt is for the plain arrival, and only when the profile is actually thin.
 	 *
 	 * @param int    $user_id  Who just signed in.
 	 * @param string $redirect Their validated destination, '' for none.
@@ -239,9 +226,7 @@ class Auth_Action implements Hookable {
 	/**
 	 * The redirect, and the `exit` that has to follow it.
 	 *
-	 * Required rather than tidy: a `wp_safe_redirect()` that does not halt
-	 * emits a body after the Location header, which on admin-post.php can mean
-	 * the redirect is not honoured at all.
+	 * Required rather than tidy: a `wp_safe_redirect()` that does not halt emits a body after the Location header, and on admin-post.php the redirect may then not be honoured at all.
 	 *
 	 * @param string $url Where to send them.
 	 */
@@ -259,8 +244,7 @@ class Auth_Action implements Hookable {
 	}
 
 	/**
-	 * The posted password, unsanitised on purpose — every character is
-	 * meaningful and `sanitize_text_field()` would silently change it.
+	 * The posted password, unsanitised on purpose, since `sanitize_text_field()` would silently change it.
 	 */
 	private function posted_password(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- A password is hashed, never rendered; sanitising would alter it.
@@ -270,11 +254,9 @@ class Auth_Action implements Hookable {
 	/**
 	 * The posted destination, validated against this site.
 	 *
-	 * `handle_signed_in()` reaches this without a nonce having been checked,
-	 * deliberately: nonces are bound to a user, so someone who signed in on
-	 * another tab would fail the check on the very submit this exists to
-	 * smooth over. Nothing is written from that path, and an off-site value
-	 * becomes no redirect at all rather than a redirect somewhere else.
+	 * `handle_signed_in()` reaches this with no nonce checked, deliberately: nonces are bound to a user, so someone who signed in on another tab would fail the check on the very submit this exists to smooth over.
+	 *
+	 * Nothing is written from that path, and an off-site value becomes no redirect at all rather than a redirect elsewhere.
 	 */
 	private function redirect(): string {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nothing is written; wp_validate_redirect() below is the guard.

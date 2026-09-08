@@ -29,14 +29,9 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Architecture §7 as assertions: the pending row exists before Stripe is
- * asked anything; no access is granted on the way out for a priced
- * product; a free product grants directly with no row; a coupon spends at
- * completion and can take a payment to zero on the spot; the allow-list
- * and its filter gate who may buy at all.
+ * The pending row exists before Stripe is asked anything, a priced product grants nothing on the way out, a free product grants directly with no row, a coupon spends at completion and can take a payment to zero, and the allow-list gates who may buy.
  *
- * Stripe itself is faked at the boundary — the gateway subclass below
- * answers a canned session and records what it was asked.
+ * Stripe is faked at the boundary: the gateway subclass below answers a canned session and records what it was asked.
  *
  * @group integration
  */
@@ -114,9 +109,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The claim's fixed reference matched the expired record, so the writer's
-	 * retry guard answered with it and nothing new was written — a Join button
-	 * that did nothing, for ever.
+	 * The claim's fixed reference matched the expired record, so the retry guard answered with it and nothing new was written, leaving a Join button that did nothing.
 	 *
 	 * @testdox A free timed product can be claimed again once the first claim has run out.
 	 */
@@ -187,10 +180,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The decision that nearly shipped as nothing: §7.8 has no page of its own,
-	 * so the return URL has to be the order. Nothing asserted it, and the
-	 * whole round was built while Stripe still pointed at a query arg on the
-	 * front page that renders nothing at all.
+	 * The payment status panel has no page of its own, so the return URL is the order itself.
 	 *
 	 * @testdox Stripe sends the buyer back to their own order, flagged as just placed.
 	 */
@@ -211,9 +201,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The worst of the dead links: the buyer has paid, and Stripe sends them
-	 * to a page the setting has stopped answering. Their access lands either
-	 * way — there was just nothing to tell them so.
+	 * The worst dead link: the buyer has paid and Stripe sends them to a page the setting has stopped answering. Their access lands either way, with nothing to tell them so.
 	 *
 	 * @testdox With the account route off, Stripe is not told to return the buyer to a page that no longer answers.
 	 */
@@ -262,9 +250,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * §6.14 shows the buyer a price before they commit and `Checkout` then
-	 * charges them. Two answers to the same question, and if they disagree the
-	 * product page is lying about what a purchase will cost.
+	 * The coupon shows a price before the buyer commits and `Checkout` then charges them. If the two disagree the product page is lying.
 	 *
 	 * @testdox The price previewed is the price charged.
 	 */
@@ -299,9 +285,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The apply step is not the thing that is trusted: a coupon that runs out
-	 * between the page being priced and the button being pressed is refused at
-	 * purchase, whatever the page said a moment earlier.
+	 * The apply step is not trusted: a coupon that runs out between pricing and pressing is refused at purchase, whatever the page said.
 	 *
 	 * @testdox A coupon spent after the page was priced is still refused at purchase.
 	 */
@@ -324,10 +308,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Usage is still counted from completions and nothing else — a pending
-	 * row is not one. The reservation a checkout in flight holds is a
-	 * separate, short-lived thing that expires on its own; it never becomes
-	 * a use.
+	 * Usage is counted from completions and a pending row is not one. The reservation a checkout in flight holds expires on its own and never becomes a use.
 	 *
 	 * @testdox An abandoned checkout completes nothing, so it spends nothing.
 	 */
@@ -341,10 +322,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The harm, stated plainly: two buyers were both part-way through
-	 * checkout when the other started, so neither had completed and neither
-	 * counted. Both then paid, and a coupon limited to one use was spent
-	 * twice.
+	 * Two buyers part-way through checkout when the other started, so neither counted. Both then paid, and a coupon limited to one use was spent twice.
 	 *
 	 * @testdox A coupon limited to one use cannot be completed twice.
 	 */
@@ -365,9 +343,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The hold is what closes the gap: a checkout in flight reserves the
-	 * coupon for a short while, so a second buyer arriving in the same
-	 * moment is refused rather than sent to Stripe.
+	 * The hold closes the gap: a checkout in flight reserves the coupon briefly, so a second buyer arriving at the same moment is refused rather than sent to Stripe.
 	 *
 	 * @testdox A checkout in flight holds a limited coupon against everyone else.
 	 */
@@ -488,12 +464,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	/**
 	 * @testdox A free product marked lifetime grants every item with no expiry.
 	 *
-	 * Lifetime is `-1` and nothing else. Everything falsey — '', '0', 0 —
-	 * used to be indistinguishable from an unset key, and the checkout and
-	 * the offer read them differently: `Product_Offer::term()` said
-	 * "Lifetime access" while `Checkout` handed 0 days to the writer,
-	 * `Access_Validator::validate()` refused anything below 1, and the
-	 * WP_Error was thrown away.
+	 * Lifetime is `-1` and nothing else. Everything falsey was once indistinguishable from an unset key, and the offer read it as lifetime while `Checkout` handed 0 days to a writer that refuses anything below 1.
 	 */
 	public function test_a_lifetime_free_product_grants_with_no_expiry(): void {
 		$product = $this->product(
@@ -520,8 +491,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	/**
 	 * @testdox A paid product marked lifetime grants from its snapshot with no expiry.
 	 *
-	 * The same reading on the payment path: the coupon takes the total to
-	 * zero, the row completes, and `grant_snapshot()` must land the items.
+	 * The same on the payment path: the coupon takes the total to zero, the row completes, and `grant_snapshot()` lands the items.
 	 */
 	public function test_a_lifetime_paid_product_grants_with_no_expiry(): void {
 		$product = $this->product(
@@ -546,10 +516,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	/**
 	 * @testdox A product that never stored a duration reads the registered default, and grants lifetime.
 	 *
-	 * The unset key is the case `-1` exists to kill: `get_post_meta()` answers
-	 * `''` for a key with no row, which is why every falsey value used to be
-	 * ambiguous. `Product_Meta` registers `-1` as the default, so "nothing
-	 * stored" arrives as lifetime and not as an empty string.
+	 * The unset key is the case `-1` exists to kill. `Product_Meta` registers `-1` as the default, so "nothing stored" arrives as lifetime rather than an empty string.
 	 */
 	public function test_an_unset_duration_reads_the_lifetime_default(): void {
 		$product = $this->product( 0, array( "post:{$this->post_item}" ) );
@@ -567,11 +534,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	/**
 	 * @testdox A zero-total checkout that fails to complete its row grants nothing and announces nothing.
 	 *
-	 * `mark_complete()` is documented as "true means we were first and the
-	 * caller grants access", and `Stripe_Webhook` honours it. The zero-total
-	 * path threw the answer away and granted regardless, so a failed update
-	 * left a pending row with access against it and a completion announced
-	 * for a payment that never completed.
+	 * `mark_complete()` answering true is what licenses a grant. The zero-total path threw that answer away, so a failed update left a pending row with access against it.
 	 */
 	public function test_a_zero_total_that_cannot_complete_grants_nothing(): void {
 		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
@@ -680,8 +643,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A gateway answering a canned session and recording the payment it
-	 * was asked about.
+	 * A gateway answering a canned session and recording what it was asked about.
 	 */
 	private function fake_gateway(): Stripe_Gateway {
 		return new class( new Settings() ) extends Stripe_Gateway {

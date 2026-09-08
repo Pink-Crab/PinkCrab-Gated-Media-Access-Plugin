@@ -17,9 +17,7 @@ use PinkCrab\Gated_Access\Access\Access_Validator;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The filters hand the views the shapes their blocks declare, straight from
- * the boot-registered service — granted access appears in the right list with
- * the right keys, and a signed-out user gets the defaults untouched.
+ * The filters hand the views the shapes their blocks declare: granted access appears in the right list with the right keys, and a signed-out user gets the defaults untouched.
  *
  * @group integration
  */
@@ -123,7 +121,7 @@ class Test_Held_Access extends WP_UnitTestCase {
 		$this->assertSame( array(), $data['past'] );
 	}
 
-	/** @testdox An expired file grant moves to past — unless the file is still reachable another way. */
+	/** @testdox An expired file grant moves to past, unless the file is still reachable another way. */
 	public function test_past_holds_what_ran_out(): void {
 		$gone_file = self::factory()->attachment->create( array( 'post_title' => 'Gone File' ) );
 		$kept_file = self::factory()->attachment->create( array( 'post_title' => 'Kept File' ) );
@@ -145,8 +143,7 @@ class Test_Held_Access extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The sweep moves an expired record's status, which is exactly what the
-	 * past list reads. Backdating the meta alone never catches this.
+	 * `Sweep` moves an expired record's status, which is what the past list reads, and backdating the meta alone never catches this.
 	 *
 	 * @testdox Past access survives the nightly sweep, rather than emptying once it has run.
 	 */
@@ -176,12 +173,9 @@ class Test_Held_Access extends WP_UnitTestCase {
 	/**
 	 * Everything in the group is listed, not just the one it was created with.
 	 *
-	 * **Not asserted here: that a post added mid-request appears immediately.**
-	 * `Resolver::allowed_for()` memoises the allowed set per instance, and
-	 * instances are shared, so within one request the answer is deliberately
-	 * fixed — the access query filter then hides anything added since. Across
-	 * requests, which is how a person actually uses the page, the contents are
-	 * live. An assertion to the contrary tests the memo, not the feature.
+	 * **Not asserted here: that a post added mid-request appears immediately.** `Resolver::allowed_for()` memoises the allowed set per shared instance, so within one request the answer is fixed and the access query filter hides anything added since.
+	 *
+	 * Across requests, which is how a person uses the page, the contents are live, so an assertion to the contrary would test the memo.
 	 *
 	 * @testdox Opening a held group lists everything it holds.
 	 */
@@ -219,9 +213,7 @@ class Test_Held_Access extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The rows carry a kind as their meta line. Nothing asserted it, so a group
-	 * of mixed contents could have called every one of them the same thing and
-	 * every test would still have passed.
+	 * The rows carry a kind as their meta line, and nothing asserted it, so a mixed group could have called every row the same thing and still passed.
 	 *
 	 * @testdox An opened group says which of its rows are files and which are posts.
 	 */

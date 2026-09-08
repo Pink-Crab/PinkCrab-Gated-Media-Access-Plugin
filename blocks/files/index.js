@@ -1,5 +1,5 @@
 /**
- * Files — ui-spec.md §7.2.
+ * Files.
  *
  * Placeable: an administrator can put this section on a page of their own.
  */

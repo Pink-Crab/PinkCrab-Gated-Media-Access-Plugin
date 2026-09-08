@@ -1,19 +1,12 @@
 <?php
 /**
- * §7.7 Sign in / sign up / reset — one view, four states.
+ * Sign in, sign up and reset: one view, four states.
  *
- * **No shell.** A centred column at the form cap in a bordered card, on the
- * page background — `.gatedmedia-centred` and `.gatedmedia-card`, which §7.5's
- * forced state already uses. The theme's own header and footer stay, as with
- * every other view.
+ * No shell. A centred column in a bordered card on the page background, using `.gatedmedia-centred` and `.gatedmedia-card`. The theme's own header and footer stay.
  *
- * **The h1 is the theme's.** `Auth_Route` titles the virtual page from the
- * state, so the theme has already printed the heading; this draws the sub-line
- * beneath it and nothing more. `Account_Renderer::page_header()` handles the
- * account area the same way, per §2 conflict 4.
+ * The h1 is this block's, not the theme's: the virtual page carries no title, so this draws the heading inside the card. `Auth_Route::title_for()` says why this view is the exception, and `Account_Renderer::page_header()` still leaves the account area's h1 to the theme.
  *
- * **Reset link sent replaces the fields and the button entirely** with a
- * bordered confirmation box, and never confirms whether the address exists.
+ * Reset link sent replaces the fields and the button with a confirmation box, and never confirms whether the address exists.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -32,8 +25,7 @@ use PinkCrab\Gated_Access\Support\Block;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Supplied by Auth_State; the defaults are what renders with nothing
- * answering, which is a bare sign-in form.
+ * Supplied by `Auth_State`, and the defaults are what renders with nothing answering, which is a bare sign-in form.
  *
  * @var array<string, mixed> $gatedmedia_data
  */
@@ -60,9 +52,7 @@ $gatedmedia_invalid  = is_array( $gatedmedia_data['invalid'] ?? null ) ? $gatedm
 $gatedmedia_signup   = true === ( $gatedmedia_data['signup_offered'] ?? false );
 $gatedmedia_sent     = Auth_Url::STATE_SENT === $gatedmedia_state;
 
-// -----------------------------------------------------------------------------
-// Block 1's second half — the sub-line. Check your email has none.
-// -----------------------------------------------------------------------------
+// The sub-line. The sent state has none.
 $gatedmedia_sublines = array(
 	Auth_Url::STATE_SIGNUP => __( "You'll use this to reach everything you've been given access to.", 'gated-media-access' ),
 	Auth_Url::STATE_SIGNIN => __( 'Welcome back.', 'gated-media-access' ),
@@ -71,9 +61,7 @@ $gatedmedia_sublines = array(
 
 $gatedmedia_subline = $gatedmedia_sublines[ $gatedmedia_state ] ?? '';
 
-// The heading is drawn here rather than by the theme — the one view where that
-// is true, and `Auth_Route::title_for()` says why. The virtual page carries no
-// title, so this is still the page's only h1.
+// The heading is drawn here, not by the theme, and is still the page's only h1.
 $gatedmedia_body = sprintf(
 	'<header class="gatedmedia-page-intro"><h1 class="gatedmedia-heading gatedmedia-heading--page">%s</h1>%s</header>',
 	esc_html( Auth_Route::title_for( $gatedmedia_state ) ),
@@ -82,9 +70,7 @@ $gatedmedia_body = sprintf(
 		: sprintf( '<p class="gatedmedia-text gatedmedia-text--meta">%s</p>', esc_html( $gatedmedia_subline ) )
 );
 
-// -----------------------------------------------------------------------------
-// Block 2 — the notice slot. A failure only, and never on the sent state.
-// -----------------------------------------------------------------------------
+// The notice slot. A failure only, and never on the sent state.
 if ( ! $gatedmedia_sent && '' !== (string) ( $gatedmedia_data['message'] ?? '' ) ) {
 	$gatedmedia_body .= Block::render(
 		'gated-media-access/notice',
@@ -96,9 +82,7 @@ if ( ! $gatedmedia_sent && '' !== (string) ( $gatedmedia_data['message'] ?? '' )
 }
 
 if ( $gatedmedia_sent ) {
-	// The confirmation box, in place of the fields and the button. Worded so it
-	// is true whether or not an account matched — §7.7's one hard copy rule
-	// here, and the reason this state exists rather than a success notice.
+	// Worded so it is true whether or not an account matched.
 	$gatedmedia_body .= Block::render(
 		'gated-media-access/notice',
 		array(
@@ -108,9 +92,7 @@ if ( $gatedmedia_sent ) {
 		)
 	);
 } else {
-	// ---------------------------------------------------------------------
-	// Blocks 3 and 4 — the fields and the full-width button, in one form.
-	// ---------------------------------------------------------------------
+	// The fields and the full-width button, in one form.
 	$gatedmedia_fields = sprintf(
 		'<input type="hidden" name="action" value="%s" /><input type="hidden" name="_wpnonce" value="%s" /><input type="hidden" name="%s" value="%s" />',
 		esc_attr( Auth_Action::ACTION ),
@@ -187,13 +169,7 @@ if ( $gatedmedia_sent ) {
 	);
 }
 
-// -----------------------------------------------------------------------------
-// Block 5 — the alternate routes, one per line beneath the button.
-//
-// Sign up is only ever offered when this site creates accounts that way. A
-// control that says something it cannot do is the fault this round exists to
-// fix, so an unavailable route is not linked to at all.
-// -----------------------------------------------------------------------------
+// The alternate routes, one per line beneath the button. Sign up is offered only where this site creates accounts that way; an unavailable route is not linked at all.
 $gatedmedia_links = array();
 
 if ( Auth_Url::STATE_SIGNIN === $gatedmedia_state ) {

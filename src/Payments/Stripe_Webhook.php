@@ -18,48 +18,31 @@ use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 
 /**
- * POST `/gated-media-access/v1/stripe/webhook` (spec §4): the signature is
- * the authentication, so `permission_callback` answers true and the
- * gateway's verification decides — anything unverifiable is a 400.
+ * POST `/gated-media-access/v1/stripe/webhook`: the signature is the authentication, so `permission_callback` answers true, the gateway's verification decides, and anything unverifiable is a 400.
  *
- * **Access lands here and nowhere else** for a paid product (architecture
- * §7). Stripe retries deliveries, and the payment row is its own guard:
- * only a pending row grants, and the conditional status move answers who
- * was first, so a repeated `checkout.session.completed` changes nothing
- * and announces nothing. A refund runs the same guard against complete
- * and revokes every record the payment created.
+ * **Access lands here and nowhere else** for a paid product, and since Stripe retries deliveries the payment row is its own guard: only a pending row grants, and the conditional status move answers who was first, so a repeated `checkout.session.completed` changes nothing and announces nothing.
  *
- * Grants run **before** the status move, and a failure answers 500. The
- * status move used to come first and grant failures were discarded, which
- * left a buyer charged against a row reading complete with no access —
- * and, because that move is the replay guard, Stripe's retry returned
- * early and could never repair it. Answering non-2xx is what makes
- * Stripe's own retry the repair, and the writer's per-item reference
- * guard is what makes re-granting safe.
+ * A refund runs the same guard against complete and revokes every record the payment created.
+ *
+ * Grants run **before** the status move, and a failure answers 500. Answering non-2xx is what makes Stripe's own retry the repair, and the writer's per-item reference guard is what makes re-granting safe.
  */
 class Stripe_Webhook implements Hookable {
 
 	/**
 	 * What a refused delivery is told, and all it is told.
 	 *
-	 * `permission_callback` is `__return_true`, so anyone can post here.
-	 * Echoing the verification failure told a stranger whether the plugin
-	 * was configured and which check it tripped; one fixed token tells them
-	 * only that the endpoint exists. The cause goes to the 500, which needs
-	 * the webhook secret to reach, and to the payment's own row.
+	 * `permission_callback` is `__return_true`, so anyone can post here, and echoing the verification failure told a stranger whether the plugin was configured and which check it tripped, where one fixed token tells them only that the endpoint exists.
+	 *
+	 * The cause goes to the 500, which needs the webhook secret to reach, and to the payment's own row.
 	 */
 	public const REFUSED = 'refused';
 
 	/**
 	 * The session `payment_status` values that mean the money is ours.
 	 *
-	 * A card is authorised while the buyer is still on the page, so the
-	 * completion and the money are the same moment. A delayed method — a
-	 * direct debit, a bank transfer — is not: Stripe completes the session
-	 * when the buyer commits, says `unpaid` here, and reports the outcome
-	 * days later as `checkout.session.async_payment_succeeded` or
-	 * `checkout.session.async_payment_failed`. `no_payment_required` is a
-	 * price a coupon took to nothing, which owes nothing and grants.
+	 * A card is authorised while the buyer is still on the page, so completion and the money are the same moment. A delayed method is not: Stripe completes the session when the buyer commits, says `unpaid` here, and reports the outcome days later as an async event.
+	 *
+	 * `no_payment_required` is a price a coupon took to nothing, which owes nothing and grants.
 	 *
 	 * Anything else waits: the row stays pending, which is what it is.
 	 *
@@ -93,8 +76,7 @@ class Stripe_Webhook implements Hookable {
 	}
 
 	/**
-	 * Registers the webhook endpoint. Open on purpose: the signature check
-	 * inside the callback is the authentication.
+	 * Registers the webhook endpoint, open on purpose because the signature check inside the callback is the authentication.
 	 */
 	public function register_route(): void {
 		register_rest_route(
@@ -109,9 +91,7 @@ class Stripe_Webhook implements Hookable {
 	}
 
 	/**
-	 * One delivery: verify, announce, act on the types we know. 200 when
-	 * there is nothing left to do, 500 when a grant failed and Stripe should
-	 * deliver again, 400 when the delivery does not verify.
+	 * One delivery: verify, announce, act on the types we know, answering 200 when there is nothing left to do, 500 when a grant failed and Stripe should deliver again, and 400 when the delivery does not verify.
 	 *
 	 * @param WP_REST_Request $request The delivery.
 	 */
@@ -135,8 +115,7 @@ class Stripe_Webhook implements Hookable {
 			return new WP_REST_Response( array( 'received' => true ) );
 		}
 
-		// Only the completion can fail in a way Stripe should act on: an
-		// expiry and a refund have nothing left to retry.
+		// Only the completion can fail in a way Stripe should act on, since an expiry and a refund have nothing left to retry.
 		$failed = null;
 
 		switch ( $event->type ) {
@@ -145,8 +124,7 @@ class Stripe_Webhook implements Hookable {
 			case 'checkout.session.async_payment_succeeded':
 				$failed = $this->complete( $object );
 				break;
-			// A delayed payment that failed ends the checkout exactly as
-			// abandoning it does: the row fails and the coupon goes back.
+			// A delayed payment that failed ends the checkout as abandoning it does: the row fails and the coupon goes back.
 			case 'checkout.session.expired':
 			case 'checkout.session.async_payment_failed':
 				$this->expire( $object );
@@ -159,8 +137,7 @@ class Stripe_Webhook implements Hookable {
 		}
 
 		if ( $failed instanceof WP_Error ) {
-			// Only reachable with a valid signature, so the cause is safe to
-			// name: it is the only place it shows in Stripe's own event log.
+			// Only reachable with a valid signature, so the cause is safe to name, and this is the only place it shows in Stripe's own event log.
 			return new WP_REST_Response( array( 'error' => $failed->get_error_message() ), 500 );
 		}
 
@@ -168,18 +145,11 @@ class Stripe_Webhook implements Hookable {
 	}
 
 	/**
-	 * A confirmed checkout: grant first, then move the row, and only the
-	 * mover announces.
+	 * A confirmed checkout: grant first, then move the row, and only the mover announces.
 	 *
-	 * Pending is the gate on granting at all, so a redelivery for a row that
-	 * has already completed, failed or been refunded writes nothing — and a
-	 * refunded payment cannot be resurrected by a late confirmation. A grant
-	 * that fails leaves the row pending and comes back as an error, so the
-	 * route answers 500 and Stripe delivers again.
+	 * Pending is the gate on granting at all, so a redelivery for a row that has already moved writes nothing and a refunded payment cannot be resurrected by a late confirmation. A grant that fails leaves the row pending and answers 500, so Stripe delivers again.
 	 *
-	 * The money is the second gate (`self::PAID`): a completion that has
-	 * collected nothing yet leaves the row pending and grants nothing, and
-	 * the `async_payment_succeeded` that follows comes back through here.
+	 * The money is the second gate, `self::PAID`: a completion that has collected nothing yet leaves the row pending and grants nothing, and the `async_payment_succeeded` that follows comes back through here.
 	 *
 	 * @param \Stripe\StripeObject $session The event's checkout session.
 	 * @return WP_Error|null Null when there is nothing for Stripe to retry.
@@ -213,8 +183,7 @@ class Stripe_Webhook implements Hookable {
 			return null;
 		}
 
-		// The completion is the coupon's real count from here, so the
-		// reservation standing in for it is given back.
+		// The completion is the coupon's real count from here, so the reservation standing in for it is given back.
 		$this->checkout->release_hold( $payment );
 
 		/**
@@ -228,10 +197,7 @@ class Stripe_Webhook implements Hookable {
 	}
 
 	/**
-	 * A checkout that ended without payment — abandoned, or a delayed
-	 * payment the bank refused: pending → failed, and the guard means a late
-	 * completion cannot resurrect it. Whatever coupon it was holding goes
-	 * back at the same time, rather than waiting out its own expiry.
+	 * A checkout that ended without payment, abandoned or refused by the bank. Pending moves to failed, and the guard means a late completion cannot resurrect it. Whatever coupon it held goes back at the same time.
 	 *
 	 * @param \Stripe\StripeObject $session The event's checkout session.
 	 */
@@ -247,8 +213,7 @@ class Stripe_Webhook implements Hookable {
 	}
 
 	/**
-	 * A refund: complete → refunded exactly once, then every record the
-	 * payment created is revoked (architecture §7).
+	 * A refund: complete to refunded exactly once, then every record the payment created is revoked.
 	 *
 	 * @param \Stripe\StripeObject $charge The event's charge.
 	 */
@@ -261,9 +226,7 @@ class Stripe_Webhook implements Hookable {
 			return;
 		}
 
-		// Not a blanket revoke: a renewal stacks onto a live record, so the
-		// record can owe its time to more than one payment. The writer takes
-		// back this payment's days and revokes only when nothing is left.
+		// Not a blanket revoke: a renewal stacks onto a live record, so the record can owe its time to more than one payment, and the writer takes back this payment's days and revokes only when nothing is left.
 		$this->writer->refund( Checkout::SOURCE_STRIPE, $payment->uuid );
 
 		/**

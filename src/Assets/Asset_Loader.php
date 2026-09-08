@@ -18,20 +18,15 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 /**
  * Owns the four built bundles and decides where they load.
  *
- * **Registered early, enqueued late.** Registration happens on `init` because
- * the account route renders on `template_redirect`, which is before
- * `wp_enqueue_scripts` — a handle enqueued there has to already exist. Nothing
- * is enqueued by registering, so this costs a few array writes on requests that
- * never use it.
+ * **Registered early, enqueued late.** Registration happens on `init` because the account route renders on `template_redirect`, before `wp_enqueue_scripts`, and a handle enqueued there has to already exist.
  *
- * **Conditional, everywhere.** The front bundle reaches a page in exactly two
- * ways: the account route asks for it, or a block declares it as its style in
- * block.json and core loads it because that block is on the page. There is no
- * `wp_enqueue_scripts` hook here that fires on every front-end request.
+ * Registering enqueues nothing, so it costs a few array writes on requests that never use it.
  *
- * The handles are public API. A third-party section renders inside our shell
- * and needs our components, so it will declare `gatedmedia-front` as a
- * dependency — renaming it breaks their plugin, not just ours.
+ * **Conditional, everywhere.** The front bundle reaches a page in exactly two ways: the account route asks for it, or a block declares it as its style in block.json and core loads it because that block is on the page.
+ *
+ * There is no `wp_enqueue_scripts` hook here that fires on every front-end request.
+ *
+ * The handles are public API: a third-party section renders inside our shell and needs our components, so it declares `gatedmedia-front` as a dependency and renaming it breaks their plugin as well as ours.
  */
 class Asset_Loader implements Hookable {
 
@@ -43,9 +38,7 @@ class Asset_Loader implements Hookable {
 	/**
 	 * The block editor bundle.
 	 *
-	 * Its own handle rather than more code in the admin one: this loads only
-	 * in the editor, through `enqueue_block_editor_assets`, and depends on
-	 * `wp-editor` and `wp-plugins`, which the admin bundle has no use for.
+	 * Its own handle rather than more code in the admin one: this loads only in the editor, through `enqueue_block_editor_assets`, and depends on `wp-editor` and `wp-plugins`, which the admin bundle has no use for.
 	 */
 	public const EDITOR_SCRIPT = 'gatedmedia-editor';
 
@@ -93,8 +86,7 @@ class Asset_Loader implements Hookable {
 		wp_register_script(
 			self::ADMIN_SCRIPT,
 			GATEDMEDIA_DIR_URL . 'build/js/admin.js',
-			// The pickers ride jQuery UI's autocomplete; wp-scripts only
-			// detects @wordpress imports, so the handle is added here.
+			// The pickers ride jQuery UI's autocomplete, and wp-scripts detects only @wordpress imports, so the handle is added here.
 			array_merge( $admin_script['dependencies'], array( 'jquery', 'jquery-ui-autocomplete' ) ),
 			$admin_script['version'],
 			true
@@ -113,9 +105,7 @@ class Asset_Loader implements Hookable {
 	/**
 	 * The editor bundle, on the editors of types that can be restricted.
 	 *
-	 * `enqueue_block_editor_assets` rather than `admin_enqueue_scripts`: the
-	 * status control is a slot fill, and the slot only exists once the editor
-	 * has booted.
+	 * `enqueue_block_editor_assets` rather than `admin_enqueue_scripts`: the status control is a slot fill, and the slot exists only once the editor has booted.
 	 */
 	public function enqueue_editor(): void {
 		$screen = get_current_screen();
@@ -130,9 +120,7 @@ class Asset_Loader implements Hookable {
 	/**
 	 * Puts the front bundle on this request.
 	 *
-	 * Called by the account route. A block placed on someone else's page does
-	 * not call this — it names the handle in its block.json and core enqueues
-	 * it only when that block is actually on the page.
+	 * Called by the account route. A block placed on someone else's page names the handle in its block.json instead, and core enqueues it only when that block is on the page.
 	 */
 	public function enqueue_front(): void {
 		wp_enqueue_style( self::FRONT_STYLE );
@@ -140,9 +128,7 @@ class Asset_Loader implements Hookable {
 	}
 
 	/**
-	 * Admin assets, on the screens that use them: our own pages, the list
-	 * tables whose quick edit carries the grant picker, and the restrictable
-	 * types' editors, where the item metabox's group button lives.
+	 * Admin assets, on the screens that use them: our own pages, the list tables whose quick edit carries the grant picker, and the restrictable types' editors, where the item metabox's group button lives.
 	 *
 	 * @param string $hook_suffix The current admin page.
 	 */
@@ -173,9 +159,7 @@ class Asset_Loader implements Hookable {
 	/**
 	 * The dependencies and version wp-scripts worked out at build time.
 	 *
-	 * Falls back to the plugin version when the build has not been run, so a
-	 * checkout without a `npm run build` degrades to an unstyled page rather
-	 * than a fatal error.
+	 * Falls back to the plugin version when the build has not been run, so a checkout without `npm run build` degrades to an unstyled page rather than a fatal error.
 	 *
 	 * @param string $name Entry name, e.g. `css/front`.
 	 * @return array{dependencies: array<int, string>, version: string}

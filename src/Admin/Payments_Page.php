@@ -16,8 +16,7 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
 
 /**
- * The Payments submenu entry and its read-only list, behind
- * `gatedmedia_view_payments` (spec §7).
+ * The Payments submenu entry and its read-only list, behind `gatedmedia_view_payments`.
  */
 class Payments_Page implements Hookable {
 
@@ -56,7 +55,7 @@ class Payments_Page implements Hookable {
 	}
 
 	/**
-	 * The list, and nothing else — no form, no actions, no buttons.
+	 * The list, and nothing else: no form, no actions, no buttons.
 	 */
 	public function render(): void {
 		$table = $this->build_table();
@@ -70,9 +69,7 @@ class Payments_Page implements Hookable {
 	}
 
 	/**
-	 * The table, with its parent class loaded first: WP_List_Table only
-	 * exists once an admin screen has included it, and the integration
-	 * suite has no admin screen.
+	 * The table, with its parent class loaded first: WP_List_Table exists only once an admin screen has included it, and the integration suite has no admin screen.
 	 */
 	public function build_table(): Payments_List_Table {
 		if ( ! class_exists( \WP_List_Table::class ) ) {

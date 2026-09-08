@@ -1,9 +1,7 @@
 /**
- * §6.9 Section heading — editor.
+ * The section heading, editor side.
  *
- * Typed in place. The only thing that cannot be seen is the heading level,
- * because the size never changes with it — this is drawn small and uppercase
- * whether it is an h2 or an h6, so the level is about document structure alone.
+ * Typed in place. The only thing that cannot be seen is the heading level, because the size never changes with it: this is drawn small and uppercase whether it is an h2 or an h6, so the level is about document structure alone.
  */
 
 import {
@@ -37,7 +35,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { level: parseInt( value, 10 ) } )
 						}
 						help={ __(
-							'Document structure only — the size never changes. The page title is the h1, so these start at h2.',
+							'Document structure only, since the size never changes. The page title is the h1, so these start at h2.',
 							'gated-media-access'
 						) }
 						__nextHasNoMarginBottom

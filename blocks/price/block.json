@@ -6,7 +6,7 @@
 	"title": "Price",
 	"category": "widgets",
 	"icon": "money-alt",
-	"description": "ui-spec.md §6.7. The inline price in a row. Zero renders as Free.",
+	"description": "The inline price in a row. Zero renders as Free.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"amount": {

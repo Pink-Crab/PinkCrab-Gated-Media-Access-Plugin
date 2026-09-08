@@ -16,9 +16,9 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * What the search pickers type against: three admin-ajax endpoints — users,
- * posts, files — signed-in only, behind the give-access capability and a
- * nonce. Search, nothing else: no record is read or written here.
+ * What the search pickers type against: three admin-ajax endpoints for users, posts and files, signed-in only, behind the give-access capability and a nonce.
+ *
+ * Search and nothing else. No record is read or written here.
  */
 class Picker_Search implements Hookable {
 
@@ -102,8 +102,7 @@ class Picker_Search implements Hookable {
 	}
 
 	/**
-	 * Published posts matching the term — the restrictable types, files
-	 * excluded (`gatedmedia_search_files` is theirs).
+	 * Published posts matching the term, files excluded since they have their own endpoint.
 	 *
 	 * @param string $term What was typed.
 	 * @return array<int, array{id: int, label: string}>
@@ -129,8 +128,7 @@ class Picker_Search implements Hookable {
 	}
 
 	/**
-	 * Attachments matching the term — an attachment is a post, so the file
-	 * picker is this search rather than a media modal.
+	 * Attachments matching the term, since an attachment is a post and the file picker is a search rather than a media modal.
 	 *
 	 * @param string $term What was typed.
 	 * @return array<int, array{id: int, label: string}>
@@ -156,9 +154,7 @@ class Picker_Search implements Hookable {
 	}
 
 	/**
-	 * Groups matching the term by name, id'd by their UUID — the identity
-	 * access records point at. The restricted marker is not a group, and
-	 * `Restriction`'s term-list exclusion already keeps it out.
+	 * Groups matching the term by name, identified by the UUID access records point at. The restricted marker is not a group and `Restriction` already keeps it out.
 	 *
 	 * @param string $term What was typed.
 	 * @return array<int, array{id: string, label: string}>

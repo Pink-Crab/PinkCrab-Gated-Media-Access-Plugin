@@ -17,14 +17,11 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * `wp_safe_redirect()` follows only hosts on core's allow-list and quietly
- * swaps anything else for wp-admin. The hosted checkout is on Stripe's host —
- * but not always `checkout.stripe.com`, because a Stripe account can serve
- * Checkout from a domain of its own. A buyer landing in wp-admin instead of at
- * payment, with a pending row left behind, is the failure these cover.
+ * `wp_safe_redirect()` follows only hosts on core's allow-list and quietly swaps anything else for wp-admin, and the hosted checkout is not always on `checkout.stripe.com` because a Stripe account can serve Checkout from its own domain.
  *
- * The session URL is not user input: it comes back from the Stripe API over
- * the site's own secret key, so its host is as trustworthy as Stripe itself.
+ * The failure these cover is a buyer landing in wp-admin instead of at payment, with a pending row left behind.
+ *
+ * The session URL is not user input: it comes back from the Stripe API over the site's own secret key.
  *
  * @group integration
  */
@@ -38,8 +35,7 @@ class Test_Checkout_Action extends WP_UnitTestCase {
 
 		$this->captured = '';
 
-		// handle() exits after redirecting, which would take the runner with
-		// it. Throwing from the filter stops before that.
+		// handle() exits after redirecting, which would take the runner with it, so throw from the filter first.
 		add_filter(
 			'wp_redirect',
 			function ( $location ) {
@@ -65,9 +61,7 @@ class Test_Checkout_Action extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Stripe Checkout can be served from the merchant's own domain, and the
-	 * session URL then carries that host. Before this, the allow-list named
-	 * one host and everything else was swapped for wp-admin without a word.
+	 * Stripe Checkout can be served from the merchant's own domain, and the allow-list named one host and swapped everything else for wp-admin without a word.
 	 *
 	 * @testdox A hosted checkout on a Stripe custom domain is followed too, not swapped for wp-admin.
 	 */
@@ -86,8 +80,7 @@ class Test_Checkout_Action extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Posts the buy form against a checkout that answers the given URL, and
-	 * returns wherever the handler actually sent them.
+	 * Posts the buy form against a checkout answering the given URL, and returns where the handler sent them.
 	 *
 	 * @param string $redirect What Checkout::purchase() hands back.
 	 */

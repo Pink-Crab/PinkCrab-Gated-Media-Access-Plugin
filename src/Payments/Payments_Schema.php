@@ -13,13 +13,11 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 
 /**
- * Creates and versions `{prefix}gatedmedia_payments` (spec §3).
+ * Creates and versions `{prefix}gatedmedia_payments`.
  *
- * Runs from a load-time version check, never an activation hook: the test
- * bootstrap requires the plugin by path and nothing ever activates it, so an
- * activation-only migration would leave the integration suite without the
- * table. dbDelta makes the check cheap — one option read per request until
- * the version moves.
+ * Runs from a load-time version check, never an activation hook: the test bootstrap requires the plugin by path and nothing ever activates it, so an activation-only migration would leave the integration suite without the table.
+ *
+ * The check costs one option read per request until the version moves.
  */
 class Payments_Schema implements Hookable {
 
@@ -88,8 +86,7 @@ class Payments_Schema implements Hookable {
 			) {$collate};"
 		);
 
-		// Stamped only on a table that is really there: dbDelta neither throws
-		// nor reports, so recording a failure as done retries nothing, ever.
+		// Stamped only on a table that is really there, because dbDelta neither throws nor reports and recording a failure as done would never retry.
 		if ( self::table_exists() ) {
 			update_option( self::OPTION_DB_VERSION, self::DB_VERSION, true );
 		}

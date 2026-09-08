@@ -1,6 +1,6 @@
 <?php
 /**
- * The §6 components, as blocks.
+ * The shared components, as blocks.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
@@ -12,45 +12,43 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 use WP_UnitTestCase;
 use WP_Block_Type_Registry;
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * ui-spec.md §6 is the complete vocabulary — sixteen components, each with its
- * states written down. These assert that every one of them **exists and
- * renders**, which is the check that was missing when nine of them existed as
- * CSS and nothing else.
+ * All sixteen shared components exist as registered blocks and render.
  *
  * @group integration
  */
 class Test_Component_Blocks extends WP_UnitTestCase {
 
 	/**
-	 * Every §6 component, by block name.
+	 * Every component, by block name.
 	 *
 	 * @return array<string, array{string}>
 	 */
 	public static function components(): array {
 		return array(
-			'§6.1 account nav'    => array( 'gated-media-access/account-nav' ),
-			'§6.2 row'            => array( 'gated-media-access/row' ),
-			'§6.3 button'         => array( 'gated-media-access/button' ),
-			'§6.4 notice'         => array( 'gated-media-access/notice' ),
-			'§6.5 expiry'         => array( 'gated-media-access/expiry' ),
-			'§6.6 status pill'    => array( 'gated-media-access/status-pill' ),
-			'§6.7 price'          => array( 'gated-media-access/price' ),
-			'§6.8 field'          => array( 'gated-media-access/field' ),
-			'§6.9 section head'   => array( 'gated-media-access/section-heading' ),
-			'§6.10 empty state'   => array( 'gated-media-access/empty-state' ),
-			'§6.11 filter'        => array( 'gated-media-access/filter' ),
-			'§6.12 contents'      => array( 'gated-media-access/contents' ),
-			'§6.13 price block'   => array( 'gated-media-access/price-block' ),
-			'§6.14 coupon'        => array( 'gated-media-access/coupon' ),
-			'§6.15 action bar'    => array( 'gated-media-access/action-bar' ),
-			'§6.16 summary'       => array( 'gated-media-access/summary' ),
+			'account nav'  => array( 'gated-media-access/account-nav' ),
+			'row'          => array( 'gated-media-access/row' ),
+			'button'       => array( 'gated-media-access/button' ),
+			'notice'       => array( 'gated-media-access/notice' ),
+			'expiry'       => array( 'gated-media-access/expiry' ),
+			'status pill'  => array( 'gated-media-access/status-pill' ),
+			'price'        => array( 'gated-media-access/price' ),
+			'field'        => array( 'gated-media-access/field' ),
+			'section head' => array( 'gated-media-access/section-heading' ),
+			'empty state'  => array( 'gated-media-access/empty-state' ),
+			'filter'       => array( 'gated-media-access/filter' ),
+			'contents'     => array( 'gated-media-access/contents' ),
+			'price block'  => array( 'gated-media-access/price-block' ),
+			'coupon'       => array( 'gated-media-access/coupon' ),
+			'action bar'   => array( 'gated-media-access/action-bar' ),
+			'summary'      => array( 'gated-media-access/summary' ),
 		);
 	}
 
 	/**
-	 * @testdox Every component in §6 is a registered block.
+	 * @testdox Every component is a registered block.
 	 *
 	 * @dataProvider components
 	 *
@@ -94,7 +92,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.2 Row — four states, all drawn in the corpus.
+	// Row, four states.
 	// -------------------------------------------------------------------------
 
 	/** @testdox A row renders its title and meta. */
@@ -170,7 +168,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.5 Expiry — four states, only two of them coloured.
+	// Expiry, four states, only two of them coloured.
 	// -------------------------------------------------------------------------
 
 	/**
@@ -224,7 +222,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.6 Status pill — five values.
+	// Status pill, the five access values.
 	// -------------------------------------------------------------------------
 
 	/**
@@ -254,7 +252,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.7 / §6.13 Price — the Free rule.
+	// Price and price block, the Free rule.
 	// -------------------------------------------------------------------------
 
 	/** @testdox Zero renders as the word Free, never as an amount. */
@@ -293,15 +291,15 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'gatedmedia-price__original', $html );
 	}
 
-	/** @testdox Where no price exists at all, an em dash. */
+	/** @testdox Where no price exists at all, a dash. */
 	public function test_price_not_applicable(): void {
 		$html = Block::render( 'gated-media-access/price', array( 'notApplicable' => true ) );
 
-		$this->assertStringContainsString( '—', $html );
+		$this->assertStringContainsString( Money::not_applicable(), $html );
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.4 Notice — three kinds, and the dismiss that must not always be there.
+	// Notice, three kinds, and the dismiss that must not always be there.
 	// -------------------------------------------------------------------------
 
 	/**
@@ -339,9 +337,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	/**
 	 * @testdox A notice is only dismissible when it says so.
 	 *
-	 * §7.5's forced completion is defined by being the notice you cannot
-	 * dismiss, so a stray close button would break that view rather than just
-	 * looking wrong.
+	 * Forced profile completion is the notice you cannot dismiss, so a stray close button breaks that view.
 	 */
 	public function test_notice_dismiss_is_opt_in(): void {
 		$plain = Block::render( 'gated-media-access/notice', array( 'text' => 'Fixed.' ) );
@@ -377,7 +373,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.8 Field — the invalid treatment, which had no way to render before.
+	// Field, the invalid treatment.
 	// -------------------------------------------------------------------------
 
 	/** @testdox A field renders its label, input and helper line. */
@@ -444,7 +440,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.10 Empty state — never a dead end.
+	// Empty state, never a dead end.
 	// -------------------------------------------------------------------------
 
 	/** @testdox An empty state renders its icon, headline and line. */
@@ -466,8 +462,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	/**
 	 * @testdox An empty state with no explanatory line renders nothing.
 	 *
-	 * §6.10: the line beneath always states what would put something here —
-	 * the box is never a dead end.
+	 * The line beneath always states what would put something here.
 	 */
 	public function test_empty_state_requires_a_message(): void {
 		$html = Block::render( 'gated-media-access/empty-state', array( 'title' => 'Nothing here' ) );
@@ -476,7 +471,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.3 Buttons.
+	// Buttons.
 	// -------------------------------------------------------------------------
 
 	/** @testdox A button with a link renders as an anchor, and without one as a button. */
@@ -522,7 +517,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.1 Account nav — both variants, from one list.
+	// Account nav, both variants, from one list.
 	// -------------------------------------------------------------------------
 
 	/** @testdox The nav marks the current item, in either variant. */
@@ -557,7 +552,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.11 Filter — search at every width.
+	// Filter, search at every width.
 	// -------------------------------------------------------------------------
 
 	/** @testdox The filter renders one type list into both the select and the chips. */
@@ -587,7 +582,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.16 Summary — pluralised once, here.
+	// Summary, pluralised once, here.
 	// -------------------------------------------------------------------------
 
 	/** @testdox A summary phrases its counts, and drops the empty ones. */
@@ -618,7 +613,7 @@ class Test_Component_Blocks extends WP_UnitTestCase {
 	}
 
 	// -------------------------------------------------------------------------
-	// §6.14 Coupon — applied replaces, not annotates.
+	// Coupon, applied replaces rather than annotates.
 	// -------------------------------------------------------------------------
 
 	/** @testdox An applied coupon replaces the input and its button entirely. */

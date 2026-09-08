@@ -1,14 +1,9 @@
 /**
- * §6.2 Row — editor.
+ * The row block, editor side.
  *
- * Edited where it is drawn: the title and second line are typed on the row
- * itself, and the aside takes real child blocks — an expiry, a status pill, a
- * price, a button, or several. That is what "inner blocks" has to mean in the
- * editor, not just in PHP.
+ * Edited where it is drawn: the title and second line are typed on the row itself, and the aside takes real child blocks, whether an expiry, a status pill, a price, a button, or several.
  *
- * Only what cannot be shown in place is in the sidebar: the link behind the
- * title, the narrow-screen behaviour, and the button the row grows below
- * 782px, which by definition is not visible at the width you are editing at.
+ * Only what cannot be shown in place is in the sidebar: the link behind the title, the narrow-screen behaviour, and the button the row grows below 782px, which by definition is not visible at the width you are editing at.
  */
 
 import {
@@ -49,8 +44,7 @@ const STATES = [
 ];
 
 /**
- * What a row's aside usually holds. Offered as the starting point rather than
- * an empty slot, because an empty aside looks broken rather than deliberate.
+ * What a row's aside usually holds, offered as the starting point rather than an empty slot, because an empty aside looks broken rather than deliberate.
  */
 const ASIDE_ALLOWED = [
 	'gated-media-access/expiry',

@@ -15,9 +15,7 @@ use PinkCrab\Gated_Access\Payments\Stripe_Gateway;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Two costs the buy request carries: an outbound call with no ceiling on how
- * long it may hold the PHP worker, and a coupon count that scans the payments
- * table on columns nothing indexes (§29).
+ * Two costs the buy request carries: an outbound call with no ceiling on how long it may hold the PHP worker, and a coupon count that scans the payments table on columns nothing indexes.
  *
  * @group integration
  */
@@ -39,8 +37,7 @@ class Test_Payments_Performance extends WP_UnitTestCase {
 	public function test_the_payments_table_indexes_the_coupon_count(): void {
 		global $wpdb;
 
-		// The suite rewrites CREATE TABLE to its TEMPORARY form, which SHOW
-		// INDEX cannot see, so this works on the real table.
+		// The suite rewrites CREATE TABLE to its TEMPORARY form, which SHOW INDEX cannot see, so this works on the real table.
 		remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
 
 		delete_option( Payments_Schema::OPTION_DB_VERSION );

@@ -15,9 +15,9 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * Type, value, limits and expiry — registered by the class that writes them,
- * protected, and saved from the editor's own submit. A percent caps at 100;
- * a fixed value stores in minor units; limits store empty for unlimited.
+ * Type, value, limits and expiry, registered by the class that writes them, protected, and saved from the editor's own submit.
+ *
+ * A percent caps at 100, a fixed value stores in minor units, and limits store empty for unlimited.
  *
  * @group integration
  */
@@ -92,7 +92,7 @@ class Test_Coupon_Metabox extends WP_UnitTestCase {
 		$this->assertSame( '500', get_post_meta( $this->coupon_id, Coupon_Metabox::META_VALUE, true ) );
 	}
 
-	/** @testdox A fixed coupon uses the shop currency's digits, not two — zero-decimal. */
+	/** @testdox A fixed coupon uses the shop currency's digits, not two, for a zero-decimal currency. */
 	public function test_save_fixed_in_a_zero_decimal_currency(): void {
 		update_option( Settings::OPTION, array( 'currency' => 'JPY' ) );
 
@@ -106,7 +106,7 @@ class Test_Coupon_Metabox extends WP_UnitTestCase {
 		$this->assertSame( '500', get_post_meta( $this->coupon_id, Coupon_Metabox::META_VALUE, true ) );
 	}
 
-	/** @testdox A fixed coupon uses the shop currency's digits, not two — three-decimal. */
+	/** @testdox A fixed coupon uses the shop currency's digits, not two, for a three-decimal currency. */
 	public function test_save_fixed_in_a_three_decimal_currency(): void {
 		update_option( Settings::OPTION, array( 'currency' => 'BHD' ) );
 

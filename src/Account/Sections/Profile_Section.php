@@ -13,12 +13,9 @@ use PinkCrab\Gated_Access\Account\Account_Section;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
 
 /**
- * The one profile shape, and the only account view that writes anything —
- * ui-spec.md §7.5.
+ * The one profile shape, and the only account view that writes anything.
  *
- * The fields and the save handler live in Profile_Writer, because the brief
- * requires all three account-creation routes to fill the same fields and that
- * only holds while there is one definition of what they are.
+ * The fields and the save handler live in `Profile_Writer`, because all three account-creation routes fill the same fields and that only holds while there is one definition of what they are.
  */
 class Profile_Section implements Account_Section {
 
@@ -83,9 +80,7 @@ class Profile_Section implements Account_Section {
 	/**
 	 * Whether this person still has required fields to fill.
 	 *
-	 * Not part of Account_Section — it is this section's own behaviour, and
-	 * having somewhere to put it is the reason these are classes rather than
-	 * eight arguments to a shared value object.
+	 * Not part of Account_Section: this section's own behaviour, and the reason these are classes rather than arguments to a shared value object.
 	 *
 	 * @param int $user_id Whose profile.
 	 */

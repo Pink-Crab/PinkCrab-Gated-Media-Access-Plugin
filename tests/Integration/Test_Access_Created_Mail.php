@@ -25,8 +25,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * One email per holder per request, whatever granted — and none at all for
- * invite-sourced grants, whose invite email is the announcement.
+ * One email per holder per request, whatever granted, and none for invite-sourced grants, whose invite email is the announcement.
  *
  * @group integration
  */
@@ -106,9 +105,7 @@ class Test_Access_Created_Mail extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The link was built from the route's slug by hand rather than through
-	 * `Account_Url`, so it kept pointing at `/account/` after the setting had
-	 * turned that route off — an email inviting the holder to a 404.
+	 * Built by hand rather than through `Account_Url`, the link kept pointing at `/account/` after the setting turned that route off, inviting the holder to a 404.
 	 *
 	 * @testdox With the account route off, the email link does not point at a page that no longer answers.
 	 */
@@ -156,7 +153,7 @@ class Test_Access_Created_Mail extends WP_UnitTestCase {
 		$this->assertStringContainsString( "Access expires: {$expected}", (string) $this->outbox[0]['message'] );
 	}
 
-	/** @testdox Invite-sourced grants are the invite email's to announce — nothing sends here. */
+	/** @testdox Invite-sourced grants are the invite email's to announce, so nothing sends here. */
 	public function test_invite_sourced_grant_is_skipped(): void {
 		$this->writer->grant( $this->user_id, 'post', (string) $this->post_id, null, 'invite' );
 		$this->mail->flush();

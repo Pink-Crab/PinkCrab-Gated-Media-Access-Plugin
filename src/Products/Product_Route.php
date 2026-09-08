@@ -17,20 +17,11 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * A product is reached at `/{segment}/{uuid}` and nowhere else — never its
- * slug, never an ID (Glynn's round 5 ruling). The segment is the
- * `product_path` setting, default `access`.
+ * A product is reached at `/{segment}/{uuid}` and nowhere else, never its slug and never an ID. The segment is the `product_path` setting, default `access`.
  *
- * The mechanics: a rewrite rule maps the UUID into its own query var; the
- * `request` filter turns that into the product's own single query and
- * stamps a via-flag; and any main query that reaches a product without the
- * flag — `?post_type=…&p=…`, a stale pretty URL, anything — is answered
- * with a 404, not a redirect: a block that redirects to the real URL would
- * be an oracle for guessing it.
+ * A rewrite rule maps the UUID into its own query var, the `request` filter turns that into the product's single query and stamps a via-flag, and any main query reaching a product without the flag is answered with a 404 rather than a redirect, since a redirect to the real URL would be an oracle for guessing it.
  *
- * The permalink filter keeps everything honest for free: get_permalink()
- * answers the UUID URL, so checkout's cancel link, the free claim's
- * redirect and round 6's pages all point the only way in.
+ * The permalink filter keeps everything honest for free: `get_permalink()` answers the UUID URL, so checkout's cancel link, the free claim's redirect and every product link point the only way in.
  */
 class Product_Route implements Hookable {
 
@@ -70,12 +61,9 @@ class Product_Route implements Hookable {
 	}
 
 	/**
-	 * The whole product REST surface is managers-only: without this,
-	 * `show_in_rest` would let anyone list published products at
-	 * `/wp/v2/gatedmedia_product` — the enumeration the front rules refuse.
+	 * The whole product REST surface is managers-only, because without this `show_in_rest` would let anyone list published products at `/wp/v2/gatedmedia_product`, the enumeration the front rules refuse.
 	 *
-	 * The route-level lever, per round 4: a 404, not a 403, so the guard
-	 * confirms nothing.
+	 * A 404 rather than a 403, so the guard confirms nothing.
 	 *
 	 * @param mixed            $response The current response, usually null.
 	 * @param array<mixed>     $handler  The matched handler.
@@ -95,14 +83,9 @@ class Product_Route implements Hookable {
 	}
 
 	/**
-	 * Every product opens with its form: the post-type template only seeds
-	 * brand-new posts, so a product from before the block existed would
-	 * open on an empty canvas. When the editor fetches one whose content
-	 * lacks the block, the locked delimiter is prepended — it persists on
-	 * the next save and the product has healed itself.
+	 * Every product opens with its form. The post-type template only seeds brand-new posts, so when the editor fetches one whose content lacks the block the locked delimiter is prepended, persisting on the next save.
 	 *
-	 * Returns the response untouched otherwise — never a bare WP_Error
-	 * (the round 2 rest_prepare trap).
+	 * Returns the response untouched otherwise, never a bare WP_Error.
 	 *
 	 * @param \WP_REST_Response $response The prepared product.
 	 * @param WP_Post           $post     The product.
@@ -150,16 +133,13 @@ class Product_Route implements Hookable {
 	}
 
 	/**
-	 * Turns a UUID into the product's own single query, and refuses every
-	 * other road to one.
+	 * Turns a UUID into the product's own single query, and refuses every other road to one.
 	 *
 	 * @param array<string, mixed> $query_vars The main request's vars.
 	 * @return array<string, mixed>
 	 */
 	public function route_request( array $query_vars ): array {
-		// Front rules only: the admin list and editor query the type
-		// legitimately, and clobbering their vars sends core's list table
-		// back to a default posts query.
+		// Front rules only: the admin list and editor query the type legitimately, and clobbering their vars sends core's list table back to a default posts query.
 		if ( is_admin() ) {
 			return $query_vars;
 		}
@@ -180,9 +160,7 @@ class Product_Route implements Hookable {
 			);
 		}
 
-		// Any other main query naming the product type — ?post_type=…&p=…,
-		// a stale pretty permalink — is refused outright. The via-flag
-		// exempts the query this filter itself mapped above.
+		// Every other way to a product is refused, except the query mapped above.
 		if ( Post_Types::PRODUCT === ( $query_vars['post_type'] ?? '' ) && '' === (string) ( $query_vars[ self::VIA_FLAG ] ?? '' ) ) {
 			return array( 'error' => '404' );
 		}
@@ -198,8 +176,7 @@ class Product_Route implements Hookable {
 	}
 
 	/**
-	 * Keeps products out of core's `/wp/v2/search`, which answers with the
-	 * UUID URL and which `exclude_from_search` does not reach.
+	 * Keeps products out of core's `/wp/v2/search`, which answers with the UUID URL and which `exclude_from_search` does not reach.
 	 *
 	 * @param array<string, mixed> $args The search query core built.
 	 * @return array<string, mixed>
@@ -258,7 +235,7 @@ class Product_Route implements Hookable {
 	}
 
 	/**
-	 * Flushes only when the rules themselves changed — version or segment.
+	 * Flushes only when the rules changed, by version or segment.
 	 */
 	private function flush_once(): void {
 		$stamp = self::REWRITE_VERSION . ':' . $this->settings->product_path();

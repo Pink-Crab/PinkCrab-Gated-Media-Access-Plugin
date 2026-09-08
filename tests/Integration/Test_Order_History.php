@@ -23,14 +23,9 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
- * §7.3 is one person's own record and §7.4 is one row of it, so every test
- * here is really the same question asked twice: does this answer for the
- * person asking, and only for them.
+ * The orders list is one person's own record and the detail is one row of it, so every test asks the same question: does this answer for the person asking, and only for them.
  *
- * The expiry cases are deliberate. `META_EXPIRES_AT` holds a UTC MySQL
- * datetime, not a timestamp — casting that string to an integer yields the
- * year, which reads as a date in 1970 and dates every row "expires in 1 day".
- * It looks entirely plausible on screen, so it is asserted rather than eyed.
+ * The expiry cases are deliberate. `META_EXPIRES_AT` holds a UTC MySQL datetime, and casting that string to an integer yields the year, dating every row "expires in 1 day". It looks plausible on screen, so it is asserted rather than eyed.
  *
  * @group integration
  */
@@ -218,10 +213,7 @@ class Test_Order_History extends WP_UnitTestCase {
 	/**
 	 * @testdox A record the sweep expired reads as expired, not as one day left.
 	 *
-	 * `Expiry::describe()` floors a past date at one day, because in every
-	 * other view it is only ever asked about live access. Order detail lists
-	 * records whatever their status, so a lapsed one came back as
-	 * "Expires in 1 day" — a live-looking chip on access that has gone.
+	 * `Expiry::describe()` floors a past date at one day, because every other view asks only about live access. Order detail lists records whatever their status, so a lapsed one came back as "Expires in 1 day".
 	 */
 	public function test_an_expired_record_reads_as_expired(): void {
 		$post_id = self::factory()->post->create( array( 'post_title' => 'Last quarter' ) );
@@ -250,9 +242,7 @@ class Test_Order_History extends WP_UnitTestCase {
 	/**
 	 * @testdox A revoked lifetime record says it was withdrawn rather than Lifetime.
 	 *
-	 * A refund revokes without touching the date, so a lifetime record kept
-	 * reading "Lifetime" and a dated one kept its future date, both on access
-	 * the customer no longer has.
+	 * A refund revokes without touching the date, so a lifetime record kept reading "Lifetime" and a dated one kept its future date, both on access the customer no longer has.
 	 */
 	public function test_a_revoked_record_reads_as_withdrawn(): void {
 		$post_id = self::factory()->post->create( array( 'post_title' => 'The whole archive' ) );
@@ -318,9 +308,7 @@ class Test_Order_History extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An order outlives what it bought. Deleting a product must not blank the
-	 * row it was sold on — a nameless line in a purchase history is worse than
-	 * a vague one, because it reads as a fault rather than as a removed item.
+	 * An order outlives what it bought, and a nameless line in a purchase history reads as a fault rather than a removed item.
 	 *
 	 * @testdox An order for a deleted product still has a name.
 	 */
@@ -334,9 +322,7 @@ class Test_Order_History extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The price block draws `original` struck through beside `amount`. Nothing
-	 * had ever produced a row where the two differ, so the struck-through price
-	 * — the only visible evidence a coupon was applied — was unasserted.
+	 * The price block draws `original` struck through beside `amount`, and nothing had produced a row where the two differ, so the only visible evidence of a coupon was unasserted.
 	 *
 	 * @testdox A discounted order carries what was paid and what it was before.
 	 */

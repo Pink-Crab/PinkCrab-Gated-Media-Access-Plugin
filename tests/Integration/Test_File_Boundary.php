@@ -17,12 +17,9 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * The dependency's protect-file decision goes through the resolver, and its
- * before-serve action re-publishes as gatedmedia_file_downloaded.
+ * The dependency's protect-file decision goes through `Resolver`, and its before-serve action re-publishes as gatedmedia_file_downloaded.
  *
- * Everything runs through apply_filters / do_action against the hooks the
- * bootstrap attached at plugin load, so the lazy container resolution is on
- * trial too.
+ * Everything runs through the hooks the bootstrap attached at plugin load, so the lazy container resolution is on trial too.
  *
  * @group integration
  */
@@ -38,9 +35,7 @@ class Test_File_Boundary extends WP_UnitTestCase {
 		$this->writer  = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so the boot-time registration is
-		// gone by the time any test here runs.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 	}
 
@@ -69,27 +64,22 @@ class Test_File_Boundary extends WP_UnitTestCase {
 		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
 	}
 
-	/** @testdox A signed-in non-holder is refused — the dependency's everyone-signed-in default no longer applies. */
+	/** @testdox A signed-in non-holder is refused, whatever the dependency's default. */
 	public function test_non_holder_refused(): void {
 		[ , $hash ] = $this->make_protected_attachment();
 
 		wp_set_current_user( $this->user_id );
 
-		// The dependency's own default would serve this: signed in, incoming
-		// decision false. The resolver turns it away.
+		// The dependency's own default would serve this. The resolver turns it away.
 		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
 	}
 
 	/**
 	 * @testdox An expired grant stops serving the file, with no sweep having run.
 	 *
-	 * The resolver proves expiry answers false; this proves the file boundary
-	 * asks it. Without this the two are only joined by reasoning — the boundary
-	 * delegating to the resolver — and reasoning is not a test.
+	 * The resolver proves expiry answers false, and this proves the boundary asks it. Without both, the two are only joined by reasoning.
 	 *
-	 * No sweep is run on purpose: the record is still `active` and only its
-	 * date has passed, which is the state a real site spends most of its time
-	 * in between sweeps.
+	 * No sweep runs on purpose: the record is still `active` with only its date passed, which is where a real site spends most of its time.
 	 */
 	public function test_an_expired_grant_is_refused(): void {
 		[ $attachment_id, $hash ] = $this->make_protected_attachment();
@@ -112,8 +102,7 @@ class Test_File_Boundary extends WP_UnitTestCase {
 
 		wp_set_current_user( $this->user_id );
 
-		// Held first, so the refusal below is the revocation and not a grant
-		// that never worked.
+		// Held first, so the refusal below is the revocation, not a grant that never worked.
 		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
 
 		$this->writer->revoke( $access_id );
@@ -124,23 +113,16 @@ class Test_File_Boundary extends WP_UnitTestCase {
 	/**
 	 * @testdox A file held only through a group is served at the boundary.
 	 *
-	 * Every earlier test here grants `file` directly. A real site mostly grants
-	 * groups, so this is the path most files are actually reached by.
+	 * Every earlier test grants `file` directly, but a real site mostly grants groups, so this is the path most files are reached by.
 	 *
-	 * It does not also assert the file leaving the group, because it could not
-	 * honestly: `Resolver` forgets a holder on grant, revoke, expire and
-	 * reschedule, and on nothing else — so a group's contents changing
-	 * mid-request is invisible to anything that has already asked.
-	 * `Test_Resolver` covers that with a fresh instance either side.
+	 * It does not assert the file leaving the group, because `Resolver` forgets a holder only on grant, revoke, expire and reschedule. `Test_Resolver` covers that with a fresh instance either side.
 	 */
 	public function test_a_group_grant_reaches_the_file(): void {
 		[ $attachment_id, $hash ] = $this->make_protected_attachment();
 
 		$term_id = self::factory()->term->create( array( 'taxonomy' => Access_Taxonomy::TAXONOMY ) );
 
-		// A group is granted by its UUID, never its term id — Resolver::can_see()
-		// documents `item_id` as the group UUID, and group_contents() looks it
-		// up with find_group().
+		// A group is granted by its UUID, never its term id.
 		$uuid = Uuid::ensure( 'term', (int) $term_id );
 
 		wp_set_object_terms( $attachment_id, array( (int) $term_id ), Access_Taxonomy::TAXONOMY );
@@ -163,9 +145,7 @@ class Test_File_Boundary extends WP_UnitTestCase {
 		wp_set_current_user( $this->user_id );
 		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
 
-		// The same hash — the URL a holder could paste anywhere. The decision
-		// is made per request against whoever is asking, so passing it on
-		// hands over nothing.
+		// The same hash, decided per request against whoever is asking.
 		wp_set_current_user( $stranger );
 		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash ) );
 	}
@@ -218,8 +198,7 @@ class Test_File_Boundary extends WP_UnitTestCase {
 	}
 
 	/**
-	 * An attachment with a real uploaded file, restricted through the
-	 * dependency so it has a genuine protected-file hash.
+	 * An attachment with a real uploaded file, restricted through the dependency so it has a genuine protected-file hash.
 	 *
 	 * @return array{0: int, 1: string} Attachment ID and its hash.
 	 */

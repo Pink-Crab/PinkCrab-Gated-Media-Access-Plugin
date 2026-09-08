@@ -1,11 +1,7 @@
 /**
- * §6.1 Account nav — editor.
+ * The account nav, editor side.
  *
- * Drawn client-side from whatever items it has, so you can see which variant
- * you have placed. The items themselves are the one thing genuinely not
- * editable: they come from `gatedmedia_account_sections`, so a section added
- * by another plugin appears without anyone touching this block — and typing
- * them by hand would produce navigation that disagrees with its routes.
+ * Drawn client-side from whatever items it has, so you can see which variant you have placed. The items themselves are the one thing genuinely not editable: they come from `gatedmedia_account_sections`, so a section added by another plugin appears without anyone touching this block, and typing them by hand would produce navigation that disagrees with its routes.
  */
 
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
@@ -25,8 +21,7 @@ export default function Edit( { attributes, setAttributes } ) {
 
 	const blockProps = useBlockProps( { className: base } );
 
-	// Nothing is supplied in the editor, so show the real sections as a preview
-	// of the shape rather than an empty box.
+	// Nothing is supplied in the editor, so the real sections stand in as a preview of the shape rather than an empty box.
 	const preview =
 		list.length > 0
 			? list
@@ -63,14 +58,14 @@ export default function Edit( { attributes, setAttributes } ) {
 						options={ [
 							{
 								label: __(
-									'Sidebar — 782px and above',
+									'Sidebar, 782px and above',
 									'gated-media-access'
 								),
 								value: 'sidebar',
 							},
 							{
 								label: __(
-									'Tab strip — below 782px',
+									'Tab strip, below 782px',
 									'gated-media-access'
 								),
 								value: 'tabs',

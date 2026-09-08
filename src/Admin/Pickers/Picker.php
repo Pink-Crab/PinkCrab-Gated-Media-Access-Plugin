@@ -10,11 +10,9 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Admin\Pickers;
 
 /**
- * One drop-in control for choosing a thing in wp-admin: a visible control
- * paired with a hidden input carrying the choice, which is all a form ever
- * submits. The Add Access form and the quick edit box compose these today;
- * anything later — the product editor's items, say — drops one in the same
- * way:
+ * One drop-in control for choosing a thing in wp-admin: a visible control paired with a hidden input carrying the choice, which is all a form ever submits.
+ *
+ * The Add Access form and the quick edit box compose these, and anything later drops one in the same way:
  *
  *     ( new User_Picker( 'gatedmedia_user', 'gatedmedia_user' ) )->render();
  *

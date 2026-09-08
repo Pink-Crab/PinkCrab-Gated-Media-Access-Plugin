@@ -10,23 +10,17 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Payments;
 
 /**
- * Usage is counted from completed payments (spec §1b), which leaves a window:
- * everyone who starts a checkout while nobody has finished one passes the same
- * limit check, and they all complete. This closes it for the case that matters
- * — buyers arriving together — by reserving the coupon for the minute or so
- * a checkout takes.
+ * Usage is counted from completed payments, which leaves a window: everyone who starts a checkout while nobody has finished one passes the same limit check, and they all complete.
  *
- * The reservation is one conditional `INSERT ... SELECT`, so the database
- * decides who was first rather than PHP: a check followed by a write is racy
- * however tight the gap. The same reasoning as `Payment_Store`'s status moves.
+ * This closes it for buyers arriving together, by reserving the coupon for the minute or so a checkout takes.
  *
- * Holds carry their own expiry in the meta value and are counted only while
- * that is in the future, so an abandoned checkout needs no sweeper — its hold
- * simply stops counting. `gatedmedia_coupon_hold_seconds` sets the window and
- * `0` turns reserving off altogether.
+ * The reservation is one conditional `INSERT ... SELECT`, so the database decides who was first rather than PHP, a check followed by a write being racy however tight the gap, which is the reasoning behind `Payment_Store`'s status moves too.
  *
- * Only the holds are counted here. Completions are read through
- * `Payment_Store`, which owns that table, and arrive as the room left.
+ * Holds carry their own expiry in the meta value and count only while that is in the future, so an abandoned checkout needs no sweeper and its hold simply stops counting.
+ *
+ * `gatedmedia_coupon_hold_seconds` sets the window, and `0` turns reserving off altogether.
+ *
+ * Only the holds are counted here: completions are read through `Payment_Store`, which owns that table, and arrive as the room left.
  */
 class Coupon_Hold {
 
@@ -93,8 +87,7 @@ class Coupon_Hold {
 	}
 
 	/**
-	 * Gives back whatever a payment reserved. Safe to call for a payment that
-	 * reserved nothing, and safe to call twice.
+	 * Gives back whatever a payment reserved, safely for a payment that reserved nothing and safely twice.
 	 *
 	 * @param int    $coupon_id The coupon.
 	 * @param int    $user_id   The buyer.
@@ -110,8 +103,7 @@ class Coupon_Hold {
 	}
 
 	/**
-	 * The per-buyer key's prefix — their id sits in the key so one buyer's
-	 * holds can be counted without reading anybody else's.
+	 * The per-buyer key's prefix, with their id in the key so one buyer's holds can be counted without reading anybody else's.
 	 *
 	 * @param int $user_id The buyer.
 	 */
@@ -120,14 +112,11 @@ class Coupon_Hold {
 	}
 
 	/**
-	 * The reservation itself: insert the hold only while the live ones are
-	 * still under the room left, in one statement.
+	 * The reservation itself: insert the hold only while the live ones are still under the room left, in one statement.
 	 *
-	 * The row source is `posts` rather than `postmeta` because MySQL will not
-	 * read the table being inserted into in the outer select; the subquery may
-	 * still name it. WooCommerce's `check_and_hold_coupon()` takes the same
-	 * route, deadlock retry included — under load the database aborts whichever
-	 * side has done less work.
+	 * The row source is `posts` rather than `postmeta` because MySQL will not read the table being inserted into in the outer select, though the subquery may still name it.
+	 *
+	 * WooCommerce's `check_and_hold_coupon()` takes the same route, deadlock retry included, since under load the database aborts whichever side has done less work.
 	 *
 	 * @param int    $coupon_id The coupon.
 	 * @param string $key       The exact key this hold is written under.
@@ -158,8 +147,7 @@ class Coupon_Hold {
 			$room
 		);
 
-		// A combined index on post_id and meta_key can deadlock this insert
-		// under load; three attempts is what WooCommerce settled on.
+		// A combined index on post_id and meta_key can deadlock this insert under load, and three attempts is what WooCommerce settled on.
 		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared above.
 			$inserted = $wpdb->query( $statement );

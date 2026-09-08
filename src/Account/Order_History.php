@@ -24,19 +24,13 @@ use PinkCrab\Gated_Access\Support\Item_Label;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * Turns payment rows into the shapes the orders block declares — §7.3 the
- * list, §7.4 one order.
+ * Turns payment rows into the shapes the orders block declares: the list, and one order's detail.
  *
- * Separate from `Held_Access` because that answers what a person was *given*;
- * this reads the payments table. Mixing them would put a payments dependency
- * inside the class that reads access records.
+ * Separate from `Held_Access` because that answers what a person was *given* and this reads the payments table, and mixing them would put a payments dependency inside the class that reads access records.
  *
- * The render file cannot reach container services, so the data arrives by
- * filter — `gatedmedia_orders_data` — exactly as My Access and Files do.
+ * The render file cannot reach container services, so the data arrives by the `gatedmedia_orders_data` filter, exactly as My Access and Files do.
  *
- * Ownership is checked here and nowhere else: the list is queried by user id,
- * and one order is only returned when it belongs to the person asking. An
- * order that is not yours reads as an order that does not exist.
+ * Ownership is checked here and nowhere else: the list is queried by user id, one order is returned only when it belongs to the person asking, and an order that is not yours reads as one that does not exist.
  */
 class Order_History implements Hookable {
 
@@ -70,7 +64,7 @@ class Order_History implements Hookable {
 	 * The list, and the one order when a detail segment names it.
 	 *
 	 * @param array<string, mixed> $data   The view's defaults.
-	 * @param string               $detail The second URL segment — a payment uuid, or ''.
+	 * @param string               $detail The second URL segment: a payment uuid, or ''.
 	 * @return array<string, mixed>
 	 */
 	public function orders( array $data, string $detail = '' ): array {
@@ -80,8 +74,7 @@ class Order_History implements Hookable {
 			return $data;
 		}
 
-		// Where "back to orders" goes, derived rather than chopped off an
-		// order's own URL.
+		// Where "back to orders" goes, derived rather than chopped off an order's own URL.
 		$data['section_url'] = $this->section_url();
 
 		if ( '' !== $detail ) {
@@ -117,7 +110,7 @@ class Order_History implements Hookable {
 	}
 
 	/**
-	 * One order in full — §7.4 — for its owner only.
+	 * One order in full, for its owner only.
 	 *
 	 * @param string $uuid    The payment being asked for.
 	 * @param int    $user_id Who is asking.
@@ -126,8 +119,7 @@ class Order_History implements Hookable {
 	private function detail( string $uuid, int $user_id ): ?array {
 		$payment = $this->store->find_by_uuid( $uuid );
 
-		// Someone else's order and an order that never existed answer the
-		// same way, so the page confirms nothing either.
+		// Someone else's order and an order that never existed answer the same way, so the page confirms nothing.
 		if ( null === $payment || $payment->user_id !== $user_id ) {
 			return null;
 		}
@@ -144,10 +136,7 @@ class Order_History implements Hookable {
 	/**
 	 * The access this order actually created, as it stands now.
 	 *
-	 * Read back by the reference the grant was written under — the same pair
-	 * `Stripe_Webhook` revokes by on a refund — so it reflects what the order
-	 * produced rather than what it promised. A refunded order's records are
-	 * still listed, carrying whatever state the revoke left them in.
+	 * Read back by the reference the grant was written under, the same pair a refund revokes by, so it reflects what the order produced rather than what it promised. A refunded order's records are still listed, in whatever state the revoke left them.
 	 *
 	 * @param Payment $payment The order.
 	 * @return array<int, array<string, string>>
@@ -180,18 +169,11 @@ class Order_History implements Hookable {
 	/**
 	 * When one access record runs out.
 	 *
-	 * `META_EXPIRES_AT` holds a UTC MySQL datetime, not a timestamp — it is
-	 * written with `gmdate( 'Y-m-d H:i:s' )` (`Access_Writer::reschedule()`),
-	 * so it is read back the way every other reader reads it. Casting the
-	 * string to an integer would yield the year and date everything a day out.
+	 * `META_EXPIRES_AT` holds a UTC MySQL datetime, not a timestamp, so casting the string to an integer would yield the year and date everything a day out.
 	 *
-	 * An empty value is lifetime, which is what the writer stores for access
-	 * that never ends.
+	 * An empty value is lifetime.
 	 *
-	 * The status is read first. This is the one view that lists records
-	 * whatever state they are in, and neither a revoke nor the sweep touches
-	 * the stored date — so a refunded lifetime record would otherwise read
-	 * "Lifetime" and a lapsed one "Expires in 1 day".
+	 * The status is read first, because this is the one view listing records in every state and neither a revoke nor the sweep touches the stored date.
 	 *
 	 * @param int $access_id The access record.
 	 * @return array{state: string, label: string}
@@ -221,9 +203,7 @@ class Order_History implements Hookable {
 	/**
 	 * Whether this is the order the buyer has just come back to from Stripe.
 	 *
-	 * The query arg has to name this very payment, and `detail()` has already
-	 * established that the payment is theirs — so a pasted uuid belonging to
-	 * someone else never reaches here.
+	 * The query arg has to name this very payment, and `detail()` has already established that it is theirs, so a pasted uuid never reaches here.
 	 *
 	 * @param Payment $payment The order being viewed.
 	 */
@@ -237,9 +217,7 @@ class Order_History implements Hookable {
 	/**
 	 * What the order was for, frozen as it was on the day.
 	 *
-	 * Groups are live (architecture.md §1), so the snapshot is what the order
-	 * included rather than what those groups hold now — which is why §6.12's
-	 * note exists.
+	 * Groups are live, so the snapshot is what the order included rather than what those groups hold now, which is why the contents list carries a note.
 	 *
 	 * @param Payment $payment The order.
 	 * @return array<int, array<string, string>>
@@ -247,9 +225,7 @@ class Order_History implements Hookable {
 	private function contents( Payment $payment ): array {
 		$items = array();
 
-		// The snapshot is what `Checkout::begin_payment()` stored: the
-		// product's raw `gatedmedia_items` meta, one `type:identifier` string
-		// per entry.
+		// The snapshot is what `Checkout::begin_payment()` stored: the product's raw `gatedmedia_items` meta, one `type:identifier` string per entry.
 		foreach ( $payment->contents_snapshot as $entry ) {
 			list( $type, $identifier ) = Item_Label::split( (string) $entry );
 
@@ -271,8 +247,7 @@ class Order_History implements Hookable {
 	/**
 	 * The product's title, as it is now.
 	 *
-	 * A deleted product still has orders against it, so the row keeps a name
-	 * rather than rendering blank.
+	 * A deleted product still has orders against it, so the row keeps a name rather than rendering blank.
 	 *
 	 * @param Payment $payment The order.
 	 */
@@ -302,9 +277,7 @@ class Order_History implements Hookable {
 	/**
 	 * Where one order lives.
 	 *
-	 * The account segment is a filter rather than a setting
-	 * (`Account_Route::slug()`), so it is resolved the same way here — a site
-	 * that renames the account area renames its order links with it.
+	 * The account segment is a filter, resolved the same way here, so renaming the account area renames its order links with it.
 	 *
 	 * @param string $uuid The payment.
 	 */

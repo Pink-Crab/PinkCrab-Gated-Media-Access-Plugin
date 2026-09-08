@@ -1,11 +1,9 @@
 /**
- * §6.7 Price, inline — editor.
+ * The inline price, editor side.
  *
- * Drawn client-side, so what you see updates as you type rather than after a
- * round trip. Zero shows as "Free" here exactly as it will on the page, which
- * is the rule most worth seeing rather than being told.
+ * Drawn client-side, so what you see updates as you type. Zero shows as "Free" here exactly as it will on the page.
  *
- * Amounts are entered in pounds and stored in pence (specification.md §1a).
+ * Amounts are entered in pounds and stored in pence.
  */
 
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
@@ -91,7 +89,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							{ formatMinor( original, currency ) }
 						</span>
 					) }
-					{ notApplicable ? '—' : formatMinor( amount, currency ) }
+					{ notApplicable ? '-' : formatMinor( amount, currency ) }
 				</span>
 			</div>
 		</>

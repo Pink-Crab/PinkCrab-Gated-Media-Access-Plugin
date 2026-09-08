@@ -21,10 +21,9 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 
 /**
- * They paid elsewhere: behind the give-access capability, a payload names
- * a person, a target, a duration and the sender's reference. A repeated
- * delivery writes nothing; a product target expands to one record per
- * item; a person unknown by email is created and their profile filled.
+ * They paid elsewhere: behind the give-access capability, a payload names a person, a target, a duration and the sender's reference.
+ *
+ * A repeated delivery writes nothing, a product target expands to one record per item, and a person unknown by email is created and their profile filled.
  *
  * @group integration
  */

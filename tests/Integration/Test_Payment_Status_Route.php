@@ -17,8 +17,7 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 
 /**
- * Owner only, status only — and everything that is not the owner's
- * payment answers the same 404, confirming nothing.
+ * Owner only, status only, and everything that is not the owner's payment answers the same 404, confirming nothing.
  *
  * @group integration
  */

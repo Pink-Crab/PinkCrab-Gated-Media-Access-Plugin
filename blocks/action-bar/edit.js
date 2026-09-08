@@ -1,12 +1,9 @@
 /**
- * §6.15 Pinned action bar — editor.
+ * The pinned action bar, editor side.
  *
- * The label is typed on the button, price included — §6.15 puts the price in
- * the button's own label rather than beside it, because the bar holds one
- * control and nothing else.
+ * The label is typed on the button, price included, because the bar holds one control and nothing else.
  *
- * Drawn unpinned here. Pinning it in the editor canvas would stick it to the
- * bottom of the editor, which is not what it does on a page.
+ * Drawn unpinned here, because pinning it in the editor canvas would stick it to the bottom of the editor, which is not what it does on a page.
  */
 
 import {
@@ -54,7 +51,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { label: value } )
 						}
 						placeholder={ __(
-							'Get access — £49.00',
+							'Get access, £49.00',
 							'gated-media-access'
 						) }
 						allowedFormats={ [] }

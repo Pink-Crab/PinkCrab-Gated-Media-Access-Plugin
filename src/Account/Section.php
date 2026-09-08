@@ -12,8 +12,7 @@ namespace PinkCrab\Gated_Access\Account;
 /**
  * A section described by its values rather than by behaviour.
  *
- * Our four are built from this, and it is public so a third party adding one
- * does not have to write a class to do it:
+ * Our four are built from this, and it is public so a third party adding one does not have to write a class to do it:
  *
  *     add_filter(
  *         'gatedmedia_account_sections',
@@ -30,9 +29,7 @@ namespace PinkCrab\Gated_Access\Account;
  *         }
  *     );
  *
- * Anything needing real behaviour — visibility that depends on more than a
- * capability, a title that varies — implements Account_Section directly. This
- * is the shortcut, not the only way.
+ * Anything needing real behaviour, such as visibility depending on more than a capability or a title that varies, implements `Account_Section` directly, so this is the shortcut rather than the only way.
  */
 final class Section implements Account_Section {
 
@@ -112,8 +109,7 @@ final class Section implements Account_Section {
 	/**
 	 * Signed in by default; a capability when one was named.
 	 *
-	 * The account area is a person's own record, so there is no version of this
-	 * that a signed-out visitor should see.
+	 * The account area is a person's own record, so there is no version of this a signed-out visitor should see.
 	 *
 	 * @param int $user_id The user viewing, 0 when signed out.
 	 */

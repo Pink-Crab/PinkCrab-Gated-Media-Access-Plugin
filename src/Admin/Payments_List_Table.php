@@ -15,10 +15,9 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * The one list we write from nothing (spec §7): payments live in their own
- * table, outside WP_Query, so core's list screens cannot render them.
- * Read-only — no row actions, no bulk actions, nothing to click. The rows
- * are the record of what Stripe did, and the record is not editable.
+ * The one list we write from nothing: payments live in their own table, outside WP_Query, so core's list screens cannot render them.
+ *
+ * Read-only, with no row actions, no bulk actions and nothing to click, because the rows are the record of what Stripe did and that record is not editable.
  */
 class Payments_List_Table extends WP_List_Table {
 
@@ -26,8 +25,7 @@ class Payments_List_Table extends WP_List_Table {
 	private const PER_PAGE = 20;
 
 	/**
-	 * Reads only — the store's status movers belong to checkout and the
-	 * webhook.
+	 * Reads only. The store's status movers belong to checkout and the webhook.
 	 *
 	 * @var Payment_Store
 	 */
@@ -51,7 +49,7 @@ class Payments_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * The columns. No checkbox — nothing here takes a bulk action.
+	 * The columns. No checkbox, because nothing here takes a bulk action.
 	 *
 	 * @return array<string, string>
 	 */
@@ -97,7 +95,7 @@ class Payments_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Who paid — their name, linked to their profile.
+	 * Who paid, linked to their profile.
 	 *
 	 * @param Payment $item The row.
 	 */
@@ -119,7 +117,7 @@ class Payments_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * What they bought — the product title, linked to its editor.
+	 * What they bought, linked to the product's editor.
 	 *
 	 * @param Payment $item The row.
 	 */
@@ -189,8 +187,7 @@ class Payments_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * The public identifier — what support asks for and Stripe echoes back,
-	 * linked to the payment's own page.
+	 * The public identifier, what support asks for and Stripe echoes back, linked to the payment's own page.
 	 *
 	 * @param Payment $item The row.
 	 */

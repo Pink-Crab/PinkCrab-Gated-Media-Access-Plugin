@@ -1,26 +1,14 @@
 <?php
 /**
- * §7.2 Files — everything the person can download.
+ * Files, everything the person can download.
  *
- * The filter (§6.11) sits directly under the page header and carries a search
- * field **and** a type filter at every width. Then three sections — available,
- * downloading, past access — each a section heading (§6.9) over rows (§6.2).
+ * The filter sits under the page header with a search field and a type filter at every width. Then three sections: available, downloading, past access.
  *
- * This view uses a Download **button** and keeps the expiry on the right,
- * where My Access (§7.1) uses a text link and folds the expiry into the meta
- * line. Files is the view where downloading is the point, so it gets the
- * heavier control. That difference is deliberate, and is why the two views
- * compose the same Row differently rather than sharing a wrapper.
+ * This view uses a Download button and keeps the expiry on the right, where My Access uses a text link and folds the expiry into the meta line. That is why the two compose the same Row differently rather than sharing a wrapper.
  *
- * Per-section treatment, per §7.2:
+ * Available gets an expiry and a Download button; downloading replaces the button with a progress indication; past access is dimmed and actionless.
  *
- * - **Available** — expiry, then a Download secondary button.
- * - **Downloading** — the button is replaced by a progress indication.
- * - **Past access** — dimmed, no action, the right side states it has gone.
- *
- * The rows come from the resolver (architecture.md §4), which is step 2 of §12
- * and does not exist. The filter renders regardless because it is part of the
- * view's structure; it has nothing to filter until then.
+ * The rows come from the resolver through Downloadable_Files on `gatedmedia_files_data`. The filter renders regardless, as part of the view's structure.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -42,9 +30,7 @@ if ( 0 === $gatedmedia_user_id ) {
 }
 
 /**
- * Supplied by Downloadable_Files; the empty defaults
- * are what a user holding nothing renders. Downloading is a client-side state
- * and stays empty server-side.
+ * Supplied by `Downloadable_Files`, where the empty defaults are what a user holding nothing renders, and downloading is a client-side state that stays empty server-side.
  *
  * @var array{available: array<int, array<string, mixed>>, downloading: array<int, array<string, mixed>>, past: array<int, array<string, mixed>>} $gatedmedia_data
  */
@@ -102,7 +88,7 @@ $gatedmedia_filter = Block::render(
  * @param string               $section available|downloading|past.
  */
 $gatedmedia_row = static function ( array $item, string $section ): string {
-	// Past access is dimmed and actionless — the Row's own unavailable state.
+	// Past access is dimmed and actionless, the Row's own unavailable state.
 	if ( 'past' === $section ) {
 		return Block::render(
 			'gated-media-access/row',
@@ -124,8 +110,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 		)
 	);
 
-	// Downloading replaces the button with a progress statement; the rest of
-	// the row is unchanged.
+	// Downloading replaces the button with a progress statement and leaves the rest of the row unchanged.
 	$aside .= 'downloading' === $section
 		? sprintf(
 			'<span class="gatedmedia-text gatedmedia-text--meta" role="status">%s</span>',

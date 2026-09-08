@@ -14,9 +14,7 @@ use PinkCrab\Loader\Hook_Loader;
 /**
  * Implemented by any service that wants hooks.
  *
- * The boot loop builds every service in its list, then calls this on the ones
- * that have it. Hooks live next to the code that runs them, and are attached
- * to WordPress in one pass afterwards.
+ * The boot loop builds every service, then calls this on the ones that have it. Hooks live next to the code that runs them, and attach to WordPress in one pass afterwards.
  */
 interface Hookable {
 

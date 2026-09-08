@@ -1,15 +1,9 @@
 /**
  * The block editor's control for the gated access status.
  *
- * WordPress registers custom post statuses server-side, but the editor's own
- * status control offers a fixed list — Draft, Pending, Private, Published,
- * Scheduled — and does not read the registry. So a status nobody can select is
- * a status nobody can use, and this is the control that makes it selectable.
+ * WordPress registers custom post statuses server-side, but the editor's own status control offers a fixed list, Draft, Pending, Private, Published and Scheduled, and does not read the registry, so a status nobody can select is a status nobody can use and this is the control that makes it selectable.
  *
- * Saving it works without any of this: the REST schema's `status` enum is
- * `get_post_stati( [ 'internal' => false ] )` and `handle_status_param()`
- * passes any registered status straight through. Only the choosing was
- * missing.
+ * Saving it works without any of this: the REST schema's `status` enum is `get_post_stati( [ 'internal' => false ] )` and `handle_status_param()` passes any registered status straight through, so only the choosing was missing.
  */
 
 import { registerPlugin } from '@wordpress/plugins';
@@ -23,8 +17,7 @@ const GATED = 'gatedmedia_gated';
 /**
  * What the status was before it was gated, so unsetting it has somewhere to go.
  *
- * Publish is the only safe answer: the post was reachable before, and dropping
- * it to draft would unpublish something on a checkbox.
+ * Publish is the only safe answer: the post was reachable before, and dropping it to draft would unpublish something on a checkbox.
  */
 const UNGATED = 'publish';
 
@@ -56,7 +49,7 @@ function GatedStatus() {
 			{ isGated && (
 				<Notice status="warning" isDismissible={ false }>
 					{ __(
-						'Turning this off republishes the post, but does not remove its access restriction — that stays until you remove it yourself.',
+						'Turning this off republishes the post, but does not remove its access restriction, which stays until you remove it yourself.',
 						'gated-media-access'
 					) }
 				</Notice>

@@ -1,17 +1,12 @@
 <?php
 /**
- * §6.11 Filter — a search field and a type filter.
+ * Filter: a search field and a type filter.
  *
- * §8 conflict 8 is the settled part and the part worth not undoing: the corpus
- * drew search on wide and **no search at all** on narrow. Dropping search on
- * the device most likely to have a long list is backwards, so the search field
- * stays at every width; only the type control changes, from a select to chips.
+ * The search field stays at every width, because dropping search on the device most likely to have a long list is backwards. Only the type control changes, from a select to chips.
  *
  * One list of types feeds both controls, so they cannot drift apart.
  *
- * The search input is composed from the field block rather than written again
- * here — it is the same §6.8 field, with its label visually hidden because the
- * placeholder and context already say what it is.
+ * The search input is composed from the field block rather than written again here, with its label visually hidden because the placeholder and context already say what it is.
  *
  * @package PinkCrab\Gated_Access
  *

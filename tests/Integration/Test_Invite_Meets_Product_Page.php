@@ -1,6 +1,6 @@
 <?php
 /**
- * Round 6's invites, seen by round 7's product page.
+ * Invites, seen by the product page.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
@@ -27,15 +27,9 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
- * The two rounds were built on separate branches and merged without ever being
- * exercised together. `Invites` grants a free product's items on the spot to an
- * invited user who already has an account; `Product_Offer` decides which of the
- * six §7.6 states that same user then sees. Nothing joined the two up, so the
- * behaviour was known only by reading it.
+ * `Invites` grants a free product's items on the spot to an invited user with an account, and `Product_Offer` decides which of the six states that user then sees.
  *
- * The allow-list is the shared surface: `Invites` reads it to decide who to
- * write to, and `Checkout::eligible()` reads it to decide who may buy. If one
- * ever changes how those addresses are stored, one of these fails.
+ * The allow-list is the shared surface: `Invites` reads it to decide who to write to and `Checkout::eligible()` reads it to decide who may buy, so if either changes how addresses are stored one of these fails.
  *
  * @group integration
  */
@@ -111,14 +105,9 @@ class Test_Invite_Meets_Product_Page extends WP_UnitTestCase {
 	}
 
 	/**
-	 * What the product page would draw for the signed-in user, on a fresh
-	 * request.
+	 * What the product page would draw for the signed-in user, on a fresh request.
 	 *
-	 * **Rebuilt every call on purpose.** `Resolver::allowed_for()` memoises per
-	 * instance, so one that has already answered for this user keeps answering
-	 * the same way however much access is granted afterwards. Reusing it here
-	 * would test the memo rather than the page — and would report that an
-	 * invite had changed nothing, which is only true within one request.
+	 * **Rebuilt every call on purpose.** `Resolver::allowed_for()` memoises per instance, so reusing one would test the memo and report that an invite changed nothing.
 	 *
 	 * @param int $product_id The product.
 	 */
@@ -146,12 +135,11 @@ class Test_Invite_Meets_Product_Page extends WP_UnitTestCase {
 
 		$this->invites->process( $product );
 
-		// Invites grants through the same Checkout::grant_items() a claim uses,
-		// so the resolver sees it and the page stops offering what they have.
+		// Invites grants through the same `Checkout::grant_items()` a claim uses, so `Resolver` sees it and the page stops offering what they have.
 		$this->assertSame( Product_Offer::STATE_HELD, $this->state( $product ) );
 	}
 
-	/** @testdox An invited user on a priced product is invited, not given it — the page still sells. */
+	/** @testdox An invited user on a priced product is invited, not given it, and the page still sells. */
 	public function test_invited_user_on_a_priced_product_still_buys(): void {
 		$user_id = self::factory()->user->create( array( 'user_email' => 'member@example.test' ) );
 		$product = $this->product( 4900, array( 'member@example.test' ) );
@@ -184,8 +172,7 @@ class Test_Invite_Meets_Product_Page extends WP_UnitTestCase {
 
 		$this->invites->process( $product );
 
-		// Invites writes its own source; an order's "Access this created" reads
-		// stripe-sourced records only, so the two cannot be confused.
+		// An order's "Access this created" reads stripe-sourced records only, and Invites writes its own source.
 		$granted = ( new Access_Lookup() )->records_for_item( $user_id, 'post', (string) $this->post_item );
 
 		$this->assertCount( 1, $granted );

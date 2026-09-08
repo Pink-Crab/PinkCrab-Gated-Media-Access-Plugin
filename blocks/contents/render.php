@@ -1,17 +1,12 @@
 <?php
 /**
- * §6.12 Contents list — what a product contains, or what an order contained.
+ * Contents list: what a product contains, or what an order contained.
  *
- * **The same component in both places.** Product's "what you get" and order
- * detail's "what this included" are one thing, built once.
+ * **The same component in both places.** Product's "what you get" and order detail's "what this included" are one thing, built once.
  *
- * It is a statement of contents, not a list you can act on: no rules between
- * rows, no right-hand column, no actions. That is the whole distinction from a
- * Row (§6.2), and it is why this is not a list of Rows.
+ * It is a statement of contents, not a list you can act on: no rules between rows, no right-hand column, no actions. That is the whole distinction from a Row, and why this is not a list of Rows.
  *
- * The optional note is used in order detail to record that the contents are
- * frozen as they were on the order date — groups are live (architecture.md
- * §1), so what an order contained is not what the group holds now.
+ * The optional note is used in order detail to record that the contents are frozen as they were on the order date, because groups are live and what an order contained is not what the group holds now.
  *
  * @package PinkCrab\Gated_Access
  *

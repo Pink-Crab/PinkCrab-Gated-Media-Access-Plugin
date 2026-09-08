@@ -21,13 +21,9 @@ use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * A restricted post is a hard 404 and absent from every listing surface for
- * anyone without access, visible everywhere for a holder, and unrestricted
- * content is untouched.
+ * A restricted post is a hard 404 and absent from every listing for anyone without access, visible everywhere for a holder, and unrestricted content is untouched.
  *
- * Listing exclusion runs through the booted plugin's own pre_get_posts hook;
- * the singular refusal is called directly (template_redirect in tests drags
- * canonical redirects along with it).
+ * Listing exclusion runs through the booted plugin's own pre_get_posts hook. The singular refusal is called directly, because firing template_redirect drags canonical redirects along with it.
  *
  * @group integration
  */
@@ -43,9 +39,7 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 		$this->writer  = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so the boot-time registration is
-		// gone by the time any test here runs.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 	}
 
@@ -179,8 +173,7 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A published post carrying a group term — restricted through the round 1
-	 * wiring, not by hand.
+	 * A published post carrying a group term, restricted through the real wiring rather than by hand.
 	 *
 	 * @param array<string, mixed> $args Extra post fields.
 	 */
@@ -197,9 +190,7 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	/**
 	 * @testdox Refusing a singular cancels core's canonical redirect.
 	 *
-	 * Setting the 404 is not enough on its own: redirect_canonical runs at
-	 * priority 10, reads `p` off the 404 and 301s to the pretty slug, which
-	 * tells the guesser the post is there and what it is called.
+	 * Setting the 404 is not enough: redirect_canonical reads `p` off it and 301s to the pretty slug, telling the guesser the post is there and what it is called.
 	 */
 	public function test_refusal_cancels_the_canonical_redirect(): void {
 		$post_id = $this->make_restricted_post();
@@ -216,8 +207,7 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	/**
 	 * @testdox An admin-ajax listing still excludes restricted posts from a visitor.
 	 *
-	 * is_admin() is true for admin-ajax.php, including the wp_ajax_nopriv_*
-	 * handlers themes use for load-more and live search.
+	 * is_admin() is true for admin-ajax.php, `wp_ajax_nopriv_*` handlers included.
 	 */
 	public function test_admin_ajax_still_excludes_for_a_visitor(): void {
 		$post_id = $this->make_restricted_post();
@@ -237,8 +227,7 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	/**
 	 * @testdox An admin-ajax listing for someone who can grant access is untouched.
 	 *
-	 * Picker_Search is exactly this: an admin-ajax search whose whole job is
-	 * to find restricted items so access can be given to them.
+	 * Picker_Search is exactly this: an admin-ajax search for restricted items.
 	 */
 	public function test_admin_ajax_is_untouched_for_a_granter(): void {
 		$post_id = $this->make_restricted_post();
@@ -279,8 +268,7 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A fresh boundary — called directly, where firing template_redirect in
-	 * a test would drag canonical redirects along with it.
+	 * A fresh boundary, called directly, because template_redirect drags canonical redirects along.
 	 */
 	private function boundary(): Post_Boundary {
 		return new Post_Boundary( new Resolver( new Access_Taxonomy() ), new Restriction() );

@@ -17,11 +17,9 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * The one list written from nothing: registered behind
- * gatedmedia_view_payments, read-only, its cells rendered from the typed row.
+ * The one list written from nothing: registered behind gatedmedia_view_payments, read-only, its cells rendered from the typed row.
  *
- * register_page() is called directly: the admin_menu hook is attached through
- * admin_action(), which never fires under PHPUnit because is_admin() is false.
+ * register_page() is called directly because the admin_menu hook is attached through admin_action(), which never fires under PHPUnit where is_admin() is false.
  *
  * @group integration
  */
@@ -46,8 +44,7 @@ class Test_Payments_Page extends WP_UnitTestCase {
 		$GLOBALS['submenu']          = array();
 		$GLOBALS['admin_page_hooks'] = array();
 
-		// add_submenu_page() registers nothing for a user failing its
-		// capability; administrators hold it from the init grant.
+		// add_submenu_page() registers nothing for a user without the capability, and administrators hold it from the init grant.
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 	}
 

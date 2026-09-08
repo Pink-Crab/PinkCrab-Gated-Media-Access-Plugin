@@ -12,17 +12,9 @@ namespace PinkCrab\Gated_Access\Support;
 /**
  * Renders a registered block with attributes, from server code.
  *
- * The account area's views are assembled at render time from what the resolver
- * answered, so their contents cannot be authored in the editor — but they are
- * still built from the same component blocks an editor would place. This is
- * how: a block comment is composed and run through `do_blocks()`, which is the
- * ordinary rendering path, so a component behaves identically whichever way it
- * got onto the page.
+ * The account area's views are assembled at render time, so their contents cannot be authored in the editor, but they are still built from the same component blocks an editor would place. A block comment is composed and run through `do_blocks()`, the ordinary rendering path, so a component behaves identically whichever way it got onto the page.
  *
- * That matters for more than tidiness. Going through `do_blocks()` means each
- * component keeps the `render_block_gated-media-access/<name>` filter core
- * gives every block — so a site can change how a Row draws without us having
- * invented a filter for it.
+ * Going through `do_blocks()` also means each component keeps the `render_block_gated-media-access/<name>` filter core gives every block, so a site can change how a Row draws without us inventing a filter for it.
  */
 class Block {
 
@@ -49,8 +41,7 @@ class Block {
 	 * Renders a list of blocks and joins them.
 	 *
 	 * Each entry is `[ name, attributes, inner ]`, the last two optional.
-	 * Entries that are not shaped that way are skipped rather than fataling —
-	 * a third-party section building a list is the likely caller.
+	 * Entries not shaped that way are skipped rather than fataling, since a third-party section is the likely caller.
 	 *
 	 * @param array<int, array{0: string, 1?: array<string, mixed>, 2?: string}> $blocks Blocks to render.
 	 */

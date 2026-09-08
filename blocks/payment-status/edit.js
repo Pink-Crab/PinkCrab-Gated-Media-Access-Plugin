@@ -1,9 +1,7 @@
 /**
- * §7.8 Payment status — editor.
+ * The payment status panel, editor side.
  *
- * Composed by the orders view rather than placed by hand, so the editor view
- * is a preview of the four states with a toolbar to switch between them. The
- * wording follows the state unless it is overtyped, matching render.php.
+ * Composed by the orders view rather than placed by hand, so the editor view is a preview of the four states with a toolbar to switch between them, and the wording follows the state unless it is overtyped, as render.php does.
  */
 
 import {

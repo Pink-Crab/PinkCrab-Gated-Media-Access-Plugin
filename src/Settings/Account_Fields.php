@@ -12,18 +12,13 @@ namespace PinkCrab\Gated_Access\Settings;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * The three settings specification.md §8 tabled and nothing ever read:
- * `account_creation`, `account_route` and `profile_prompt`.
+ * The three account settings: `account_creation`, `account_route` and `profile_prompt`.
  *
- * Its own class rather than three more methods on `Settings_Page`, which is at
- * phpmd's class-complexity ceiling — the same call round 8 made splitting
- * `Coupon_Pricing` out of `Checkout` rather than suppressing the rule.
- * `Notification_Fields` is the pattern: render the section, sanitize its own
- * keys, and let the screen own only the frame.
+ * Its own class rather than three more methods on `Settings_Page`, which is at phpmd's class-complexity ceiling, the same call made when `Coupon_Pricing` was split out of `Checkout` rather than suppressing the rule.
  *
- * **Core's `users_can_register` is not here, deliberately.** `account_creation`
- * governs this plugin's own sign-up; wp-login.php keeps whatever policy the
- * site already gave it, and the two run alongside each other.
+ * `Notification_Fields` is the pattern: render the section, sanitize its own keys, and let the screen own only the frame.
+ *
+ * **Core's `users_can_register` is not here, deliberately.** `account_creation` governs this plugin's own sign-up, wp-login.php keeps whatever policy the site already gave it, and the two run alongside each other.
  */
 class Account_Fields {
 
@@ -36,8 +31,7 @@ class Account_Fields {
 	}
 
 	/**
-	 * The section: how someone gets an account, whether the plugin's own
-	 * account pages are on, and whether a thin profile is prompted.
+	 * The section: how someone gets an account, whether the plugin's own account pages are on, and whether a thin profile is prompted.
 	 */
 	public function render(): void {
 		$option   = Settings::OPTION;
@@ -55,7 +49,7 @@ class Account_Fields {
 				<option value="<?php echo esc_attr( Settings::ACCOUNT_CREATION_ADMIN ); ?>" <?php selected( Settings::ACCOUNT_CREATION_ADMIN, $creation ); ?>><?php esc_html_e( 'An administrator creates them', 'gated-media-access' ); ?></option>
 				<option value="<?php echo esc_attr( Settings::ACCOUNT_CREATION_PURCHASE ); ?>" <?php selected( Settings::ACCOUNT_CREATION_PURCHASE, $creation ); ?>><?php esc_html_e( 'One is made when they buy', 'gated-media-access' ); ?></option>
 			</select>
-			<p class="gatedmedia-admin-help"><?php esc_html_e( 'Only the first draws a sign-up form. This governs this plugin alone — WordPress’ own registration setting is left exactly as you set it.', 'gated-media-access' ); ?></p>
+			<p class="gatedmedia-admin-help"><?php esc_html_e( 'Only the first draws a sign-up form. This governs this plugin alone, and WordPress’ own registration setting is left exactly as you set it.', 'gated-media-access' ); ?></p>
 		</div>
 
 		<div class="gatedmedia-admin-field">
@@ -69,8 +63,7 @@ class Account_Fields {
 				printf(
 					/* translators: %s: the account area's URL. */
 					esc_html__( 'Switched on, the account area answers at %s. Switched off it does not, and the same blocks can be placed on pages of your own.', 'gated-media-access' ),
-					// Not Account_Url::section(), which answers where links go —
-					// this names the route being switched, on or off.
+					// Not Account_Url::section(): this names the route being switched.
 					'<code>' . esc_html( home_url( '/' . Account_Url::slug() . '/' ) ) . '</code>'
 				);
 				?>
@@ -91,14 +84,9 @@ class Account_Fields {
 	/**
 	 * The three keys, cleaned.
 	 *
-	 * `Settings_Page::sanitize()` starts from what is already stored and copies
-	 * forward only the keys it knows, so a key with no clause anywhere is
-	 * dropped on every save — which is precisely what happened to these three
-	 * before round 9 read them.
+	 * `Settings_Page::sanitize()` starts from what is already stored and copies forward only the keys it knows, so a key with no clause anywhere is dropped on every save, which is what happened to these three.
 	 *
-	 * The route and the prompt are read with `isset()` rather than defaulted,
-	 * so a form that does not carry them leaves them as they were instead of
-	 * switching them off.
+	 * The route and the prompt are read with `isset()` rather than defaulted, so a form that does not carry them leaves them as they were instead of switching them off.
 	 *
 	 * @param array<string, mixed>  $input What options.php handed over.
 	 * @param array<string, string> $clean The cleaned settings so far.
@@ -121,8 +109,7 @@ class Account_Fields {
 			}
 		}
 
-		// The account area's rewrite rules only exist while the route is on, so
-		// switching it either way changes which URLs the site answers.
+		// The account area's rewrite rules exist only while the route is on, so switching it either way changes which URLs the site answers.
 		if ( (string) ( $clean['account_route'] ?? '1' ) !== $previous ) {
 			add_action( 'shutdown', 'flush_rewrite_rules' );
 		}

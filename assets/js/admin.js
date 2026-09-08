@@ -1,18 +1,12 @@
 /**
- * wp-admin — build/js/admin.js
+ * wp-admin, built to build/js/admin.js.
  *
- * Two behaviours, both for the admin pickers (src/Admin/Pickers):
+ * Two behaviours, both for the admin pickers in src/Admin/Pickers:
  *
- * 1. Search pickers. Any input carrying `data-gatedmedia-picker` gets
- *    jQuery UI autocomplete against that admin-ajax action, writing the
- *    chosen id into the hidden input named by `data-gatedmedia-target`.
- *    Bound by delegation on focus, because quick edit clones its template
- *    row after load.
+ * 1. Search pickers: any input carrying `data-gatedmedia-picker` gets jQuery UI autocomplete against that admin-ajax action, writing the chosen id into the hidden input named by `data-gatedmedia-target`, bound by delegation on focus because quick edit clones its template row after load.
+ * 2. The Add Access form shows one item row at a time, following the item type select, and without JS every row shows and the form still submits.
  *
- * 2. The Add Access form shows one item row at a time, following the item
- *    type select. Without JS every row shows, and the form still submits.
- *
- * The nonce arrives as `window.gatedmediaPicker` from Asset_Loader.
+ * The nonce arrives as `window.gatedmediaPicker` from `Asset_Loader`.
  */
 
 import { onReady } from './shared/dom';
@@ -125,8 +119,7 @@ onReady( () => {
 		} );
 	}
 
-	// The Notifications page's template panels: the enabled checkbox sits in
-	// the <summary>, and ticking it must not also fold the panel.
+	// The Notifications page's template panels: the enabled checkbox sits in the <summary>, and ticking it must not also fold the panel.
 	document
 		.querySelectorAll( '.gatedmedia-admin-panel summary label' )
 		.forEach( ( label ) => {

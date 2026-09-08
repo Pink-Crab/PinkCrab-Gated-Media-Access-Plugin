@@ -6,7 +6,7 @@
 	"title": "Empty state",
 	"category": "widgets",
 	"icon": "info-outline",
-	"description": "ui-spec.md §6.10. One box, page level, only when the view is wholly empty.",
+	"description": "One box, page level, only when the view is wholly empty.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"icon": {

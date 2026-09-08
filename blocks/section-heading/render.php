@@ -1,14 +1,10 @@
 <?php
 /**
- * §6.9 Section heading — uppercase 12px, wide-tracked, muted.
+ * Section heading: uppercase 12px, wide-tracked, muted.
  *
- * §8 conflict 5 settled this: the corpus drew it three ways and it is the
- * small one at both widths. It is a label rather than a title — the page
- * already has its heading, and keeping this small stops it competing.
+ * The small form at both widths. It is a label rather than a title, because the page already has its heading and keeping this small stops it competing.
  *
- * The tag is still a real heading, and its level is settable, because the
- * visual size says nothing about document structure. Inside the account shell
- * the page title is the h1, so these are h2 by default.
+ * The tag is still a real heading and its level is settable, because the visual size says nothing about document structure, and inside the account shell the page title is the h1, so these are h2 by default.
  *
  * @package PinkCrab\Gated_Access
  *

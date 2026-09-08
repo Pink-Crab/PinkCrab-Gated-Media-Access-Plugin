@@ -1,9 +1,7 @@
 /**
- * My Access — ui-spec.md §7.1.
+ * My Access.
  *
- * A section view. It draws the signed-in person's own record, so the editor
- * shows exactly what the front end will — there is nothing here to configure
- * beyond the detail segment, which the account route supplies from the URL.
+ * A section view. It draws the signed-in person's own record, so the editor shows exactly what the front end will, and there is nothing here to configure beyond the detail segment the account route supplies from the URL.
  */
 
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';

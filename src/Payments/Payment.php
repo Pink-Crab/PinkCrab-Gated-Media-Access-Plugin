@@ -10,17 +10,13 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Payments;
 
 /**
- * A payment as read back from `{prefix}gatedmedia_payments` — typed and
- * never written to: `Payment_Store` owns every query, and this is what its
- * reads return. Not `readonly` only because phpstan's shared config parses
- * for PHP 8.0, where the keyword does not exist.
+ * A payment as read back from `{prefix}gatedmedia_payments`, typed and never written to. `Payment_Store` owns every query and this is what its reads return.
  *
- * Status is one of the four spec §3 values, held here so every caller names
- * the same strings.
+ * Not `readonly` only because phpstan's shared config parses for PHP 8.0, where the keyword does not exist.
  *
- * One field per column, and the table decides how many there are: this is
- * what a row of `{prefix}gatedmedia_payments` looks like, so dropping a
- * field or splitting the class would make it lie about the row it came from.
+ * Status is one of four values, held here so every caller names the same strings.
+ *
+ * One field per column, and the table decides how many there are: this is what a row of `{prefix}gatedmedia_payments` looks like, so dropping a field or splitting the class would make it lie about the row it came from.
  *
  * @SuppressWarnings("PHPMD.TooManyFields")
  */
@@ -46,7 +42,7 @@ final class Payment {
 	public int $payment_id = 0;
 
 	/**
-	 * The public identifier — what goes to Stripe and into the return URL.
+	 * The public identifier, which goes to Stripe and into the return URL.
 	 *
 	 * @var string
 	 */
@@ -74,7 +70,7 @@ final class Payment {
 	public string $stripe_session_id = '';
 
 	/**
-	 * Stripe's payment intent — how a refund finds this row.
+	 * Stripe's payment intent, which is how a refund finds this row.
 	 *
 	 * @var string
 	 */
@@ -116,9 +112,7 @@ final class Payment {
 	public string $status = self::STATUS_PENDING;
 
 	/**
-	 * The product's `type:id` targets frozen at purchase (spec §3): groups
-	 * are live, so the contents at the moment of purchase are not
-	 * recoverable later.
+	 * The product's `type:id` targets frozen at purchase, because groups are live and the contents at the moment of purchase are not recoverable later.
 	 *
 	 * @var array<int, string>
 	 */
@@ -148,17 +142,14 @@ final class Payment {
 	/**
 	 * Why the last grant attempt failed, empty when none has.
 	 *
-	 * A payment whose grant fails stays pending so Stripe delivers again,
-	 * but its retries are finite — so the cause is kept here, where the
-	 * payment's own screen can show it once Stripe has given up.
+	 * A payment whose grant fails stays pending so Stripe delivers again, but its retries are finite, so the cause is kept here for the payment's own screen.
 	 *
 	 * @var string
 	 */
 	public string $grant_error = '';
 
 	/**
-	 * Built from a row, nowhere else — the property list stays honest to the
-	 * table and the constructor stays out of every caller's way.
+	 * Built from a row and nowhere else, so the property list stays honest to the table.
 	 *
 	 * @param array<string, string|null> $row One `{prefix}gatedmedia_payments` row, as $wpdb returns it.
 	 */
@@ -186,8 +177,7 @@ final class Payment {
 	}
 
 	/**
-	 * The stored JSON back to its list of `type:id` strings. Anything that
-	 * does not decode to a list is an empty snapshot, never an error.
+	 * The stored JSON back to its list of `type:id` strings, where anything that does not decode to a list is an empty snapshot rather than an error.
 	 *
 	 * @param string $snapshot The stored JSON.
 	 * @return array<int, string>

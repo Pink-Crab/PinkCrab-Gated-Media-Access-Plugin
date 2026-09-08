@@ -1,12 +1,10 @@
 <?php
 /**
- * §6.3 Buttons — primary, secondary, and the text link.
+ * Buttons: primary, secondary, and the text link.
  *
- * Every button is 44px tall; the corpus has no exception. Narrow drops the
- * minimum width and goes full width, which is CSS rather than a variant here.
+ * Every button is 44px tall, with no exceptions. Narrow drops the minimum width and goes full width, which is CSS rather than a variant here.
  *
- * A `href` makes it an anchor, its absence a button — the difference between
- * navigating and submitting, and the two must not be interchangeable markup.
+ * A `href` makes it an anchor and its absence a button, which is the difference between navigating and submitting.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -30,8 +28,7 @@ $gatedmedia_href    = isset( $attributes['href'] ) ? (string) $attributes['href'
 $gatedmedia_icon    = isset( $attributes['icon'] ) ? (string) $attributes['icon'] : '';
 $gatedmedia_full    = true === ( $attributes['full'] ?? false );
 
-// The text link is its own component in §6.3, not a third button variant — it
-// has no box, no minimum width and no height.
+// The text link is its own component, with no box, minimum width or height.
 $gatedmedia_classes = 'link' === $gatedmedia_variant
 	? array( 'gatedmedia-text-link' )
 	: array( 'gatedmedia-button', 'gatedmedia-button--' . $gatedmedia_variant );
@@ -40,13 +37,7 @@ if ( $gatedmedia_full && 'link' !== $gatedmedia_variant ) {
 	$gatedmedia_classes[] = 'gatedmedia-button--full';
 }
 
-// The block wrapper is block-level, with the control inside it.
-//
-// A button is inline-flex, and a theme placing a top-level block centres it
-// with `margin-inline: auto` — which does nothing to an inline element, so the
-// button would sit against the left edge of the page rather than in the
-// content column. Inside a Row's aside the flex container handles it; standing
-// on its own it needs a host of its own.
+// The wrapper is block-level with the control inside, because a theme centres a top-level block with `margin-inline: auto`, which does nothing to an inline element.
 $gatedmedia_attrs = get_block_wrapper_attributes( array( 'class' => 'gatedmedia-inline-host' ) );
 $gatedmedia_class = implode( ' ', $gatedmedia_classes );
 ?>

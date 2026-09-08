@@ -1,13 +1,9 @@
 /**
- * §6.4 Notice — editor.
+ * The notice block, editor side.
  *
- * The message is typed in the notice, not in a sidebar box, and it takes
- * formatting because §6.4 says a link inside a notice is a text link — so the
- * body has to be able to hold one.
+ * The message is typed in the notice rather than a sidebar box, and it takes formatting, because a link inside a notice is a text link and the body has to hold one.
  *
- * The dismiss toggle carries a warning rather than sitting there innocently:
- * §7.5's forced-completion prompt is *defined* by being the notice you cannot
- * dismiss, so turning it on there breaks that view.
+ * The dismiss toggle carries a warning: forced profile completion is defined by being the notice you cannot dismiss, so turning it on there breaks that view.
  */
 
 import {
@@ -95,7 +91,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					{ dismissible && (
 						<NoticeUI status="warning" isDismissible={ false }>
 							{ __(
-								'A prompt that blocks progress — asking someone to complete their profile — must not be dismissible.',
+								'A prompt that blocks progress, such as asking someone to complete their profile, must not be dismissible.',
 								'gated-media-access'
 							) }
 						</NoticeUI>

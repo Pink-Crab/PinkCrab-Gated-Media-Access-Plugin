@@ -17,16 +17,11 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Access_Row;
 
 /**
- * Answers the `files` block — §7.2.
+ * Answers the `files` block.
  *
- * `available` is everything reachable now, the contents of held groups
- * included. `past` is what has run out and is kept as history. `downloading`
- * is a state the browser owns and passes through untouched.
+ * `available` is everything reachable now, the contents of held groups included, `past` is what has run out and is kept as history, and `downloading` is a state the browser owns and passes through untouched.
  *
- * **A file can run out one way and still be reachable another.** A direct
- * grant expiring does not put a file in the past if a live group still holds
- * it, which is why `past` is filtered against what is currently allowed rather
- * than simply listing expired records.
+ * **A file can run out one way and still be reachable another.** A direct grant expiring does not put a file in the past while a live group still holds it, which is why `past` is filtered against what is currently allowed rather than listing expired records.
  */
 class Downloadable_Files implements Hookable {
 
@@ -67,8 +62,7 @@ class Downloadable_Files implements Hookable {
 		$allowed = $this->resolver->allowed_for( $user_id );
 		$expired = $this->expired_file_ids( $user_id );
 
-		// Each row reads the post and its attached-file meta, so prime both
-		// for every row at once rather than a pair of queries each.
+		// Each row reads the post and its attached-file meta, so prime both for every row at once rather than a pair of queries each.
 		_prime_post_caches( array_merge( array_keys( $allowed->files() ), $expired ), false, true );
 
 		foreach ( $allowed->files() as $file_id => $expires_at ) {
@@ -80,8 +74,7 @@ class Downloadable_Files implements Hookable {
 		}
 
 		foreach ( $expired as $file_id ) {
-			// Still reachable another way — a live group, a fresh grant — is
-			// not past.
+			// Still reachable another way is not past.
 			if ( $allowed->has_file( $file_id ) ) {
 				continue;
 			}
@@ -102,13 +95,9 @@ class Downloadable_Files implements Hookable {
 	}
 
 	/**
-	 * Files whose access has run out: direct records past their date, and the
-	 * contents of groups past theirs.
+	 * Files whose access has run out: direct records past their date, and the contents of groups past theirs.
 	 *
-	 * Both statuses, because history outlives the sweep: it moves records past
-	 * their date to expired, and `Access_Writer::set_expiry()` writes that
-	 * status straight away when an admin backdates one. Revoked is left out —
-	 * that is a withdrawal, not something that ran out.
+	 * Both statuses, because history outlives the sweep. Revoked is left out, being a withdrawal rather than something that ran out.
 	 *
 	 * @param int $user_id Whose history.
 	 * @return array<int, int>

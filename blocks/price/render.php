@@ -1,12 +1,10 @@
 <?php
 /**
- * §6.7 Price, inline — right-aligned, 16px semibold.
+ * Price, inline: right-aligned, 16px semibold.
  *
- * Where a coupon was used the original is struck through and muted immediately
- * to the left of what was actually paid, on the same line.
+ * Where a coupon was used the original is struck through and muted immediately to the left of what was actually paid, on the same line.
  *
- * Zero is the word "Free", which Money::format() owns so this template and the
- * price block (§6.13) cannot disagree about it.
+ * Zero is the word "Free", which Money::format() owns so this template and the price block cannot disagree about it.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -25,17 +23,15 @@ $gatedmedia_currency = isset( $attributes['currency'] ) ? (string) $attributes['
 $gatedmedia_amount   = isset( $attributes['amount'] ) ? (int) $attributes['amount'] : 0;
 $gatedmedia_original = isset( $attributes['original'] ) ? (int) $attributes['original'] : 0;
 
-// §6.13's fourth form — no price exists at all, as with access an
-// administrator added. An em dash, not a zero.
+// No price exists at all, as with access an administrator added. A dash, not a zero.
 $gatedmedia_display = true === ( $attributes['notApplicable'] ?? false )
 	? Money::not_applicable()
 	: Money::format( $gatedmedia_amount, $gatedmedia_currency );
 
-// Only a genuine reduction is shown struck through. An "original" equal to or
-// below what was paid is not a discount and would read as a mistake.
+// Only a genuine reduction is shown struck through, because an "original" equal to or below what was paid is not a discount and would read as a mistake.
 $gatedmedia_shows_original = $gatedmedia_original > $gatedmedia_amount
 	&& true !== ( $attributes['notApplicable'] ?? false );
-// Block-level host around an inline component — see the button block for why.
+// Block-level host around an inline component, as the button block does.
 ?>
 <div <?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => 'gatedmedia-inline-host' ) ) ); ?>>
 	<span class="gatedmedia-price">

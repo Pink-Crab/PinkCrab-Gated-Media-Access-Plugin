@@ -19,14 +19,11 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * Editing one access record: its expiry, and only its expiry. Holder, item
- * and provenance are the record's identity — changing who or what is a new
- * grant, and a revoked record stays revoked. The change itself is
- * `Access_Writer::set_expiry()`; this page is a date field in front of it.
+ * Editing one access record: its expiry, and only its expiry.
  *
- * Reached from the list's Edit row action; registered under the plugin menu
- * and immediately hidden from it, because a record-less visit has nothing
- * to edit.
+ * Holder, item and provenance are the record's identity, so changing who or what is a new grant, and a revoked record stays revoked. The change itself is `Access_Writer::set_expiry()`, and this page is a date field in front of it.
+ *
+ * Reached from the list's Edit row action, and registered under the plugin menu but hidden from it, because a visit with no record has nothing to edit.
  */
 class Edit_Access_Page implements Hookable {
 
@@ -37,8 +34,7 @@ class Edit_Access_Page implements Hookable {
 	public const ACTION = 'gatedmedia_edit_access';
 
 	/**
-	 * The summary rows render as the list renders them; the change is the
-	 * writer's.
+	 * The summary rows render as the list renders them, and the change is the writer's.
 	 *
 	 * @param Access_Writer $writer      The one writer of access records.
 	 * @param Access_List   $access_list The list screen's column renderers.
@@ -58,13 +54,9 @@ class Edit_Access_Page implements Hookable {
 	}
 
 	/**
-	 * Registers the page reachable-but-unlisted: a menu entry with no record
-	 * to edit is a dead click.
+	 * Registers the page reachable but unlisted, because a menu entry with no record to edit is a dead click.
 	 *
-	 * An empty parent is core's hidden-page registration. Registering under
-	 * the plugin menu and then `remove_submenu_page()` looks equivalent but
-	 * is not — the removal breaks `user_can_access_admin_page()` and every
-	 * visit dies "not allowed".
+	 * An empty parent is core's hidden-page registration, and registering under the plugin menu then calling `remove_submenu_page()` only looks equivalent: the removal breaks `user_can_access_admin_page()` and every visit dies "not allowed".
 	 */
 	public function register_page(): void {
 		add_submenu_page(
@@ -103,13 +95,13 @@ class Edit_Access_Page implements Hookable {
 		printf( '<div class="wrap"><h1>%s</h1>', esc_html__( 'Edit Access', 'gated-media-access' ) );
 
 		if ( ! $record instanceof WP_Post || Post_Types::ACCESS !== $record->post_type ) {
-			printf( '<p>%s</p></div>', esc_html__( 'No access record to edit — pick one from the Access screen.', 'gated-media-access' ) );
+			printf( '<p>%s</p></div>', esc_html__( 'No access record to edit. Pick one from the Access screen.', 'gated-media-access' ) );
 
 			return;
 		}
 
 		if ( Post_Types::STATUS_REVOKED === $record->post_status ) {
-			printf( '<p>%s</p></div>', esc_html__( 'This record is revoked and stays that way — grant access again from the Add Access screen instead.', 'gated-media-access' ) );
+			printf( '<p>%s</p></div>', esc_html__( 'This record is revoked and stays that way. Grant access again from the Add Access screen instead.', 'gated-media-access' ) );
 
 			return;
 		}
@@ -123,8 +115,7 @@ class Edit_Access_Page implements Hookable {
 	/**
 	 * Guards the post, reschedules, and returns to the list.
 	 *
-	 * The `exit` is required: a redirect that does not halt emits a body
-	 * alongside the Location header (the `Profile_Writer::handle()` note).
+	 * The `exit` is required: a redirect that does not halt emits a body alongside the Location header, as `Profile_Writer::handle()` also notes.
 	 */
 	public function handle(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- The id names which nonce to check; check_admin_referer runs on the next line.
@@ -185,7 +176,7 @@ class Edit_Access_Page implements Hookable {
 	}
 
 	/**
-	 * What the record is — the list's own cells, read-only.
+	 * What the record is, using the list's own cells, read-only.
 	 *
 	 * @param int $access_id The record.
 	 */

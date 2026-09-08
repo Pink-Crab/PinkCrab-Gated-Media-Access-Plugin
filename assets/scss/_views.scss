@@ -1,30 +1,17 @@
 // =============================================================================
-// §7 — the views.
+// The views.
 //
-// §7 never describes a thing; it points at §6. So this file carries layout
-// only: what sits where, in what order, and how it reflows. Anything that
-// looks like a component belongs in _components.scss instead.
+// Layout only. Anything that looks like a component goes in _components.scss.
 // =============================================================================
 
 @use "mixins" as *;
 
 // -----------------------------------------------------------------------------
-// §7.0 The shell — the frame all four account views share, built once.
+// The shell, shared by all four account views.
 //
-// Wide: two columns, a 256px sidebar with a hairline down its right edge. No
-// fill, no shadow, no card.
-// Narrow: the sidebar is replaced by the tab strip (§6.1).
+// Wide: two columns, a 256px sidebar with a hairline down its right edge. Narrow: the tab strip instead.
 //
-// **It sits inside the theme's content area**, the way WooCommerce's My Account
-// does. So it claims no viewport height, paints no page background, and sticks
-// nothing to the top of the screen — those belong to the theme, and a plugin
-// that takes them fights every theme it is installed into.
-//
-// §7.0's 56px top bar carrying the site name is therefore not drawn: the
-// theme's header already is that. The tab strip stays, because section
-// navigation is ours and the theme has no equivalent.
-//
-// There is no fixed bottom bar at any width (§8 conflict 3).
+// It sits inside the theme's content area, so it claims no viewport height, paints no page background, and pins nothing to the top or bottom.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-account {
@@ -34,9 +21,7 @@
 		display: block;
 	}
 
-	// The sidebar sticks to its own top rather than filling the viewport: the
-	// page scrolls as one inside a theme, and a 100vh column would either
-	// overhang the footer or clip under a sticky theme header.
+	// Sticks to its own top, never 100vh, which would fight the theme's header and footer.
 	&__sidebar {
 		width: var(--gatedmedia-sidebar);
 		flex-shrink: 0;
@@ -52,8 +37,7 @@
 		}
 	}
 
-	// "Account" at 32px/700 with its strapline beneath, then 24px before the
-	// nav items. The wordmark is not a heading (§2 conflict 4).
+	// The wordmark, not a heading.
 	&__brand {
 		padding: 0 var(--gatedmedia-md);
 		margin-bottom: var(--gatedmedia-lg);
@@ -64,8 +48,7 @@
 		}
 	}
 
-	// Everything that is not the sidebar. `min-width: 0` so a long filename in
-	// a row cannot push the column wider than the viewport.
+	// Everything that is not the sidebar. `min-width: 0` so a long filename cannot widen it.
 	&__body {
 		flex: 1;
 		min-width: 0;
@@ -76,9 +59,7 @@
 		width: 100%;
 		max-width: var(--gatedmedia-cap-list);
 		margin: 0 auto;
-		// §3 — inline padding grows with the viewport, 16px to 48px. No block
-		// padding: the theme already spaces its content area, and ours on top
-		// of it reads as a gap nobody asked for.
+		// Inline padding grows with the viewport, 16px to 48px.
 		padding-inline: clamp(var(--gatedmedia-md), 5vw, var(--gatedmedia-xl));
 		padding-block: var(--gatedmedia-lg);
 
@@ -89,50 +70,36 @@
 	}
 }
 
-// §3 — the column cap is settled by what the page is for, not one number.
-// Lists and settings take the default above; these two are the exceptions.
+// Column caps per page type. Lists and settings take the default above.
 .gatedmedia-account__main {
-	// A single thing being read — the product page.
+	// The product page.
 	&--reading {
 		max-width: var(--gatedmedia-cap-read);
 	}
 
-	// A single form — sign in, reset.
+	// A single form: sign in, reset.
 	&--form {
 		max-width: var(--gatedmedia-cap-form);
 	}
 }
 
-// The line under the page title saying what the page is for. Plain layout, not
-// a component — and absent entirely on My Access, which is drawn without one.
+// The line under the page title. Absent on My Access.
 .gatedmedia-page-intro {
 	margin-bottom: var(--gatedmedia-xl);
 }
 
-// A view's own sections sit 48px apart (§7.0).
+// A view's own sections sit 48px apart.
 .gatedmedia-section + .gatedmedia-section {
 	margin-top: var(--gatedmedia-xl);
 }
 
-// §7.8's panel is not a section, so the rule above never fired for whatever
-// follows it — on an order still confirming, "What this included at the time"
-// sat flush against the panel's bottom border with a measured gap of 0px. It
-// is a bordered box like a section's contents, so it takes the same step.
+// The payment status panel is not a section, so it needs the step itself.
 .gatedmedia-payment-status + .gatedmedia-section {
 	margin-top: var(--gatedmedia-xl);
 }
 
 // -----------------------------------------------------------------------------
-// §7.6 Product
-//
-// A single thing being read, so it takes the reading cap rather than the list
-// one — and it sits inside the theme's content area, which has already drawn
-// the product's title.
-//
-// The rhythm is 24px throughout, with the contents fenced by hairlines rather
-// than by a larger gap — the divider is what separates here, so a 48px section
-// break as well would leave the page floating apart. Without any of it the
-// notice, contents, price and buy form stack flush with no air at all.
+// Product. Takes the reading cap, 24px rhythm throughout, contents fenced by hairlines rather than a larger gap.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-view--product {
@@ -147,27 +114,20 @@
 	}
 }
 
-// The buy control: the hidden fields carry no height, so this is the button
-// alone, and on the signed-out state the two stacked choices.
+// The buy control: the button alone, or two stacked choices when signed out.
 .gatedmedia-buy {
 	display: flex;
 	flex-direction: column;
 	gap: var(--gatedmedia-md);
 }
 
-// §6.14 applies by reloading the page with the code on it, so the coupon is a
-// GET form of its own and cannot sit inside the buy form — a form does not nest
-// inside a form. It reads as one control with the button below it, so the pair
-// keep the buy form's own gap rather than taking the 24px section step.
+// A separate GET form, so it keeps the buy form's gap rather than the section step.
 .gatedmedia-coupon-form + .gatedmedia-buy {
 	margin-top: var(--gatedmedia-md);
 }
 
 // -----------------------------------------------------------------------------
-// §7.7, §7.8 — the two views with no shell.
-//
-// A centred column on the page background, inside a bordered card. Narrow: the
-// card loses its border and runs to the screen edges.
+// Auth and payment status, the two views with no shell. A centred column in a bordered card; narrow drops the border and runs to the screen edges.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-centred {
@@ -200,32 +160,23 @@
 }
 
 // -----------------------------------------------------------------------------
-// §7.7 Sign in / sign up / reset
+// Sign in / sign up / reset
 //
-// Blocks 3 and 4 are one form: the fields stacked, then the full-width button.
-// The hidden fields carry no height, so this is the visible controls alone.
-//
-// Block 5's alternate routes sit beneath the button, left-aligned, one per
-// line — never side by side, and never centred, which is what distinguishes
-// this view from §7.8's centred success state.
+// Fields stacked, then the full-width button, then the alternate routes beneath it.
 // -----------------------------------------------------------------------------
 
-// Scoped to this view's card, not `.gatedmedia-card` which §7.5 also wears.
+// Scoped to this view's card, not `.gatedmedia-card` which Profile also wears.
 .gatedmedia-auth-card {
 
 	> * + * {
 		margin-top: var(--gatedmedia-lg);
 	}
 
-	// The sub-line carries a 48px bottom margin for the account views, where it
-	// separates a page header from a whole section. Inside this card it is one
-	// step in a short stack, so the rhythm above is the only one that applies.
+	// Inside the card the account views' 48px header margin does not apply.
 	> .gatedmedia-page-intro {
 		margin-bottom: 0;
 
-		// This is the one view whose h1 is ours rather than the theme's, so it
-		// is also the one place the title and its sub-line need spacing of
-		// their own — they read as a single header, not two blocks.
+		// The only view drawing its own h1, so the title and sub-line space themselves.
 		> * + * {
 			margin-top: var(--gatedmedia-sm);
 		}
@@ -237,26 +188,20 @@
 	flex-direction: column;
 	gap: var(--gatedmedia-md);
 
-	// The button wants more air above it than the gap between two fields, so
-	// the three do not read as one undifferentiated stack.
+	// More air above the button than between the fields.
 	> :last-child {
 		margin-top: var(--gatedmedia-sm);
 	}
 }
 
-// One per line, left-aligned — never side by side, and never centred, which is
-// what tells this view apart from §7.8's centred states.
+// One per line, left aligned.
 .gatedmedia-auth__route {
 	margin: var(--gatedmedia-md) 0 0;
 	text-align: left;
 }
 
 // -----------------------------------------------------------------------------
-// §7.5 Profile
-//
-// Save beside a Cancel text link, left-aligned and not full width on wide. On
-// narrow Save goes full width and Cancel becomes a centred link beneath it —
-// not a second full-width button.
+// Profile. Save beside a Cancel text link; narrow stacks them, Cancel centred.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-form-actions {
@@ -277,17 +222,15 @@
 	}
 }
 
-// The notice slot sits a block's width above the fields (§1: blocks inside a
-// section are lg apart).
+// The notice slot sits a block's width above the fields.
 .gatedmedia-view--profile > form {
 	margin-top: var(--gatedmedia-lg);
 }
 
 // -----------------------------------------------------------------------------
-// §7.4 Order detail
+// Order detail
 //
-// The order title replaces the page header. Date, amount and status sit on one
-// line, with a hairline beneath the whole block.
+// The order title replaces the page header. Date, amount and status on one line.
 // -----------------------------------------------------------------------------
 
 .gatedmedia-order-header {
@@ -309,8 +252,7 @@
 	}
 }
 
-// "Access this created" — a name on the left, its expiry chip on the right.
-// Narrow drops the chip to the line below the name.
+// "Access this created": name left, expiry chip right, stacked on narrow.
 .gatedmedia-order-access {
 
 	&__row {

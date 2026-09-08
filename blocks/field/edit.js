@@ -1,13 +1,9 @@
 /**
- * §6.8 Form field — editor.
+ * The form field block, editor side.
  *
- * The label and the line beneath are typed where they appear. The input itself
- * is shown but not typeable: its value is what a *visitor* would enter, not
- * what an editor writes, so it is a preview rather than a control.
+ * The label and the line beneath are typed where they appear. The input itself is shown but not typeable: its value is what a visitor would enter, so it is a preview rather than a control.
  *
- * Setting an error is what puts the field into its invalid state — there is no
- * separate toggle, so the two cannot disagree. Error and help share one line
- * and never both show.
+ * Setting an error is what puts the field into its invalid state, with no separate toggle, so the two cannot disagree. Error and help share one line and never both show.
  */
 
 import {
@@ -134,7 +130,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { placeholder: next } )
 						}
 						help={ __(
-							'Not a substitute for the label — it disappears as soon as someone types.',
+							'Not a substitute for the label, because it disappears as soon as someone types.',
 							'gated-media-access'
 						) }
 						__nextHasNoMarginBottom
@@ -175,7 +171,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { disabled: next } )
 						}
 						help={ __(
-							'Greyed and not submitted. The profile email uses this — it identifies the account.',
+							'Greyed and not submitted. The profile email uses this, because it identifies the account.',
 							'gated-media-access'
 						) }
 						__nextHasNoMarginBottom
@@ -187,7 +183,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { autocomplete: next } )
 						}
 						help={ __(
-							'An HTML autocomplete token — given-name, family-name, postal-code, tel.',
+							'An HTML autocomplete token: given-name, family-name, postal-code, tel.',
 							'gated-media-access'
 						) }
 						__nextHasNoMarginBottom
@@ -239,7 +235,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							: setAttributes( { message: next } )
 					}
 					placeholder={ __(
-						'Help text — or set an error below',
+						'Help text, or set an error below',
 						'gated-media-access'
 					) }
 					allowedFormats={ [] }

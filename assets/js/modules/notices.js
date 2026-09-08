@@ -1,10 +1,7 @@
 /**
- * §6.4 — dismissing a notice.
+ * Dismissing a notice.
  *
- * The close button is rendered by PHP only on notices that are actually
- * dismissible, so this attaches to whatever is there and invents nothing. A
- * notice with no close button is simply never dismissible — §7.5's forced
- * completion prompt depends on that.
+ * The close button is rendered by PHP only on notices that are dismissible, so this attaches to whatever is there and invents nothing, and a notice with no close button is never dismissible, which is what forced profile completion depends on.
  */
 
 import { all } from '../shared/dom';

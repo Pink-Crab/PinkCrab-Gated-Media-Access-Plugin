@@ -10,8 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Admin\Pickers;
 
 /**
- * Search-as-you-type over the restrictable post types, files excluded —
- * `File_Picker` is theirs.
+ * Search-as-you-type over the restrictable post types, files excluded because `File_Picker` is theirs.
  */
 final class Post_Picker extends Search_Picker {
 

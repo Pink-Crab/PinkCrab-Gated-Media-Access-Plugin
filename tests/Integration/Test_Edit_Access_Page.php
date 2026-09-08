@@ -21,9 +21,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * A record's expiry can be moved, cleared to lifetime, or pulled into the
- * past — the status mirrors the date, the holder's access follows within
- * the request, and a revoked record refuses.
+ * A record's expiry can be moved, cleared to lifetime or pulled into the past: the status mirrors the date, the holder's access follows within the request, and a revoked record refuses.
  *
  * @group integration
  */
@@ -42,8 +40,7 @@ class Test_Edit_Access_Page extends WP_UnitTestCase {
 		$this->writer = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 		$this->page   = new Edit_Access_Page( $this->writer, new Access_List( $taxonomy ) );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
@@ -97,7 +94,7 @@ class Test_Edit_Access_Page extends WP_UnitTestCase {
 		$this->assertSame( Post_Types::STATUS_ACTIVE, get_post_status( $access_id ) );
 	}
 
-	/** @testdox A revoked record refuses the edit — revocation is final. */
+	/** @testdox A revoked record refuses the edit, because revocation is final. */
 	public function test_revoked_records_refuse(): void {
 		$access_id = $this->grant();
 		$this->writer->revoke( $access_id );

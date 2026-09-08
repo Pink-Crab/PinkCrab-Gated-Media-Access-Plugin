@@ -15,8 +15,7 @@ use PinkCrab\Gated_Access\Account\Section_Registry;
 use PinkCrab\Gated_Access\Account\Section_Collection;
 
 /**
- * `gatedmedia_account_sections` is the only place third-party code adds UI, so
- * these cover the promises made to whoever uses it.
+ * `gatedmedia_account_sections` is the only place third-party code adds UI, so these cover the promises made to whoever uses it.
  *
  * @group integration
  */
@@ -31,7 +30,7 @@ class Test_Account_Sections extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	/** @testdox The four sections from the spec ship by default. */
+	/** @testdox The four sections ship by default. */
 	public function test_ships_the_four_default_sections(): void {
 		$slugs = ( new Section_Registry() )->all()->slugs();
 

@@ -1,13 +1,9 @@
 /**
- * §6.11 Filter — editor.
+ * The Filter block, editor side.
  *
- * Drawn client-side, both controls at once, because they are the same list
- * shown two ways: a dropdown above 782px, chips below it. Seeing both is the
- * point — §8 conflict 8 settled that search is never dropped on narrow, and
- * that is easier to keep true when both are in front of you.
+ * Drawn client-side, both controls at once, because they are the same list shown two ways, a dropdown above 782px and chips below it, and search is never dropped on narrow, which is easier to keep true with both in front of you.
  *
- * The types are a repeater. A site with different file kinds needs to change
- * them, so "filled at render time" was the wrong answer here.
+ * The types are filled at render time: `files/render.php` passes the list and the block is not in the inserter, so the repeater draws the preview rather than offering a site a list to edit.
  */
 
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
@@ -63,7 +59,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							'gated-media-access'
 						) }
 						help={ __(
-							'Used as the placeholder and read aloud. Shows at every width — never dropped on narrow.',
+							'Used as the placeholder and read aloud. Shows at every width, never dropped on narrow.',
 							'gated-media-access'
 						) }
 						__nextHasNoMarginBottom
@@ -106,7 +102,7 @@ export default function Edit( { attributes, setAttributes } ) {
 								label={ sprintf(
 									/* translators: %d: position in the list. */
 									__(
-										'Type %d — shown',
+										'Type %d, shown',
 										'gated-media-access'
 									),
 									index + 1

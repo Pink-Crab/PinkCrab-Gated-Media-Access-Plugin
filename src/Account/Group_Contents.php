@@ -17,18 +17,13 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * Answers the `my-access` block when it is drawing one group rather than the
- * list — `/account/my-access/{group-uuid}`.
+ * Answers the `my-access` block when it draws one group at `/account/my-access/{group-uuid}` rather than the list.
  *
- * A different question from the one `Held_Access` answers. That asks what a
- * person holds; this asks what is inside one of the things they hold, which is
- * a taxonomy query and not an access record at all. They share a filter
- * because they draw the same block, and nothing else.
+ * A different question from the one `Held_Access` answers: that asks what a person holds, this asks what is inside one of the things they hold, which is a taxonomy query and not an access record at all.
  *
- * **Holding the group is the whole permission.** The contents are only listed
- * once the access records say this person holds it, so the page cannot be used
- * to read a group nobody gave them. A group they do not hold and a uuid that
- * never existed answer the same nothing.
+ * They share a filter because they draw the same block, and for no other reason.
+ *
+ * **Holding the group is the whole permission.** The contents are listed only once the access records say this person holds it, and a group they do not hold answers the same nothing as a uuid that never existed.
  */
 class Group_Contents implements Hookable {
 
@@ -56,9 +51,7 @@ class Group_Contents implements Hookable {
 	/**
 	 * One held group, opened.
 	 *
-	 * Groups are live (architecture.md §1) — an administrator moves things in
-	 * and out — so this is what the group holds now, not what it held when
-	 * access was granted.
+	 * Groups are live and an administrator moves things in and out, so this is what the group holds now, not what it held when access was granted.
 	 *
 	 * @param array<string, mixed> $data  The view's data so far.
 	 * @param string               $group The second URL segment, or ''.

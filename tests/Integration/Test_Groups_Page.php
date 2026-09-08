@@ -21,13 +21,9 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * A group is a thing that holds content and that people hold, and until this
- * screen nothing could answer either question from the group's side.
+ * A group holds content and people hold the group, and until this screen nothing could answer either question from the group's side.
  *
- * The two that carry the most: `holders_of()` answers "who has this" without
- * walking every user, and adding an item from the group goes through the same
- * `wp_set_object_terms` the item's own panel uses — so `Restriction`'s
- * automatic marker still applies and restriction is not special-cased here.
+ * The two that carry the most: `holders_of()` answers "who has this" without walking every user, and adding an item goes through the same `wp_set_object_terms` the item's own panel uses, so `Restriction`'s marker still applies.
  *
  * @group integration
  */
@@ -58,8 +54,7 @@ class Test_Groups_Page extends WP_UnitTestCase {
 		$this->writer->register_meta();
 		$this->captured = '';
 
-		// The handlers exit after redirecting, which would take the runner
-		// with them.
+		// The handlers exit after redirecting, which would take the runner with them.
 		add_filter(
 			'wp_redirect',
 			function ( $location ) {
@@ -151,7 +146,7 @@ class Test_Groups_Page extends WP_UnitTestCase {
 		$this->assertSame( array( $user ), $this->lookup->holders_of( 'group', $uuid ) );
 	}
 
-	/** @testdox A revoked record is not a holder — a screen listing them would be lying. */
+	/** @testdox A revoked record is not a holder, and a screen listing them would be lying. */
 	public function test_a_revoked_record_is_not_a_holder(): void {
 		[ , $uuid ] = $this->make_group( 'Revoked' );
 
@@ -217,9 +212,7 @@ class Test_Groups_Page extends WP_UnitTestCase {
 	/**
 	 * @testdox Adding an item from the group puts it in, and the marker follows.
 	 *
-	 * The marker is the point: adding from this end has to mean exactly what
-	 * adding from the item's own panel means, or a group filled here would
-	 * hold content that was never restricted.
+	 * The marker is the point: adding from this end must mean what adding from the item's own panel means, or a group filled here would hold unrestricted content.
 	 */
 	public function test_adding_an_item_marks_it_restricted(): void {
 		[ $term_id, $uuid ] = $this->make_group( 'Filling' );

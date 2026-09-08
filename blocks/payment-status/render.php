@@ -1,20 +1,12 @@
 <?php
 /**
- * §7.8 Payment status — the state of an order the buyer has just placed.
+ * Payment status: the state of an order the buyer has just placed.
  *
- * Stripe returns the buyer before its webhook has necessarily landed, so the
- * first thing they see may be a payment that is still `pending`. This draws
- * that honestly rather than claiming success: confirming, done, or failed.
+ * Stripe returns the buyer before its webhook has necessarily landed, so the first thing they see may be a payment that is still `pending`. This draws that honestly rather than claiming success: confirming, done, or failed.
  *
- * **It reads a status someone else established.** Access is granted on
- * Stripe's confirmation and nowhere else (`Stripe_Webhook`), so nothing here
- * writes, grants or asks Stripe anything — it renders the row as found.
+ * **It reads a status someone else established.** Access is granted on Stripe's confirmation and nowhere else, so nothing here writes, grants or asks Stripe anything. It renders the row as found.
  *
- * Server-rendered first: the panel shows the status at page load. A pending one
- * then carries what `assets/js/modules/payment-status.js` needs to watch
- * `Payment_Status_Route` — uuid, REST nonce, timing — and the page reloads when
- * the status moves, because the pill and the access section change with it.
- * Without JavaScript the wording still tells the buyer to reload.
+ * Server-rendered first, so the panel shows the status at page load. A pending one carries what `assets/js/modules/payment-status.js` needs to watch `Payment_Status_Route`: uuid, REST nonce and timing. The page reloads when the status moves, because the pill and the access section change with it. Without JavaScript the wording still tells the buyer to reload.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -29,9 +21,7 @@ defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_status = isset( $attributes['status'] ) ? (string) $attributes['status'] : 'pending';
 
-// Icon and default wording per state. A refunded order is not a return-page
-// state, but an order detail can be viewed long after one, so it has wording
-// rather than falling through to nothing.
+// Icon and default wording per state, refunded included: it is not a return-page state, but an order detail can be viewed long after one, so it has wording rather than falling through to nothing.
 $gatedmedia_states = array(
 	'pending'  => array(
 		'icon'    => '',
@@ -97,9 +87,7 @@ if ( '' !== $gatedmedia_action_label && '' !== $gatedmedia_action_href ) {
 $gatedmedia_classes = 'gatedmedia-payment-status gatedmedia-payment-status--' . $gatedmedia_state['kind'];
 
 // -----------------------------------------------------------------------------
-// The poll, on a pending payment only. Everything the script needs rides on the
-// element it is already looking for: the uuid, a REST nonce, and the wording to
-// stand down with. A page without these attributes simply never polls.
+// The poll, on a pending payment only, with everything the script needs riding on the element it is already looking for: the uuid, a REST nonce, and the wording to stand down with, so a page without these attributes never polls.
 // -----------------------------------------------------------------------------
 $gatedmedia_uuid = isset( $attributes['uuid'] ) ? (string) $attributes['uuid'] : '';
 $gatedmedia_poll = '';
@@ -127,7 +115,7 @@ if ( 'pending' === $gatedmedia_status && '' !== $gatedmedia_uuid && is_user_logg
 		esc_url( rest_url( 'gated-media-access/v1/payment/' . $gatedmedia_uuid ) ),
 		max( 1000, (int) ( $gatedmedia_timing['interval'] ?? 3000 ) ),
 		max( 1, (int) ( $gatedmedia_timing['attempts'] ?? 20 ) ),
-		esc_attr__( 'This is taking longer than usual. Your payment is safe and your access will appear here shortly — you can close this page.', 'gated-media-access' )
+		esc_attr__( 'This is taking longer than usual. Your payment is safe and your access will appear here shortly, so you can close this page.', 'gated-media-access' )
 	);
 }
 ?>

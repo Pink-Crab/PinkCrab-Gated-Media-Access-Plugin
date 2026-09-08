@@ -17,12 +17,9 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 
 /**
- * GET `/gated-media-access/v1/payment/{uuid}` (spec §4): the payment's
- * status and nothing else. The return page polls it while Stripe's
- * confirmation is in flight — it never writes and never asks Stripe.
+ * GET `/gated-media-access/v1/payment/{uuid}`: the payment's status and nothing else, polled by the return page while Stripe's confirmation is in flight, and never writing and never asking Stripe.
  *
- * Owner only, and an unknown uuid and someone else's payment answer the
- * same 404 — the route confirms nothing about payments that are not yours.
+ * Owner only. An unknown uuid and someone else's payment answer the same 404, so the route confirms nothing about payments that are not yours.
  */
 class Payment_Status_Route implements Hookable {
 
@@ -47,8 +44,7 @@ class Payment_Status_Route implements Hookable {
 	}
 
 	/**
-	 * Registers the poll endpoint, signed-in only — ownership is the
-	 * callback's check, since it needs the row.
+	 * Registers the poll endpoint, signed-in only. Ownership is the callback's check, since it needs the row.
 	 */
 	public function register_route(): void {
 		register_rest_route(

@@ -17,14 +17,11 @@ use Stripe\Webhook;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * Everything Stripe-shaped crosses here and nowhere else: the hosted
- * checkout session on the way out, the verified webhook event on the way
- * in. Credentials come from `Settings`' one reader, mode included, and
- * every SDK exception turns into a WP_Error at this boundary — nothing
- * upstream handles Stripe types.
+ * Everything Stripe-shaped crosses here and nowhere else: the hosted checkout session on the way out, the verified webhook event on the way in.
  *
- * Tests fake this class whole; nothing else in the plugin constructs an
- * SDK object.
+ * Credentials come from `Settings`' one reader, mode included, and every SDK exception turns into a WP_Error at this boundary, so nothing upstream handles Stripe types.
+ *
+ * Tests fake this class whole, and nothing else in the plugin constructs an SDK object.
  */
 class Stripe_Gateway {
 
@@ -39,8 +36,7 @@ class Stripe_Gateway {
 	/**
 	 * What the SDK's HTTP client is pinned to.
 	 *
-	 * The call runs inline in the buyer's request, so a Stripe stall would
-	 * otherwise hold a PHP worker for the SDK's own 80 second default.
+	 * The call runs inline in the buyer's request, so a Stripe stall would otherwise hold a PHP worker for the SDK's own 80 second default.
 	 *
 	 * @return array<string, int>
 	 */
@@ -67,8 +63,7 @@ class Stripe_Gateway {
 	private function client( string $secret ): StripeClient {
 		$config = $this->client_config();
 
-		// The retries are the client's own; the timeouts belong to the curl
-		// client, which the SDK reaches through ApiRequestor.
+		// The retries are the client's own, and the timeouts belong to the curl client the SDK reaches through ApiRequestor.
 		$curl = new CurlClient();
 		$curl->setTimeout( $config['timeout'] );
 		$curl->setConnectTimeout( $config['connect_timeout'] );
@@ -86,8 +81,7 @@ class Stripe_Gateway {
 	/**
 	 * Creates the hosted checkout session for a pending payment.
 	 *
-	 * The uuid rides as client_reference_id, which is how the webhook's
-	 * checkout.session.completed finds its row again.
+	 * The uuid rides as client_reference_id, which is how the webhook's checkout.session.completed finds its row again.
 	 *
 	 * @param Payment $payment      The pending row, created before this call.
 	 * @param string  $product_name What the checkout page shows.
@@ -137,9 +131,7 @@ class Stripe_Gateway {
 	/**
 	 * Verifies a webhook delivery and hands back the event.
 	 *
-	 * The SDK checks the v1 HMAC signature and its timestamp tolerance;
-	 * anything wrong — bad JSON, bad signature, stale timestamp, no secret
-	 * configured — is one WP_Error, and the route answers 400.
+	 * The SDK checks the v1 HMAC signature and its timestamp tolerance, and anything wrong is one WP_Error the route answers 400 to.
 	 *
 	 * @param string $payload          The raw request body, exactly as sent.
 	 * @param string $signature_header The Stripe-Signature header.

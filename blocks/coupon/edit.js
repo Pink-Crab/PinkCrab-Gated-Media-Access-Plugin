@@ -1,11 +1,9 @@
 /**
- * §6.14 Coupon field — editor.
+ * The coupon field, editor side.
  *
- * Drawn client-side in whichever of its states is on, so the difference is
- * visible rather than described: waiting for a code, rejected, or applied.
+ * Drawn client-side in whichever state is on, so the difference is visible rather than described: waiting for a code, rejected, or applied.
  *
- * Applied is the one worth seeing — §6.14 says the input and its button are
- * **replaced** by a confirmation line, not annotated with a tick.
+ * Applied is the one worth seeing, because the input and its button are **replaced** by a confirmation line rather than annotated with a tick.
  */
 
 import {
@@ -81,7 +79,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							}
 							placeholder="£12.25"
 							help={ __(
-								'Written out and already formatted — wording, not an amount to calculate.',
+								'Written out and already formatted: wording, not an amount to calculate.',
 								'gated-media-access'
 							) }
 							__nextHasNoMarginBottom
@@ -116,7 +114,7 @@ export default function Edit( { attributes, setAttributes } ) {
 								'gated-media-access'
 							) }
 							help={ __(
-								'Puts the input into its invalid state — red border, red label, message beneath.',
+								'Puts the input into its invalid state: red border, red label, message beneath.',
 								'gated-media-access'
 							) }
 							__nextHasNoMarginBottom
@@ -136,7 +134,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						</svg>
 						<span>
 							{ code }
-							{ '' !== discount ? ` — ${ discount }` : '' }
+							{ '' !== discount ? `, ${ discount }` : '' }
 						</span>
 						<span className="gatedmedia-text-link">
 							{ __( 'Remove', 'gated-media-access' ) }

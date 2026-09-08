@@ -1,9 +1,7 @@
 /**
- * §6.16 Summary — editor.
+ * The summary block, editor side.
  *
- * The line is typed in place. When a page supplies counts instead, the panel
- * says so and what you type overrides them — pluralisation happens on the
- * server either way, so "1 file" is never "1 files".
+ * The line is typed in place. When a page supplies counts instead, the panel says so and what you type overrides them. Pluralisation happens on the server either way, so "1 file" is never "1 files".
  */
 
 import {

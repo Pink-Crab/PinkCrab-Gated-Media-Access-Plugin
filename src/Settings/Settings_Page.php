@@ -16,25 +16,15 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Support\Account_Url;
 
 /**
- * The plugin's top-level menu, and the Settings page under it — the Stripe
- * mode and keys, and the revoke behaviour whose option round 4 shipped a
- * reader for. The rest of spec §8 (account creation, profile prompt,
- * notifications, templates) arrives with the rounds that build those
- * features.
+ * The plugin's top-level menu, and the Settings page under it: the shop currency, the product path, the Stripe mode and keys, the revoke behaviour, the account fields and the notification templates.
  *
- * Until round 5 the screen was unreachable: the ACCESS post type's
- * `show_in_menu` under this parent makes the top-level click land on the
- * Access list, and no Settings entry existed. Now it has its own submenu
- * item — registered under the parent, never `remove_submenu_page()`d
- * (`Edit_Access_Page` records how that breaks page access).
+ * The screen has to exist for the menu to work, because the ACCESS post type's `show_in_menu` under this parent makes the top-level click land on the Access list and no Settings entry existed.
  *
- * Secrets are never echoed back: a stored secret renders as an empty
- * password input with a saved marker, and an empty submit keeps what is
- * stored — retyping is only needed to change one.
+ * It now has its own submenu item, registered under the parent and never `remove_submenu_page()`d, which `Edit_Access_Page` records as breaking page access.
  *
- * @SuppressWarnings("PHPMD.ExcessiveClassComplexity") A settings screen is a
- * list of fields, and every field is one more branch. Splitting it further
- * buys nothing a reader wants.
+ * Secrets are never echoed back: a stored secret renders as an empty password input with a saved marker, and an empty submit keeps what is stored, so retyping is needed only to change one.
+ *
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity") A settings screen is a list of fields and every field is one more branch, so splitting it further buys nothing a reader wants.
  */
 class Settings_Page implements Hookable {
 
@@ -94,8 +84,7 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * Registers the one option with the Settings API, so options.php
-	 * accepts and sanitizes the form's submit.
+	 * Registers the one option with the Settings API, so options.php accepts and sanitizes the form's submit.
 	 */
 	public function register_setting(): void {
 		register_setting(
@@ -109,17 +98,14 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * Core's options.php demands manage_options unless the option page
-	 * names its own capability — ours is the filtered manage-settings one.
+	 * Core's options.php demands manage_options unless the option page names its own capability, and ours is the filtered manage-settings one.
 	 */
 	public function option_capability(): string {
 		return Capabilities::manage_settings();
 	}
 
 	/**
-	 * The top-level page. The ACCESS post type's menu placement means the
-	 * top-level click lands on the Access list; this render only exists for
-	 * a direct visit to the slug.
+	 * The top-level page: the ACCESS post type's menu placement means the top-level click lands on the Access list, so this render exists only for a direct visit to the slug.
 	 */
 	public function render(): void {
 		printf(
@@ -131,12 +117,9 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * The Settings form: mode, the six keys, the revoke behaviour and the
-	 * uninstall choice.
+	 * The Settings form: mode, the six keys, the revoke behaviour and the uninstall choice.
 	 *
-	 * @SuppressWarnings("PHPMD.ExcessiveMethodLength") One form, read top to
-	 * bottom. Every other section is inline here; splitting one out would hide
-	 * it from the shape of the screen.
+	 * @SuppressWarnings("PHPMD.ExcessiveMethodLength") One form, read top to bottom, with every other section inline here, because splitting one out would hide it from the shape of the screen.
 	 */
 	public function render_settings(): void {
 		$mode      = $this->settings->stripe_mode();
@@ -175,7 +158,7 @@ class Settings_Page implements Hookable {
 						<label class="gatedmedia-admin-caps" for="gatedmedia_currency"><?php esc_html_e( 'Currency', 'gated-media-access' ); ?></label>
 						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[currency]" id="gatedmedia_currency">
 							<?php foreach ( \Symfony\Component\Intl\Currencies::getNames() as $code => $name ) : ?>
-								<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $code, $this->settings->currency() ); ?>><?php echo esc_html( "{$code} — {$name}" ); ?></option>
+								<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $code, $this->settings->currency() ); ?>><?php echo esc_html( "{$code}: {$name}" ); ?></option>
 							<?php endforeach; ?>
 						</select>
 						<p class="gatedmedia-admin-help"><?php esc_html_e( 'Every product is priced and sold in this currency.', 'gated-media-access' ); ?></p>
@@ -188,7 +171,7 @@ class Settings_Page implements Hookable {
 							<input type="text" class="regular-text code" name="<?php echo esc_attr( Settings::OPTION ); ?>[product_path]" id="gatedmedia_product_path" value="<?php echo esc_attr( $this->settings->product_path() ); ?>" />
 							<code>/&lt;uuid&gt;</code>
 						</span>
-						<p class="gatedmedia-admin-help"><?php esc_html_e( 'The only public way to a product is this path plus its UUID — never a slug or an ID.', 'gated-media-access' ); ?></p>
+						<p class="gatedmedia-admin-help"><?php esc_html_e( 'The only public way to a product is this path plus its UUID, never a slug or an ID.', 'gated-media-access' ); ?></p>
 					</div>
 
 					<div class="gatedmedia-admin-section-head">
@@ -216,9 +199,9 @@ class Settings_Page implements Hookable {
 					<div class="gatedmedia-admin-field">
 						<label class="gatedmedia-admin-caps" for="gatedmedia_revoke_behaviour"><?php esc_html_e( 'Revoking access', 'gated-media-access' ); ?></label>
 						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[revoke_behaviour]" id="gatedmedia_revoke_behaviour">
-							<option value="revoke" <?php selected( Settings::REVOKE_BEHAVIOUR_REVOKE, $behaviour ); ?>><?php esc_html_e( 'Mark revoked — the record is kept as history', 'gated-media-access' ); ?></option>
-							<option value="expire" <?php selected( Settings::REVOKE_BEHAVIOUR_EXPIRE, $behaviour ); ?>><?php esc_html_e( 'Expire — the record’s date is pulled to now', 'gated-media-access' ); ?></option>
-							<option value="delete" <?php selected( Settings::REVOKE_BEHAVIOUR_DELETE, $behaviour ); ?>><?php esc_html_e( 'Delete — the record is removed outright', 'gated-media-access' ); ?></option>
+							<option value="revoke" <?php selected( Settings::REVOKE_BEHAVIOUR_REVOKE, $behaviour ); ?>><?php esc_html_e( 'Mark revoked, keeping the record as history', 'gated-media-access' ); ?></option>
+							<option value="expire" <?php selected( Settings::REVOKE_BEHAVIOUR_EXPIRE, $behaviour ); ?>><?php esc_html_e( 'Expire, pulling the record’s date to now', 'gated-media-access' ); ?></option>
+							<option value="delete" <?php selected( Settings::REVOKE_BEHAVIOUR_DELETE, $behaviour ); ?>><?php esc_html_e( 'Delete, removing the record outright', 'gated-media-access' ); ?></option>
 						</select>
 						<p class="gatedmedia-admin-help"><?php esc_html_e( 'What the Revoke action on the Access list does.', 'gated-media-access' ); ?></p>
 					</div>
@@ -242,8 +225,7 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * One mode's three key rows. Secrets render empty with a saved marker —
-	 * the stored value never travels back to the browser.
+	 * One mode's three key rows: secrets render empty with a saved marker, and the stored value never travels back to the browser.
 	 *
 	 * @param string $mode  test or live.
 	 * @param string $label The mode as a heading word.
@@ -263,7 +245,7 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * A plain text row — publishable keys are not secrets.
+	 * A plain text row, because publishable keys are not secrets.
 	 *
 	 * @param string $label Its label.
 	 * @param string $name  The option array key.
@@ -280,8 +262,7 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * A secret row: always empty, marked when one is saved, kept when
-	 * submitted empty.
+	 * A secret row: always empty, marked when one is saved, and kept when submitted empty.
 	 *
 	 * @param string $label     Its label.
 	 * @param string $name      The option array key.
@@ -293,14 +274,13 @@ class Settings_Page implements Hookable {
 			esc_html( $label ),
 			esc_attr( $name ),
 			esc_attr( Settings::OPTION ),
-			esc_attr( $has_value ? __( 'saved — leave empty to keep', 'gated-media-access' ) : '' ),
+			esc_attr( $has_value ? __( 'saved, leave empty to keep', 'gated-media-access' ) : '' ),
 			esc_html( $has_value ? __( 'A value is saved. It is never shown; type to replace it.', 'gated-media-access' ) : __( 'Nothing saved yet.', 'gated-media-access' ) )
 		);
 	}
 
 	/**
-	 * The submit, cleaned: mode and behaviour to known values, keys to
-	 * plain text, and an empty secret keeps what is stored.
+	 * The submit, cleaned: mode and behaviour to known values, keys to plain text, and an empty secret keeps what is stored.
 	 *
 	 * @param mixed $input What options.php hands over.
 	 * @return array<string, string>
@@ -310,11 +290,7 @@ class Settings_Page implements Hookable {
 		$existing = get_option( Settings::OPTION );
 		$clean    = is_array( $existing ) ? array_map( 'strval', $existing ) : array();
 
-		// Absent means "this form did not carry the field", never "reset it".
-		// The screen is two tabs posting one form to one callback, so a
-		// Notifications save arrives with no General key on it at all — and
-		// writing a default for each of those flipped a live shop to test
-		// mode, blanked its publishable keys and moved every product URL.
+		// Absent means "this form did not carry the field", never "reset it": the screen is two tabs posting one form to one callback, so a Notifications save arrives with no General key on it, and writing a default for each of those flipped a live shop to test mode, blanked its publishable keys and moved every product URL.
 		if ( isset( $input['stripe_mode'] ) ) {
 			$clean['stripe_mode'] = Settings::MODE_LIVE === $input['stripe_mode'] ? Settings::MODE_LIVE : Settings::MODE_TEST;
 		}
@@ -338,8 +314,7 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * The notification keys: a switch and a subject/body override per type,
-	 * the admin-copy pair, and the warning lead time.
+	 * The notification keys: a switch and a subject and body override per type, the admin-copy pair, and the warning lead time.
 	 *
 	 * @param array<string, mixed>  $input What options.php handed over.
 	 * @param array<string, string> $clean The cleaned settings so far.
@@ -389,8 +364,7 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * The store pair: a real ISO currency, and the product path with its
-	 * rewrite flush when it moves.
+	 * The store pair: a real ISO currency, and the product path with its rewrite flush when it moves.
 	 *
 	 * @param array<string, mixed>  $input What options.php handed over.
 	 * @param array<string, string> $clean The cleaned settings so far.
@@ -410,10 +384,7 @@ class Settings_Page implements Hookable {
 		$path                  = sanitize_title( (string) $input['product_path'] );
 		$clean['product_path'] = '' === $path ? 'access' : $path;
 
-		// The product rewrite rule is built from the path; a change only
-		// takes with a flush. Guarded with the path itself, or a save from a
-		// form that never carried it scheduled a flush for a change that had
-		// not happened.
+		// The product rewrite rule is built from the path and a change only takes with a flush, guarded on the path itself, or a save from a form that never carried it scheduled a flush for a change that had not happened.
 		if ( $clean['product_path'] !== $previous_path ) {
 			add_action( 'shutdown', 'flush_rewrite_rules' );
 		}
@@ -422,17 +393,14 @@ class Settings_Page implements Hookable {
 	}
 
 	/**
-	 * The six Stripe keys: publishable in the clear, an empty secret keeps
-	 * what is stored.
+	 * The six Stripe keys: publishable in the clear, and an empty secret keeps what is stored.
 	 *
 	 * @param array<string, mixed>  $input What options.php handed over.
 	 * @param array<string, string> $clean The cleaned settings so far.
 	 * @return array<string, string>
 	 */
 	private function sanitize_keys( array $input, array $clean ): array {
-		// A publishable key is not a secret, so an empty submit does clear it —
-		// but only when the form actually carried the field. Absent is still
-		// "not submitted", as everywhere else here.
+		// A publishable key is not a secret, so an empty submit does clear it, but only when the form carried the field, since absent is still "not submitted" here as everywhere else.
 		foreach ( array( 'stripe_test_key', 'stripe_live_key' ) as $name ) {
 			if ( isset( $input[ $name ] ) ) {
 				$clean[ $name ] = sanitize_text_field( (string) $input[ $name ] );

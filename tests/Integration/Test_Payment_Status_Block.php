@@ -15,14 +15,9 @@ use PinkCrab\Gated_Access\Payments\Payment;
 use PinkCrab\Gated_Access\Support\Block;
 
 /**
- * §7.8, drawn on the order rather than a page of its own.
+ * The payment status panel, drawn on the order rather than a page of its own.
  *
- * **Only `complete` had ever been rendered by anything.** The e2e fixture's
- * order is complete, so the browser suite walks that state and no other — yet
- * `pending` is the state the panel exists for, because Stripe returns the buyer
- * before its webhook has necessarily landed, and `failed` is the one that has
- * to explain a charge that did not happen. Both were written from reading the
- * code and never once drawn.
+ * `pending` is the state it exists for, because Stripe returns the buyer before its webhook has necessarily landed, and `failed` has to explain a charge that did not happen.
  *
  * @group integration
  */
@@ -86,14 +81,9 @@ class Test_Payment_Status_Block extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `status` is declared with an enum and a `pending` default, so WordPress
-	 * coerces anything outside the enum to that default before render.php is
-	 * reached — the early return there is unreachable through the block API.
+	 * `status` is declared with an enum and a `pending` default, so WordPress coerces anything outside the enum before render.php is reached and the early return there is unreachable through the block API.
 	 *
-	 * Pinned because the fallback is the safe one and should stay that way: an
-	 * unrecognised status reads as "still confirming", which claims nothing and
-	 * grants nothing. Defaulting to `complete` would tell a buyer they were in
-	 * on the strength of a value nobody recognised.
+	 * Pinned because the fallback should stay the safe one: "still confirming" claims nothing, where defaulting to `complete` would tell a buyer they were in on a value nobody recognised.
 	 *
 	 * @testdox A status the block does not know falls back to confirming, never to success.
 	 */
@@ -152,10 +142,7 @@ class Test_Payment_Status_Block extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'gatedmedia-payment-status__action', $html );
 	}
 
-	// -------------------------------------------------------------------------
-	// The poll. PHP decides whether it happens at all — the script reads the
-	// attributes and nothing else, so every "must not poll" case is here.
-	// -------------------------------------------------------------------------
+	// The poll. PHP decides whether it happens, so every "must not poll" case is here.
 
 	private const UUID = 'a2df0729-fdfa-4143-bf09-42b0a423e633';
 
@@ -177,8 +164,7 @@ class Test_Payment_Status_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-gatedmedia-interval="3000"', $html );
 		$this->assertStringContainsString( 'data-gatedmedia-attempts="20"', $html );
 
-		// The wording it stands down with travels with it, so the script never
-		// invents a sentence and translation stays in PHP.
+		// The wording it stands down with travels with it, so the script invents no sentence and translation stays in PHP.
 		$this->assertStringContainsString( 'data-gatedmedia-waiting="', $html );
 		$this->assertStringContainsString( 'Your payment is safe', $html );
 
@@ -204,10 +190,7 @@ class Test_Payment_Status_Block extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `Payment_Status_Route`'s permission callback is `is_user_logged_in`, so a
-	 * signed-out poll could only ever be a 401. Printing a `wp_rest` nonce for
-	 * a logged-out visitor would also hand out the one every signed-out user
-	 * shares, on a page that has no use for it.
+	 * `Payment_Status_Route`'s permission callback is `is_user_logged_in`, so a signed-out poll could only be a 401, and printing a `wp_rest` nonce would hand out the one every signed-out user shares.
 	 *
 	 * @testdox Signed out, nothing polls and no nonce is printed.
 	 */
@@ -256,8 +239,7 @@ class Test_Payment_Status_Block extends WP_UnitTestCase {
 
 		remove_filter( 'gatedmedia_payment_poll', $filter );
 
-		// Clamped: a quarter-second interval and zero attempts are floored at
-		// one second and one try rather than taken at their word.
+		// Clamped: a quarter-second interval and zero attempts are floored at one second and one try.
 		$this->assertStringContainsString( 'data-gatedmedia-interval="1000"', $html );
 		$this->assertStringContainsString( 'data-gatedmedia-attempts="1"', $html );
 	}

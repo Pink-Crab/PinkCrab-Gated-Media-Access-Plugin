@@ -27,13 +27,9 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Item_Label;
 
 /**
- * §7.6 is six states, and choosing the wrong one is not a cosmetic mistake:
- * it either offers to sell something the person already owns, or hides the
- * buy control from someone entitled to press it.
+ * The product page has six states, and the wrong one either sells something the person already owns or hides the buy control from someone entitled to press it.
  *
- * Ordering is asserted deliberately — "you already have this" has to beat
- * "you are not eligible", or a lapsed allow-list would tell an existing holder
- * they were never welcome.
+ * Ordering is asserted deliberately: "you already have this" beats "you are not eligible", or a lapsed allow-list tells an existing holder they were never welcome.
  *
  * @group integration
  */
@@ -100,9 +96,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		add_post_meta( $this->product_id, Product_Meta::META_ITEMS, 'post:' . $this->post_id );
 		update_post_meta( $this->product_id, Product_Meta::META_PRICE, 2500 );
 
-		// The framework's tear_down unregisters every meta key. Product_Meta
-		// is registered here because the duration's default and sanitizer are
-		// the reason no falsey value can reach the offer.
+		// The framework unregisters every meta key after each test, and Product_Meta is registered here because the duration's default and sanitizer are why no falsey value can reach the offer.
 		( new Coupon_Metabox( new Settings() ) )->register_meta();
 		( new Product_Meta( new Settings(), $taxonomy ) )->register_meta();
 
@@ -228,10 +222,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 	}
 
 	/**
-	 * `holds_everything()` is guarded on the product having items at all,
-	 * because "every item is held" is vacuously true of a product granting
-	 * nothing — and a product that granted nothing would otherwise read as
-	 * already held by everyone, refusing the sale to every visitor.
+	 * `holds_everything()` is guarded on the product having items, because "every item is held" is vacuously true of a product granting nothing, which would then read as already held by everyone.
 	 *
 	 * @testdox A product granting nothing is still for sale, not already held by everybody.
 	 */
@@ -245,9 +236,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 	/**
 	 * @testdox Lifetime is -1, and the term the buyer reads says so.
 	 *
-	 * The offer used to call every falsey duration lifetime, which the
-	 * checkout did not, so the page promised a lifetime the payment path
-	 * refused to grant. One value means lifetime now, and it is not falsey.
+	 * The offer used to call every falsey duration lifetime and the checkout did not, so the page promised a lifetime the payment path refused to grant.
 	 */
 	public function test_minus_one_is_lifetime(): void {
 		update_post_meta( $this->product_id, Product_Meta::META_DURATION, '-1' );
@@ -256,13 +245,9 @@ class Test_Product_Offer extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @testdox A zero duration cannot reach the page at all — it normalises to lifetime on write.
+	 * @testdox A zero duration cannot reach the page at all, because it normalises to lifetime on write.
 	 *
-	 * The offer no longer forgives a falsey duration, because nothing falsey
-	 * can be stored: `Product_Meta::sanitize_duration()` turns a zero into
-	 * lifetime before the page ever reads it. Without the normalisation this
-	 * would draw "Access for 0 days" against something the checkout refuses
-	 * to grant.
+	 * `Product_Meta::sanitize_duration()` turns a zero into lifetime before the page reads it. Without that this would draw "Access for 0 days" against something the checkout refuses to grant.
 	 */
 	public function test_a_zero_duration_normalises_to_lifetime(): void {
 		update_post_meta( $this->product_id, Product_Meta::META_DURATION, '0' );
@@ -296,14 +281,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->data->product( self::DEFAULTS, $this->product_id )['items'] );
 	}
 
-	// -------------------------------------------------------------------------
-	// §6.14 — the coupon, applied by a code in the query string.
-	//
-	// Pressing Apply used to submit the buy form, so it went to Stripe at full
-	// price. It now reloads the product page with the code on it and this is
-	// what prices that page. Nothing here spends a coupon or writes anything:
-	// `Checkout` judges the code again when the purchase is actually made.
-	// -------------------------------------------------------------------------
+	// The coupon, applied by a code in the query string. Nothing here spends one.
 
 	/** @testdox With no code in the query there is no coupon and the price stands. */
 	public function test_no_code_no_coupon(): void {
@@ -352,10 +330,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Per-user limits need a user, so a coupon cannot be judged for a visitor
-	 * who is not signed in — and §7.6 offers them an account rather than a
-	 * price. It answers "no coupon" rather than an error, because they have not
-	 * done anything wrong.
+	 * Per-user limits need a user, so a coupon cannot be judged for a visitor who is not signed in, and it answers "no coupon" rather than an error.
 	 *
 	 * @testdox Signed out, a valid code is neither applied nor called invalid.
 	 */

@@ -1,26 +1,16 @@
 /**
- * The site's own way in, end to end — ui-spec.md §7.7.
+ * The site's own way in, end to end.
  *
- * Four states on one URL. What unit tests cannot see is what a browser does
- * with them: that the route renders without the account shell, that the links
- * between the states actually land, and that a failed sign-in draws the notice
- * *and* both fields in their invalid treatment rather than just the notice.
+ * Four states on one URL. What unit tests cannot see is what a browser does with them: that the route renders without the account shell, that the links between the states land, and that a failed sign-in draws the notice and both fields in their invalid treatment.
  *
- * Both viewports run these. Round 7's browser pass only looked at the wide one,
- * which is how a narrow-only component got through, and round 8 caught a
- * duplicate-button fault only because the narrow project ran.
+ * Both viewports run these, because narrow-only faults have got through a wide-only pass before.
  *
- * **Nothing here waits for an email.** wp-env ships no mailcatcher, so the
- * reset is walked as far as the confirmation state and no further — which is
- * also the only thing §7.7 promises, since the state must not confirm whether
- * the address exists.
+ * Nothing here waits for an email. wp-env ships no mailcatcher, so reset is walked as far as the confirmation state, which is all it promises anyway.
  */
 
 const { test, expect } = require( '@playwright/test' );
 
-// The subscriber the shop fixture creates, who holds nothing. Signing in by
-// *address* rather than by username on purpose: §7.7's field is an Email, and
-// `type="email"` means a bare username never reaches the handler at all.
+// The subscriber the shop fixture creates. By address, because the field is `type="email"`.
 const USER = 'e2e-empty@example.test';
 const PASSWORD = 'e2e-empty-password';
 
@@ -35,8 +25,7 @@ test.describe( 'the auth view', () => {
 		const card = page.locator( '.gatedmedia-auth-card' );
 		await expect( card ).toBeVisible();
 
-		// No shell: §7.7 is explicit that neither the sidebar nor the tab strip
-		// is drawn here.
+		// No shell: neither the sidebar nor the tab strip is drawn here.
 		await expect( page.locator( '.gatedmedia-account' ) ).toHaveCount( 0 );
 
 		await expect( page.locator( '#gatedmedia-email' ) ).toBeVisible();
@@ -77,13 +66,12 @@ test.describe( 'the auth view', () => {
 			page.locator( '.gatedmedia-notice--error' )
 		).toBeVisible();
 
-		// §7.7: both fields, because marking one would say which half was wrong.
+		// Both fields, because marking one would say which half was wrong.
 		await expect(
 			page.locator( '.gatedmedia-field.is-invalid' )
 		).toHaveCount( 2 );
 
-		// The address comes back so they need not retype it; the password does
-		// not, because it would have to travel in the URL to do so.
+		// The address comes back so they need not retype it, and the password does not because it would have to travel in the URL.
 		await expect( page.locator( '#gatedmedia-email' ) ).toHaveValue(
 			'nobody@example.com'
 		);
@@ -104,7 +92,7 @@ test.describe( 'the auth view', () => {
 
 		const card = page.locator( '.gatedmedia-auth-card' );
 
-		// The fields and the button are replaced entirely (§7.7).
+		// The fields and the button are replaced entirely.
 		await expect( card.locator( 'input[type="email"]' ) ).toHaveCount( 0 );
 		await expect( card.locator( 'button[type="submit"]' ) ).toHaveCount(
 			0
@@ -156,8 +144,7 @@ test.describe( 'the way in from a product', () => {
 
 		await expect( signIn ).toBeVisible();
 
-		// The bug round 9 closes: this used to be the same wp-login URL the
-		// submit beside it went to.
+		// This used to be the same wp-login URL the submit beside it went to.
 		await expect( signIn ).toHaveAttribute( 'href', /\/sign-in\// );
 		await expect( signIn ).not.toHaveAttribute( 'href', /wp-login/ );
 	} );
@@ -174,8 +161,7 @@ test.describe( 'the way in from a product', () => {
 		await expect( page ).toHaveURL( /state=signup/ );
 		await expect( page ).toHaveURL( /redirect_to=/ );
 
-		// Sign up asks for the two fields §7.7 gives it, and says what the
-		// password has to be.
+		// Sign up asks for both fields and says what the password has to be.
 		await expect( page.locator( '#gatedmedia-email' ) ).toBeVisible();
 		await expect(
 			page.locator( '.gatedmedia-field__message' )

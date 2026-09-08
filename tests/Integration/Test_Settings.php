@@ -15,9 +15,7 @@ use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
- * Exactly one place reads the credentials (architecture §7): the mode picks
- * the key set, filters have the last word, and the screen's sanitize never
- * loses a secret to an empty resubmit.
+ * Exactly one place reads the credentials: the mode picks the key set, filters have the last word, and the screen's sanitize never loses a secret to an empty resubmit.
  *
  * @group integration
  */
@@ -100,7 +98,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertSame( 'whsec_live_1', $this->settings->stripe_webhook_secret() );
 	}
 
-	/** @testdox A credential filter overrides the stored value — wp-config can own the keys. */
+	/** @testdox A credential filter overrides the stored value, so wp-config can own the keys. */
 	public function test_credential_filter_wins(): void {
 		update_option( Settings::OPTION, array( 'stripe_test_secret' => 'sk_stored' ) );
 
@@ -140,17 +138,11 @@ class Test_Settings extends WP_UnitTestCase {
 	/**
 	 * @testdox Saving the Notifications tab leaves every General setting alone.
 	 *
-	 * Both tabs post the same form to the same callback, but the Notifications
-	 * tab renders only notification fields — so every General key is absent
-	 * from that submit. `sanitize()` assigned them unconditionally with a
-	 * default, which rewrote a live shop to Stripe test mode, blanked its
-	 * publishable keys, returned the currency to GBP and the product path to
-	 * `access` (scheduling a rewrite flush with it), all from saving an email
-	 * template.
+	 * Both tabs post the same form to the same callback, but the Notifications tab renders only notification fields, so every General key is absent from that submit.
 	 *
-	 * The payload here is exactly what that tab posts: `admin_copy`,
-	 * `admin_copy_address` and `expiry_warning_days`, plus the notify_* and
-	 * template_* keys. Nothing else.
+	 * `sanitize()` assigned them unconditionally with a default, so saving an email template rewrote a live shop to Stripe test mode, blanked its publishable keys, and returned the currency to GBP and the product path to `access`, flushing rewrites with it.
+	 *
+	 * The payload here is what that tab posts: `admin_copy`, `admin_copy_address` and `expiry_warning_days`, plus the notify_* and template_* keys.
 	 */
 	public function test_a_notifications_save_keeps_the_general_tab(): void {
 		update_option(
@@ -189,8 +181,7 @@ class Test_Settings extends WP_UnitTestCase {
 	/**
 	 * @testdox A General save still writes the General fields it submitted.
 	 *
-	 * The guard against fixing the above by making sanitize() ignore the
-	 * General keys altogether.
+	 * The guard against fixing the above by making sanitize() ignore the General keys altogether.
 	 */
 	public function test_a_general_save_still_writes_its_own_fields(): void {
 		update_option( Settings::OPTION, array( 'stripe_mode' => 'test', 'currency' => 'GBP' ) );

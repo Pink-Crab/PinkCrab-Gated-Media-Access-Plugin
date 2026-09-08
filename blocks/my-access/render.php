@@ -1,24 +1,12 @@
 <?php
 /**
- * §7.1 My Access — the landing view for the account area.
+ * My Access, the landing view for the account area.
  *
- * Three sections, each a section heading (§6.9) over rows (§6.2): groups,
- * posts, files. **A section with nothing in it is not rendered**, and the
- * empty state (§6.10) appears only when all three are empty — one box at page
- * level, never one per section.
+ * Three sections, each a heading over rows: groups, posts, files. A section with nothing in it is not rendered, and the empty state appears only when all three are empty, as one box at page level.
  *
- * The rows differ by kind, per §7.1:
+ * The rows differ by kind. Groups carry a count summary and an expiry. Posts carry an expiry alone. Files fold their expiry into the meta line and carry a Download text link rather than a button, because Files is the view where downloading is the point.
  *
- * - **Groups** carry a count summary as their meta, and an expiry on the right.
- * - **Posts** carry an expiry on the right and nothing else.
- * - **Files** fold their expiry into the meta line and carry a **Download text
- *   link** rather than a button — Files (§7.2) is the view where downloading
- *   is the point, so it gets the heavier control and this one does not.
- *
- * Everything here comes from the resolver (architecture.md §4), which does not
- * exist yet — it is step 2 of §12. Until it does the three lists are empty and
- * this renders the wholly-empty case, which is the truthful answer for a site
- * with no access records in it.
+ * Everything comes from the resolver through Held_Access on `gatedmedia_my_access_data`. A user holding nothing renders the wholly-empty case.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -40,9 +28,7 @@ if ( 0 === $gatedmedia_user_id ) {
 }
 
 /**
- * Supplied by Held_Access, and by Group_Contents when a group is open; the
- * empty defaults
- * are what a user holding nothing renders.
+ * Supplied by Held_Access, and by Group_Contents when a group is open.
  *
  * @var array{groups: array<int, array<string, mixed>>, posts: array<int, array<string, mixed>>, files: array<int, array<string, mixed>>} $gatedmedia_data
  */
@@ -145,8 +131,7 @@ $gatedmedia_file = static function ( array $item ): string {
 };
 
 if ( '' !== $gatedmedia_group ) {
-	// One group, opened. A group nobody gave you reads exactly like one that
-	// does not exist — the detail is null either way.
+	// One group, opened. A group nobody gave you reads like one that never existed.
 	$gatedmedia_detail = is_array( $gatedmedia_data['detail'] ?? null ) ? $gatedmedia_data['detail'] : null;
 
 	if ( null === $gatedmedia_detail ) {

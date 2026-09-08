@@ -23,10 +23,8 @@ use PinkCrab\Gated_Access\Support\Money;
 
 /**
  * One payment, whole: the row as Stripe left it, and the access it granted.
- * Read-only like the list it hangs off — the record of what happened is not
- * editable. Reached from the Payments list's Reference column; registered
- * hidden (`add_submenu_page( '', … )`, the `Edit_Access_Page` pattern —
- * never `remove_submenu_page()`).
+ *
+ * Read-only like the list it hangs off, because the record of what happened is not editable. Reached from the Payments list's Reference column, and registered hidden with an empty parent rather than `remove_submenu_page()`.
  */
 class Payment_Detail_Page implements Hookable {
 
@@ -158,10 +156,9 @@ class Payment_Detail_Page implements Hookable {
 	}
 
 	/**
-	 * Says so when this payment took its coupon past a limit, and stays quiet
-	 * otherwise. A checkout reserves a limited coupon only briefly, so two
-	 * that overlap by longer than that can both complete — and nothing can be
-	 * refused once Stripe has the money, so this reports rather than prevents.
+	 * Says so when this payment took its coupon past a limit, and stays quiet otherwise.
+	 *
+	 * A checkout reserves a limited coupon only briefly, so two that overlap for longer can both complete, and nothing can be refused once Stripe has the money, so this reports rather than prevents.
 	 *
 	 * @param Payment $payment The row.
 	 */
@@ -193,8 +190,7 @@ class Payment_Detail_Page implements Hookable {
 	}
 
 	/**
-	 * What the payment granted — every record its reference wrote, or the
-	 * frozen snapshot when nothing has (a pending or failed row).
+	 * What the payment granted: every record its reference wrote, or the frozen snapshot on a pending or failed row.
 	 *
 	 * @param Payment $payment The row.
 	 */
@@ -208,9 +204,7 @@ class Payment_Detail_Page implements Hookable {
 		</div>
 		<?php
 
-		// A recorded cause is the difference between "not yet" and "it tried
-		// and could not" — Stripe's retries are finite, so after it gives up
-		// this is the only place the failure shows.
+		// Stripe's retries are finite, so once it gives up this is the only place the failure shows.
 		if ( '' !== $payment->grant_error ) {
 			printf(
 				'<p class="gatedmedia-admin-help">%s</p><p class="gatedmedia-admin-help">%s</p>',
@@ -229,7 +223,7 @@ class Payment_Detail_Page implements Hookable {
 
 		foreach ( $records as $access_id ) {
 			printf(
-				'<div class="gatedmedia-admin-field"><span class="gatedmedia-admin-caps">%s</span><span>%s</span> — <a href="%s">%s</a></div>',
+				'<div class="gatedmedia-admin-field"><span class="gatedmedia-admin-caps">%s</span><span>%s</span> <a href="%s">%s</a></div>',
 				esc_html( $this->record_status( $access_id ) ),
 				esc_html( $this->item_label( $access_id ) ),
 				esc_url( Edit_Access_Page::url_for( $access_id ) ),
@@ -274,7 +268,7 @@ class Payment_Detail_Page implements Hookable {
 	}
 
 	/**
-	 * The payment status, spelled for a person — the list's labels.
+	 * The payment status, spelled for a person, using the list's labels.
 	 *
 	 * @param string $status One of the four Payment STATUS_* values.
 	 */

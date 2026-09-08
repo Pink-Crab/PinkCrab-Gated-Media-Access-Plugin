@@ -14,11 +14,9 @@ use PinkCrab\Gated_Access\Account\Account_Section;
 use PinkCrab\Gated_Access\Account\Section_Collection;
 
 /**
- * Section_Collection is what `gatedmedia_account_sections` hands to third-party
- * code, so its behaviour is a contract rather than an implementation detail.
+ * `Section_Collection` is what `gatedmedia_account_sections` hands to third-party code, so its behaviour is a contract rather than an implementation detail.
  *
- * No WordPress here — the collection deliberately calls none, which is what
- * makes it testable without a database.
+ * No WordPress here, because the collection calls none, which is what makes it testable without a database.
  *
  * @group unit
  */
@@ -27,8 +25,7 @@ class Test_Section_Collection extends TestCase {
 	/**
 	 * A section with no WordPress behind it.
 	 *
-	 * `is_visible()` is driven by a flag rather than a capability so these
-	 * tests never reach for user_can().
+	 * `is_visible()` is driven by a flag rather than a capability, so these never reach for user_can().
 	 *
 	 * @param string $slug     URL segment.
 	 * @param int    $position Nav order.
@@ -87,7 +84,7 @@ class Test_Section_Collection extends TestCase {
 			/**
 			 * Whether this user may see it.
 			 *
-			 * @param int $user_id Ignored — the flag decides.
+			 * @param int $user_id Ignored, the flag decides.
 			 */
 			public function is_visible( int $user_id ): bool {
 				return $this->visible;

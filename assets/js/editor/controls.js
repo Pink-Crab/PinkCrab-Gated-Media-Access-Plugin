@@ -1,9 +1,7 @@
 /**
  * Shared editor controls.
  *
- * Not a generator — these are the two or three controls that genuinely recur,
- * built once so that an icon picker behaves the same in every component that
- * has an icon. Each component's own panel is designed in its edit.js.
+ * Not a generator: these are the two or three controls that genuinely recur, built once so an icon picker behaves the same in every component that has an icon, and each component's own panel is designed in its edit.js.
  */
 
 import { SelectControl, TextControl } from '@wordpress/components';
@@ -12,9 +10,7 @@ import { __ } from '@wordpress/i18n';
 /**
  * The sprite symbols we ship, in assets/icons.svg.
  *
- * A component naming a symbol we do not have renders no icon rather than
- * breaking, but there is no reason to make someone guess — so this is a list
- * rather than a text box.
+ * A component naming a symbol we do not have renders no icon rather than breaking, but there is no reason to make someone guess, so this is a list rather than a text box.
  */
 export const ICONS = [
 	{
@@ -49,7 +45,7 @@ export const ICONS = [
  */
 function iconOptions( optional ) {
 	const options = optional
-		? [ { label: __( '— None —', 'gated-media-access' ), value: '' } ]
+		? [ { label: __( 'None', 'gated-media-access' ), value: '' } ]
 		: [];
 
 	ICONS.forEach( ( { group, ids } ) => {
@@ -95,17 +91,14 @@ export function IconControl( {
 }
 
 /**
- * Currencies offered in the editor.
+ * Currencies offered in the editor's price controls.
  *
- * The same set Support\Money knows symbols for. A site needing another one
- * filters `gatedmedia_format_price` rather than adding it here.
+ * A shortlist for the dropdown, not a limit on what the plugin sells in: `Settings` offers every ISO 4217 code and `Support\Money` formats all of them through ICU, and a site selling in another one adds it here.
  */
 export const CURRENCIES = [ 'GBP', 'EUR', 'USD', 'AUD', 'CAD', 'NZD', 'JPY' ];
 
 /**
- * How many decimal places a currency has, from the browser's own ICU data —
- * the JS mirror of Support\Money: no hand-kept lists, 2 for a code Intl
- * does not know.
+ * How many decimal places a currency has, from the browser's own ICU data, the JS mirror of `Support\Money`: no hand-kept lists, and 2 for a code Intl does not know.
  *
  * @param {string} currency ISO code.
  * @return {number} Its fraction digits.
@@ -124,12 +117,9 @@ export function currencyDigits( currency ) {
 /**
  * Formats minor units for the editor preview.
  *
- * Mirrors Support\Money::format() — including that **zero is the word "Free"**,
- * which §6.7 and §6.13 both state, and that the currency data comes from ICU
- * (here the browser's Intl) rather than a hand-kept list. The server remains
- * the authority; this exists so the canvas shows the answer as you type. A
- * site filtering `gatedmedia_format_price` will differ here, which is the
- * accepted cost of a live preview.
+ * Mirrors `Support\Money::format()`, including that **zero is the word "Free"** and that the currency data comes from ICU, here the browser's Intl, rather than a hand-kept list.
+ *
+ * The server remains the authority and this exists so the canvas shows the answer as you type, so a site filtering `gatedmedia_format_price` will differ here, which is the cost of a live preview.
  *
  * @param {number} minorUnits Amount in minor units.
  * @param {string} currency   ISO code.
@@ -159,17 +149,14 @@ export function formatMinor( minorUnits, currency = 'GBP' ) {
 /**
  * An amount of money, entered the way a person thinks about it.
  *
- * Amounts are stored in minor units throughout, which is right for the data
- * and wrong for a text box — typing "49" and getting 49p is the kind of thing
- * nobody notices until an order is wrong. So this shows major units and
- * converts.
+ * Amounts are stored in minor units throughout, which is right for the data and wrong for a text box, since typing "49" and getting 49p is the kind of thing nobody notices until an order is wrong, so this shows major units and converts.
  *
  * @param {Object}   props
  * @param {string}   props.label    Field label.
  * @param {number}   props.value    Amount in minor units.
  * @param {Function} props.onChange Receives minor units.
  * @param {string}   props.help     Extra guidance.
- * @param {string}   props.currency ISO code — its digits drive the conversion.
+ * @param {string}   props.currency ISO code, whose digits drive the conversion.
  */
 export function MoneyControl( {
 	label,
@@ -201,9 +188,7 @@ export function MoneyControl( {
 /**
  * A note explaining an attribute the editor deliberately does not expose.
  *
- * Several components take a list that is filled at render time — the section
- * list, the resolver's answer, a product's contents. Those have no control,
- * and saying so is better than a panel that looks like it is missing options.
+ * Several components take a list filled at render time, the section list, the resolver's answer, a product's contents, and those have no control, so saying so is better than a panel that looks like it is missing options.
  *
  * @param {Object} props
  * @param {string} props.children What fills it, and from where.

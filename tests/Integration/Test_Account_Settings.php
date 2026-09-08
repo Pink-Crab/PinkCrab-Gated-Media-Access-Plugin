@@ -1,6 +1,6 @@
 <?php
 /**
- * The three account settings specification.md tabled and nothing read.
+ * The three account settings.
  *
  * @package PinkCrab\Gated_Access\Tests
  */
@@ -14,17 +14,11 @@ use PinkCrab\Gated_Access\Settings\Account_Fields;
 use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
- * `account_route`, `account_creation` and `profile_prompt` were tabled at
- * specification.md §8 and never read by anything. Round 9 reads all three.
+ * The three account settings: `account_route`, `account_creation` and `profile_prompt`.
  *
- * `account_creation` is the one with consequences: it decides whether a
- * stranger can make themselves an account, which decides whether §7.7 draws a
- * sign-up state and whether the product page offers one. Anything unrecognised
- * has to land on a known value rather than switch sign-up off by accident.
+ * `account_creation` is the one with consequences: it decides whether a stranger can make themselves an account, so anything unrecognised has to land on a known value rather than switch sign-up off by accident.
  *
- * Core's `users_can_register` is deliberately not consulted. wp-login.php keeps
- * whatever policy the site gave it; this setting governs the plugin's own way
- * in and nothing else.
+ * Core's `users_can_register` is deliberately not consulted: wp-login.php keeps the site's own policy, and this setting governs the plugin's way in.
  *
  * @group integration
  */
@@ -48,9 +42,7 @@ class Test_Account_Settings extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The help text names the URL the route would answer at, so it has to go
-	 * on saying `/account/` while the setting is off — that is the thing the
-	 * administrator is being asked about.
+	 * The help text names the URL the route would answer at, so it goes on saying `/account/` while the setting is off: that is what the administrator is being asked about.
 	 *
 	 * @testdox The Accounts help text names the route's own URL whichever way the setting is set.
 	 */

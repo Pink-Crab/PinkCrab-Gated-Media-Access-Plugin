@@ -18,9 +18,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The Access column counts holders, its quick edit box grants, and the grant
- * itself is the writer's — an inline save without our nonced fields does
- * nothing at all.
+ * The Access column counts holders, its quick edit box grants, the grant itself is the writer's, and an inline save without our nonced fields does nothing.
  *
  * @group integration
  */
@@ -38,8 +36,7 @@ class Test_Quick_Edit_Grant extends WP_UnitTestCase {
 		$this->writer     = new Access_Writer( new Access_Validator( new Access_Taxonomy() ), new Access_Lookup() );
 		$this->quick_edit = new Quick_Edit_Grant( $this->writer );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 
 		$this->user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
@@ -64,7 +61,7 @@ class Test_Quick_Edit_Grant extends WP_UnitTestCase {
 		$this->quick_edit->render_column( Quick_Edit_Grant::COLUMN, $post_id );
 		$empty = trim( (string) ob_get_clean() );
 
-		$this->assertSame( '—', $empty );
+		$this->assertSame( '-', $empty );
 
 		$this->assertIsInt( $this->writer->grant( $this->user_id, 'post', (string) $post_id, null, 'admin' ) );
 

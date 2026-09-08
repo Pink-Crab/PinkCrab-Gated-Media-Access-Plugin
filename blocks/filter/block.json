@@ -6,7 +6,7 @@
 	"title": "Filter",
 	"category": "widgets",
 	"icon": "filter",
-	"description": "ui-spec.md §6.11. Search at every width; a select on wide, chips on narrow.",
+	"description": "Search at every width, a select on wide and chips on narrow.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"searchLabel": {

@@ -17,16 +17,13 @@ use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * Owns spec §1a's keys, per the round 1 decision: the class that writes a
- * key registers it. The writer here is the block editor — the product form
- * is the locked `gated-media-access/product-details` block, saving straight
- * to this meta over REST — so every key is in REST behind an auth callback,
- * and the whole `/wp/v2/gatedmedia_product` surface is guarded: anyone
- * without manage-products gets a 404, so the public cannot enumerate
- * products there while the editor works normally.
+ * Owns the product's meta keys, on the rule that the class writing a key registers it.
  *
- * The server still stamps what the client must not choose: the UUID
- * identity on first save, and the shop currency on every save.
+ * The writer here is the block editor, since the product form is the locked `gated-media-access/product-details` block saving straight to this meta over REST, so every key is in REST behind an auth callback.
+ *
+ * The whole `/wp/v2/gatedmedia_product` surface is guarded, so anyone without manage-products gets a 404 and the public cannot enumerate products there while the editor works normally.
+ *
+ * The server still stamps what the client must not choose: the UUID identity on first save, and the shop currency on every save.
  */
 class Product_Meta implements Hookable {
 
@@ -38,24 +35,18 @@ class Product_Meta implements Hookable {
 	public const META_ITEMS      = 'gatedmedia_items';
 	public const META_EMAILS     = 'gatedmedia_allowed_email';
 
-	/** The per-product invite switch — '0' off, anything else on. */
+	/** The per-product invite switch: '0' off, anything else on. */
 	public const META_SEND_INVITES = 'gatedmedia_send_invites';
 
 	/**
 	 * Lifetime, and the only thing that means it.
 	 *
-	 * `get_post_meta()` answers `''` for a key with no row, so an unset
-	 * duration, an empty box and a stored zero were all falsey and all
-	 * indistinguishable — the offer read them as lifetime and the checkout
-	 * read them as zero days, which the validator refuses. One value means
-	 * lifetime now, it is not falsey, and `sanitize_duration()` makes it the
-	 * only thing that can be stored short of a real day count.
+	 * `get_post_meta()` answers `''` for a key with no row, so an unset duration, an empty box and a stored zero were all falsey and indistinguishable. One value means lifetime, it is not falsey, and `sanitize_duration()` makes it the only thing storable short of a real day count.
 	 */
 	public const DURATION_LIFETIME = '-1';
 
 	/**
-	 * The currency stamp reads settings; stored item rows label through the
-	 * taxonomy's UUID identity.
+	 * The currency stamp reads settings, and stored item rows label through the taxonomy's UUID identity.
 	 *
 	 * @param Settings                                            $settings The settings reader.
 	 * @param \PinkCrab\Gated_Access\Registration\Access_Taxonomy $taxonomy Turns a group UUID back into its term.
@@ -64,8 +55,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * The keys, their protection, the stamps, the REST guard and the
-	 * editor's data.
+	 * The keys, their protection, the stamps, the REST guard and the editor's data.
 	 *
 	 * @param Hook_Loader $loader The shared loader.
 	 */
@@ -77,8 +67,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * The identity and the currency — the two facts the client never
-	 * chooses, stamped on every save whichever route saved.
+	 * The identity and the currency, the two facts the client never chooses, stamped on every save whichever route saved.
 	 *
 	 * @param int $post_id The product.
 	 */
@@ -88,8 +77,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * Declares every key this class owns, in REST for the block, writable
-	 * only by product managers.
+	 * Declares every key this class owns, in REST for the block and writable only by product managers.
 	 */
 	public function register_meta(): void {
 		foreach ( $this->meta_definitions() as $key => $args ) {
@@ -98,8 +86,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * Marks our keys protected, so nothing treats them as user-editable
-	 * outside the auth callback's say-so.
+	 * Marks our keys protected, so nothing treats them as user-editable outside the auth callback's say-so.
 	 *
 	 * @param bool   $is_protected Whether the key is already protected.
 	 * @param string $meta_key     The key being asked about.
@@ -114,8 +101,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * What the product-details block needs and the client cannot know: the
-	 * shop currency, its decimal digits, and the picker-search nonce.
+	 * What the product-details block needs and the client cannot know: the shop currency, its decimal digits, and the picker-search nonce.
 	 */
 	public function supply_editor_data(): void {
 		if ( Post_Types::PRODUCT !== ( get_current_screen()->post_type ?? '' ) ) {
@@ -140,9 +126,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * Display labels for the product's stored item rows — without these a
-	 * reloaded editor could only show raw ids, since the search that chose
-	 * them is long gone.
+	 * Display labels for the product's stored item rows, or a reloaded editor could only show raw ids.
 	 *
 	 * @param int $product_id The product being edited, 0 on Add New.
 	 * @return array<string, string> `type:id` row to label.
@@ -175,8 +159,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * When each allow-list address was invited, dated for a person — the
-	 * block's status column, keyed as the rows are.
+	 * When each allow-list address was invited, dated for a person, keyed as the block's rows are.
 	 *
 	 * @param int $product_id The product being edited, 0 on Add New.
 	 * @return array<string, string> Address to display date.
@@ -201,10 +184,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * Normalises the duration on write: a real day count stores as itself,
-	 * and everything else — an empty box, a zero, a negative, a word —
-	 * stores as lifetime. Readers then only ever meet `-1` or a count above
-	 * zero, and no falsey value carries meaning anywhere.
+	 * Normalises the duration on write: a real day count stores as itself and everything else stores as lifetime, so readers only ever meet `-1` or a count above zero.
 	 *
 	 * @param mixed $value Whatever was submitted.
 	 */
@@ -215,8 +195,7 @@ class Product_Meta implements Hookable {
 	}
 
 	/**
-	 * One definition per key (spec §1a) — in REST for the block, every
-	 * write behind manage-products, rows validated by their sanitizers.
+	 * One definition per key: in REST for the block, every write behind manage-products, rows validated by their sanitizers.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
@@ -231,8 +210,7 @@ class Product_Meta implements Hookable {
 			'auth_callback'     => $manager,
 		);
 
-		// Readable so the editor can show the URL, never writable: a manager
-		// posting another product's UUID would take its links.
+		// Readable so the editor can show the URL, never writable, because a manager posting another product's UUID would take its links.
 		$stamped_text = array_merge( $single_text, array( 'auth_callback' => '__return_false' ) );
 
 		return array(

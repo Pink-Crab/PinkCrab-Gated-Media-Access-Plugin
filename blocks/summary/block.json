@@ -6,7 +6,7 @@
 	"title": "Summary",
 	"category": "widgets",
 	"icon": "editor-ul",
-	"description": "ui-spec.md §6.16. The one-line form of the contents list.",
+	"description": "The one-line form of the contents list.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"counts": {

@@ -1,25 +1,12 @@
 <?php
 /**
- * §6.2 Row — the workhorse. A file, a post, a group, an order.
+ * Row, the workhorse. A file, a post, a group, an order.
  *
- * Wide: one line, title and meta on the left, the aside right-aligned.
- * Narrow: the row stacks and its action goes full width beneath — the single
- * biggest wide-to-narrow change in the design, and the reason `__action`
- * exists separately from `__aside`. Wide, groups and posts have no action at
- * all; narrow, they do.
+ * Wide: one line, title and meta on the left, the aside right-aligned. Narrow: the row stacks and its action goes full width beneath, which is why `__action` exists separately from `__aside`.
  *
- * Four states, all drawn in the corpus:
+ * Three states. `normal` is the above, with or without an aside. `unavailable` dims the row, strikes the title through and replaces the aside with a plain statement, because a record outlives what it points at. `loading` is two grey bars and a button-sized block.
  *
- * - **normal** — as above, with or without an aside.
- * - **unavailable** — whole row at 50%, title struck through, the aside
- *   replaced by a plain statement. A record outlives what it points at
- *   (architecture.md §8), so this is a real state and not an error.
- * - **loading** — two grey bars and a button-sized block, gently pulsing.
- *
- * The aside is inner blocks because it genuinely varies: an expiry, a status
- * pill, a price, a button, or several. The narrow action is one button, so it
- * is attributes — and it is composed from the button block rather than having
- * its markup written again here.
+ * The aside is inner blocks because it varies: an expiry, a status pill, a price, a button, or several. The narrow action is one button, so it is attributes, composed from the button block rather than written again here.
  *
  * @package PinkCrab\Gated_Access
  *
@@ -40,9 +27,7 @@ if ( 'order' === ( isset( $attributes['variant'] ) ? (string) $attributes['varia
 	$gatedmedia_classes[] = 'gatedmedia-row--order';
 }
 
-// -----------------------------------------------------------------------------
-// Loading. Nothing else on the row renders — there is no content yet to render.
-// -----------------------------------------------------------------------------
+// Loading. Nothing else on the row renders, because there is no content yet.
 if ( 'loading' === $gatedmedia_state ) {
 	$gatedmedia_classes[] = 'is-loading';
 	?>
@@ -72,8 +57,7 @@ if ( 'unavailable' === $gatedmedia_state ) {
 $gatedmedia_meta = isset( $attributes['meta'] ) ? (string) $attributes['meta'] : '';
 $gatedmedia_href = isset( $attributes['href'] ) ? (string) $attributes['href'] : '';
 
-// An unavailable row states so on the right and carries no action — there is
-// nothing left to act on.
+// An unavailable row says so on the right and carries no action.
 $gatedmedia_aside = 'unavailable' === $gatedmedia_state
 	? ''
 	: trim( $content );
@@ -82,8 +66,7 @@ $gatedmedia_unavailable_label = isset( $attributes['unavailableLabel'] ) && '' !
 	? (string) $attributes['unavailableLabel']
 	: __( 'No longer available', 'gated-media-access' );
 
-// §7.1 narrow — the full-width action. Composed from the button block so its
-// markup lives in exactly one place.
+// The narrow full-width action, composed from the button block.
 $gatedmedia_action = '';
 
 if ( 'unavailable' !== $gatedmedia_state && '' !== (string) ( $attributes['actionLabel'] ?? '' ) ) {
@@ -102,7 +85,7 @@ if ( 'unavailable' !== $gatedmedia_state && '' !== (string) ( $attributes['actio
 		)
 	);
 }
-// What the type filter matches on (§6.11); absent on rows that have no type.
+// What the type filter matches on, absent on rows that have no type.
 $gatedmedia_wrapper = array( 'class' => implode( ' ', $gatedmedia_classes ) );
 
 if ( '' !== (string) ( $attributes['filterType'] ?? '' ) ) {

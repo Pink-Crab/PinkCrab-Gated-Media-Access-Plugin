@@ -1,22 +1,13 @@
 /**
- * §7.8 — watching a pending payment confirm.
+ * Watching a pending payment confirm.
  *
- * Stripe returns the buyer before its webhook has necessarily landed, so the
- * panel they arrive on often says `pending`. This asks `Payment_Status_Route`
- * whether that is still true, and reloads the page when it is not.
+ * Stripe returns the buyer before its webhook has necessarily landed, so the panel they arrive on often says `pending`, and this asks `Payment_Status_Route` whether that is still true and reloads the page when it is not.
  *
- * **A reload, not a repaint.** Three things on the order page come off the
- * status — the pill, this panel, and the "Access this created" section, which
- * only exists once the webhook has granted. Redrawing the panel alone would
- * put "You're in" above a pending pill and no access.
+ * **A reload, not a repaint.** Three things on the order page come off the status, the pill, this panel, and the "Access this created" section that exists only once the webhook has granted, so redrawing the panel alone would put "You're in" above a pending pill and no access.
  *
- * **It never reports a failure.** The buyer has paid either way, so running out
- * of attempts changes the wording and nothing else. A request that fails is
- * simply tried again until the ceiling: one proxy hiccup used to end the
- * watching for good and leave them on a spinner that would never resolve.
+ * **It never reports a failure.** The buyer has paid either way, so running out of attempts changes the wording and nothing else, and a request that fails is tried again until the ceiling, because one proxy hiccup used to end the watching for good and leave them on a spinner that would never resolve.
  *
- * Everything it needs is on the panel: PHP renders no attributes at all unless
- * the payment is pending, owned and real, so there is nothing here to decide.
+ * Everything it needs is on the panel: PHP renders no attributes at all unless the payment is pending, owned and real, so there is nothing here to decide.
  */
 
 /**
@@ -109,8 +100,7 @@ export default function initPaymentStatus( scope ) {
 
 	timer = window.setTimeout( ask, interval );
 
-	// A page restored from the back/forward cache has a stale status on it and
-	// a timer that may already have stood down. Reload rather than resume.
+	// A page restored from the back/forward cache has a stale status on it and a timer that may already have stood down, so reload rather than resume.
 	window.addEventListener( 'pageshow', ( event ) => {
 		if ( event.persisted ) {
 			stop();

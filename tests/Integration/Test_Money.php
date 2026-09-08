@@ -13,12 +13,9 @@ use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Support\Money;
 
 /**
- * The currency data comes from ICU (the intl extension, or symfony/intl's
- * bundled copy) — so the digits are right for every ISO currency, and zero
- * is always the word "Free".
+ * The currency data comes from ICU, either the intl extension or symfony/intl's bundled copy, so the digits are right for every ISO currency and zero is always the word "Free".
  *
- * Display assertions stay locale-safe: the suite runs under the default
- * locale, so exact strings are only asserted where every locale agrees.
+ * Display assertions stay locale-safe: exact strings are only asserted where every locale agrees.
  *
  * @group integration
  */

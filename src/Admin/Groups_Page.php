@@ -23,20 +23,11 @@ use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * A group is not a term in the ordinary sense, so it is not administered as
- * one. Core's taxonomy screens are off (`show_in_menu` false): they hung a
- * "Groups" entry under Posts, Pages and Media — three doors to the same thing,
- * none of them under this plugin's own menu — and they can only ever show a
- * name, a slug and a count that links somewhere misleading.
+ * A group is not a term in the ordinary sense, so it is not administered as one. Core's taxonomy screens are off, because they hung a "Groups" entry under Posts, Pages and Media and can only ever show a name, a slug and a misleading count.
  *
- * What a group actually is: a thing that holds content, and that people hold.
- * This screen is those two facts, per group, in one place, drawn in the same
- * vocabulary as the Settings screen rather than as a `WP_List_Table` — a list
- * table would inherit core's styling and look like the thing this replaces.
+ * A group is a thing that holds content, and that people hold. This screen is those two facts per group in one place, drawn in the Settings screen's vocabulary rather than as a `WP_List_Table`, which would look like the thing this replaces.
  *
- * The term stays the storage. `Resolver` reads group membership from it and
- * grants name a group by its UUID, so nothing about the data model moves; only
- * the administration of it does.
+ * The term stays the storage: `Resolver` reads group membership from it and grants name a group by its UUID, so nothing about the data model moves, only the administration of it.
  */
 class Groups_Page implements Hookable {
 
@@ -72,8 +63,7 @@ class Groups_Page implements Hookable {
 	/**
 	 * The take-it-out button for one row.
 	 *
-	 * A posting form rather than a link: removing something is a write, and a
-	 * write behind a GET is one prefetch away from happening by itself.
+	 * A posting form rather than a link: removing something is a write, and a write behind a GET is one prefetch away from happening by itself.
 	 *
 	 * @param string $uuid    The group.
 	 * @param int    $item_id The item to take out.
@@ -126,9 +116,7 @@ class Groups_Page implements Hookable {
 	/**
 	 * The screen, in one of its two modes.
 	 *
-	 * One slug with a mode on the query, as `Settings_Page` does with
-	 * `?section=` — so a single group has a URL that can be linked to and come
-	 * back to, without a second entry in the menu.
+	 * One slug with a mode on the query, as `Settings_Page` does, so a single group has a linkable URL without a second menu entry.
 	 */
 	public function render(): void {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Chooses which view renders; the write handlers carry nonces.
@@ -266,8 +254,7 @@ class Groups_Page implements Hookable {
 	/**
 	 * Two search fields, one per kind of thing a group can hold.
 	 *
-	 * Search rather than a select: the list is every post and every file on
-	 * the site, which is not a dropdown.
+	 * Search rather than a select: the list is every post and every file on the site, which is not a dropdown.
 	 *
 	 * @param string $uuid The group being added to.
 	 */
@@ -363,9 +350,7 @@ class Groups_Page implements Hookable {
 			return;
 		}
 
-		// The first is open, as the Notifications panels are: the whole point
-		// of the screen is seeing what a group holds, and a page of shut
-		// drawers shows nothing at all.
+		// The first is open, as the Notifications panels are, because the point of the screen is seeing what a group holds.
 		foreach ( $groups as $index => $group ) {
 			$this->render_group( $group, 0 === $index );
 		}
@@ -488,7 +473,7 @@ class Groups_Page implements Hookable {
 	}
 
 	/**
-	 * Every group, the marker excluded — it is not one.
+	 * Every group, the marker excluded, since it is not one.
 	 *
 	 * @return array<int, WP_Term>
 	 */

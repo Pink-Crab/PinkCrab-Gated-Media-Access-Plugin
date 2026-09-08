@@ -10,9 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Admin\Pickers;
 
 /**
- * Search-as-you-type over groups — the same control as every other picker,
- * one pattern throughout. The hidden input carries the group's UUID, its
- * stable identity.
+ * Search-as-you-type over groups. The hidden input carries the group's UUID.
  */
 final class Group_Picker extends Search_Picker {
 

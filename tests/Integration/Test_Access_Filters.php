@@ -19,8 +19,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The toolbar renders on our list only, and what it submits becomes meta
- * clauses on that list's query — the holder riding core's author var.
+ * The toolbar renders on our list only, and what it submits becomes meta clauses on that list's query, with the holder riding core's author var.
  *
  * @group integration
  */
@@ -37,8 +36,7 @@ class Test_Access_Filters extends WP_UnitTestCase {
 		$this->filters = new Access_Filters( $taxonomy );
 		$this->writer  = new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() );
 
-		// The framework's tear_down() unregisters every meta key after every
-		// test (abstract-testcase.php:212), so re-register here.
+		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
 	}
 

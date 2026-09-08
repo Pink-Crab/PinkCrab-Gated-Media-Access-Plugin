@@ -21,27 +21,21 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 
 /**
- * The one Access surface on a post or file's own edit screen: who holds it
- * directly — each removable through the revoke action, adding a click away
- * on the pre-filled Add Access form — and which groups it sits in, with add
- * and remove right here. Core's own taxonomy fields (editor panel, tag box,
- * quick edit) are switched off on the taxonomy; this box is the assignment
- * surface, and groups themselves are made on the Groups screen.
+ * The one Access surface on a post or file's own edit screen: who holds it directly, each removable through the revoke action, and which groups it sits in, with add and remove right here.
  *
- * Links, not forms: a metabox lives inside the editor's own form, and a form
- * in a form posts the wrong one. Removals are nonced links; adding to a
- * group is a picker whose button the admin bundle turns into a nonced
- * navigation. Records still only change through the writer; group
- * membership goes through `wp_set_object_terms()`, where `Restriction`'s
- * marker-and-protect behaviours already hang.
+ * Core's own taxonomy fields are switched off, so this box is the assignment surface. Groups themselves are made on the Groups screen.
  *
- * Direct records only in the holders list. A user holding a group that
- * contains this item is the group's business.
+ * Links, not forms: a metabox lives inside the editor's own form, and a form in a form posts the wrong one.
  *
- * Over phpmd's class ceiling, and the score is markup rather than logic:
- * three sections are printed here, each with its own empty state and its own
- * list. Issue #54 moves the admin views to templates, which is where that
- * belongs; splitting the class would scatter one screen across several.
+ * Removals are nonced links, and adding to a group is a picker whose button the admin bundle turns into a nonced navigation.
+ *
+ * Records still only change through the writer, and group membership goes through `wp_set_object_terms()`, where `Restriction`'s marker and protect behaviours already hang.
+ *
+ * Direct records only in the holders list, because a user holding a group that contains this item is the group's business.
+ *
+ * Over phpmd's class ceiling, and the score is markup rather than logic: three sections are printed here, each with its own empty state and list.
+ *
+ * Issue #54 moves the admin views to templates, which is where that belongs, and splitting the class would scatter one screen across several.
  *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
@@ -69,8 +63,7 @@ class Item_Access_Metabox implements Hookable {
 	public const FIELD_GROUP = 'gatedmedia_join_group';
 
 	/**
-	 * Groups resolve through the taxonomy's UUID identity; grants are the
-	 * writer's, as everywhere.
+	 * Groups resolve through the taxonomy's UUID identity, and grants are the writer's, as everywhere.
 	 *
 	 * @param Access_Taxonomy $taxonomy Turns a UUID into its term, and back.
 	 * @param Access_Writer   $writer   The one writer of access records.
@@ -125,7 +118,7 @@ class Item_Access_Metabox implements Hookable {
 
 			foreach ( $holders as $access_id => $holder ) {
 				printf(
-					'<li>%s <span class="description">(%s)</span> — <a href="%s">%s</a></li>',
+					'<li>%s <span class="description">(%s)</span> <a href="%s">%s</a></li>',
 					esc_html( $holder['name'] ),
 					esc_html( $holder['expires'] ),
 					esc_url( Revoke_Action::url_for( $access_id ) ),
@@ -142,9 +135,7 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * Granting from right here: a user, optional days, one button. The
-	 * admin bundle turns the button into a nonced navigation carrying the
-	 * picker's choice — no form inside the editor's form.
+	 * Granting from right here: a user, optional days, one button, applied on save so nothing nests a form inside the editor's own.
 	 *
 	 * @param int $item_id The post or attachment.
 	 */
@@ -182,10 +173,9 @@ class Item_Access_Metabox implements Hookable {
 	/**
 	 * Applies a staged grant when the item itself is saved.
 	 *
-	 * The button used to set `window.location` to an admin-post URL the moment
-	 * it was pressed, which left the editor mid-edit: unsaved work went, and
-	 * the access was written against a post that might never be saved. The box
-	 * carries its own fields inside the editor's form, and this reads them.
+	 * The button used to set `window.location` to an admin-post URL the moment it was pressed, which left the editor mid-edit, lost unsaved work, and wrote access against a post that might never be saved.
+	 *
+	 * The box carries its own fields inside the editor's form, and this reads them.
 	 *
 	 * @param int $item_id The post or attachment being saved.
 	 */
@@ -214,8 +204,7 @@ class Item_Access_Metabox implements Hookable {
 	/**
 	 * Whether this save is the administrator's own, on this very item.
 	 *
-	 * An autosave is not: it fires while they are still typing, and would
-	 * grant against a post they have not finished.
+	 * An autosave is not: it fires while they are still typing, and would grant against a post they have not finished.
 	 *
 	 * @param int $item_id The post or attachment being saved.
 	 */
@@ -278,7 +267,7 @@ class Item_Access_Metabox implements Hookable {
 
 			foreach ( $current as $uuid => $name ) {
 				printf(
-					'<li>%s — <a href="%s">%s</a></li>',
+					'<li>%s <a href="%s">%s</a></li>',
 					esc_html( $name ),
 					esc_url(
 						add_query_arg(
@@ -312,8 +301,7 @@ class Item_Access_Metabox implements Hookable {
 	/**
 	 * Moves the item in or out of a group, then returns to its editor.
 	 *
-	 * The `exit` is required: a redirect that does not halt emits a body
-	 * alongside the Location header (the `Profile_Writer::handle()` note).
+	 * The `exit` is required: a redirect that does not halt emits a body alongside the Location header, as `Profile_Writer::handle()` also notes.
 	 */
 	public function handle_group(): void {
 		$item_id = isset( $_GET['item'] ) ? absint( $_GET['item'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The id names which nonce to check; check_admin_referer runs on the next line.
@@ -340,9 +328,7 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * One membership change. Adding runs through `wp_set_object_terms()`, so
-	 * the restriction behaviours fire exactly as they do everywhere else;
-	 * removal does not unrestrict, deliberately.
+	 * One membership change: adding runs through `wp_set_object_terms()` so the restriction behaviours fire as they do everywhere else, and removal deliberately does not unrestrict.
 	 *
 	 * @param int    $item_id   The post or attachment.
 	 * @param string $uuid      The group.
@@ -355,8 +341,7 @@ class Item_Access_Metabox implements Hookable {
 			return false;
 		}
 
-		// Adding a group restricts the item and moves an attachment's file,
-		// so it needs the right to edit that item, not just the taxonomy.
+		// Adding a group restricts the item and moves an attachment's file, so it needs the right to edit that item, not just the taxonomy.
 		if ( ! current_user_can( 'edit_post', $item_id ) ) {
 			return false;
 		}
@@ -406,7 +391,7 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * The groups this item is in — the marker is not a group.
+	 * The groups this item is in. The marker is not a group.
 	 *
 	 * @param int $item_id The post or attachment.
 	 * @return array<string, string> UUID to name.
@@ -442,7 +427,7 @@ class Item_Access_Metabox implements Hookable {
 		$ids = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
-				// Named, never 'any' — ours are excluded from 'any'.
+				// Named, never 'any', which excludes ours.
 				'post_status'    => Post_Types::STATUS_ACTIVE,
 				'posts_per_page' => -1,
 				'fields'         => 'ids',

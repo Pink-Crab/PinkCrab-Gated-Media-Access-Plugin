@@ -6,7 +6,7 @@
 	"title": "Section heading",
 	"category": "widgets",
 	"icon": "heading",
-	"description": "ui-spec.md §6.9. Uppercase 12px, tracked. A label, not a title.",
+	"description": "Uppercase 12px, tracked. A label, not a title.",
 	"textdomain": "gated-media-access",
 	"attributes": {
 		"text": {

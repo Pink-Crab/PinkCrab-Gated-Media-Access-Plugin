@@ -15,9 +15,9 @@ use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 
 /**
- * The row is the replay guard: each status mover moves from exactly one
- * state, and affected-rows answers who was first. These tests prove the
- * guard, the reads, and that the migration runs from load, never activation.
+ * The row is the replay guard: each status mover moves from exactly one state, and affected-rows answers who was first.
+ *
+ * These prove the guard, the reads, and that the migration runs from load rather than activation.
  *
  * @group integration
  */
@@ -72,7 +72,7 @@ class Test_Payment_Store extends WP_UnitTestCase {
 		$this->assertSame( 'cs_test_123', $this->store->find_by_uuid( $payment->uuid )->stripe_session_id );
 	}
 
-	/** @testdox Completing a pending payment succeeds exactly once — the replay guard. */
+	/** @testdox Completing a pending payment succeeds exactly once, which is the replay guard. */
 	public function test_mark_complete_is_first_delivery_only(): void {
 		$payment = $this->store->create_pending( 1, 2, 500, 'GBP', array( 'post:7' ) );
 
@@ -135,7 +135,7 @@ class Test_Payment_Store extends WP_UnitTestCase {
 		$this->assertSame( 3, $this->store->total() );
 	}
 
-	/** @testdox Coupon usage counts completed payments only — abandoning a checkout spends nothing. */
+	/** @testdox Coupon usage counts completed payments only, so abandoning a checkout spends nothing. */
 	public function test_coupon_completions(): void {
 		$spent = $this->store->create_pending( 1, 2, 500, 'GBP', array(), 7, 100 );
 		$this->store->mark_complete( $spent->uuid, 'pi_1' );
@@ -143,7 +143,7 @@ class Test_Payment_Store extends WP_UnitTestCase {
 		$other_user = $this->store->create_pending( 2, 2, 500, 'GBP', array(), 7, 100 );
 		$this->store->mark_complete( $other_user->uuid, 'pi_2' );
 
-		// Pending — never counted.
+		// Pending, never counted.
 		$this->store->create_pending( 1, 2, 500, 'GBP', array(), 7, 100 );
 
 		$this->assertSame( 2, $this->store->coupon_completions( 7 ) );
@@ -151,7 +151,7 @@ class Test_Payment_Store extends WP_UnitTestCase {
 		$this->assertSame( 0, $this->store->coupon_completions( 99 ) );
 	}
 
-	/** @testdox One person's orders are only ever their own — another account's payments never appear. */
+	/** @testdox One person's orders are only ever their own, and another account's payments never appear. */
 	public function test_for_user_returns_only_that_users_payments(): void {
 		$mine   = $this->store->create_pending( 11, 2, 500, 'GBP', array( 'post:7' ) );
 		$theirs = $this->store->create_pending( 12, 2, 500, 'GBP', array( 'post:7' ) );

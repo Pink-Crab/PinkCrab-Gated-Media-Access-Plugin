@@ -14,11 +14,9 @@ use PinkCrab\Gated_Access\Plugin;
 use PinkCrab\Gated_Access\Payments\Payments_Schema;
 
 /**
- * A failed `CREATE TABLE` must not be recorded as a success, or the migration
- * never runs again and every payment fails against a table that is not there.
+ * A failed `CREATE TABLE` must not be recorded as a success, or the migration never runs again and every payment fails against a table that is not there.
  *
- * The harness rewrites CREATE and DROP to their TEMPORARY forms, which
- * `SHOW TABLES` cannot see, so these work on the real table and put it back.
+ * The harness rewrites CREATE and DROP to their TEMPORARY forms, which `SHOW TABLES` cannot see, so these work on the real table and put it back.
  *
  * @group integration
  */
@@ -109,8 +107,7 @@ class Test_Payments_Schema extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Makes every CREATE TABLE fail, standing in for the real refusals: no
-	 * CREATE privilege, or an index over the key length limit.
+	 * Makes every CREATE TABLE fail, standing in for the real refusals: no CREATE privilege, or an index over the key length limit.
 	 *
 	 * @return callable(string):string The filter, for the caller to remove.
 	 */
