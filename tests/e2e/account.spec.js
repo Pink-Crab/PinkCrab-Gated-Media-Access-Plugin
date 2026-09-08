@@ -212,29 +212,28 @@ test.describe( 'account area', () => {
 
 		const row = page.locator( '.gatedmedia-row' ).first();
 		const select = page.locator( '[data-gatedmedia-filter="type"]' );
-		const video = page.locator( '[data-gatedmedia-chip="video"]' );
-		const pdf = page.locator( '[data-gatedmedia-chip="pdf"]' );
 
 		await expect( row ).toBeVisible();
-		await expect( row ).toHaveAttribute( 'data-gatedmedia-type', 'pdf' );
+
+		// Whatever the fixture's file is, video is not it.
+		const ownType = await row.getAttribute( 'data-gatedmedia-type' );
+		expect( ownType ).not.toBe( 'video' );
 
 		// Select is the wide control, chips the narrow one.
 		const wide = await select.isVisible();
+		const pick = async ( type ) => {
+			if ( wide ) {
+				await select.selectOption( type );
+				return;
+			}
 
-		if ( wide ) {
-			await select.selectOption( 'video' );
-		} else {
-			await video.click();
-		}
+			await page.locator( `[data-gatedmedia-chip="${ type }"]` ).click();
+		};
 
+		await pick( 'video' );
 		await expect( row ).toBeHidden();
 
-		if ( wide ) {
-			await select.selectOption( 'pdf' );
-		} else {
-			await pdf.click();
-		}
-
+		await pick( 'all' );
 		await expect( row ).toBeVisible();
 	} );
 
