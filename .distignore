@@ -1,0 +1,57 @@
+# What is left out of a release zip, read by rsync in .github/workflows/release.yml.
+#
+# Every pattern is anchored with a leading slash. Unanchored, `/blocks/` would also match `build/blocks/`, which is the one directory the plugin cannot run without.
+
+# Version control and CI.
+/.git/
+/.github/
+/.karkinos/
+/.gitignore
+/.distignore
+
+# Editor and agent working files.
+/.claude/
+/.editorconfig
+/.idea/
+/.vscode/
+/_temp/
+
+# Linter, test and build configuration.
+/.nvmrc
+/.phpcs.xml
+/.phpmd.xml
+/.phpstan.neon
+/.phpunit.result.cache
+/.stylelintrc.json
+/.wp-env.json
+/composer.lock
+/package.json
+/package-lock.json
+/phpunit.xml.dist
+/playwright.config.js
+/webpack.config.js
+/type-defs.php
+
+# Tests and their output.
+/tests/
+/wordpress/
+/clover.xml
+/coverage-report/
+/test-results/
+/playwright-report/
+/blob-report/
+*.log
+
+# Documentation, including 31 screenshots nothing at runtime reads.
+/README.md
+/docs/
+
+# Sources of the compiled output in build/. Blocks are registered from build/blocks, and the only file read out of assets/ is icons.svg.
+/blocks/
+/assets/js/
+/assets/scss/
+
+# Build scratch.
+/dist/
+/_build.*/
+/node_modules/

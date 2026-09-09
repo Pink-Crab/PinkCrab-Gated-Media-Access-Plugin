@@ -1,0 +1,84 @@
+name: WordPress 6.9 Test Suite
+
+# The PHP gate: three linters and the full suite against a real WordPress.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# A second push to the same branch makes the first run's answer worthless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Lint and test
+    runs-on: ubuntu-latest
+
+    services:
+      mysql-service:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: 'root'
+          MYSQL_DATABASE: wordpress_test
+        # The job runs on the runner itself rather than in a container, so the service is reached through a published port and not by its label.
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect || mysqladmin ping -uroot -proot"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=10
+
+    # tests/wp-config.php reads these.
+    env:
+      WP_DB_NAME: wordpress_test
+      WP_DB_USER: root
+      WP_DB_PASS: root
+      WP_DB_HOST: 127.0.0.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pinned rather than taken from the runner image, so an image update cannot quietly change the version the suite ran against.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, mysql
+          coverage: none
+          tools: composer
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      # Blocks are registered from build/blocks, which is gitignored, so a checkout has no blocks until this runs and any test that renders one fails with "block is not registered".
+      - name: Build assets
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: phpcs
+        run: composer lint:php:phpcs
+
+      - name: phpstan
+        run: composer lint:php:phpstan
+
+      - name: phpmd
+        run: composer lint:php:phpmd
+
+      - name: phpunit
+        run: composer test

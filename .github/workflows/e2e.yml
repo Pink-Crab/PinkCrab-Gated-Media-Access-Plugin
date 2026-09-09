@@ -1,0 +1,66 @@
+name: End to end
+
+# Separate from wp-6-9.yml so a browser run never slows the lint-and-test one. That workflow answers "is the code sound"; this one answers "does it render".
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # wp-env brings its own WordPress and MySQL as containers on the runner's Docker daemon, so this job needs no service of its own.
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --no-progress
+          npm ci --no-audit --no-fund
+
+      # Blocks are registered from build/blocks, so without this the account area has nothing to render and every spec fails for the wrong reason.
+      - name: Build assets
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start WordPress
+        run: npx wp-env start
+
+      - name: e2e
+        run: npm run test:e2e
+
+      - name: Keep the traces of a failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

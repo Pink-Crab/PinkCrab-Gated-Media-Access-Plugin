@@ -416,6 +416,103 @@ What Revoke does: `revoke` keeps the record as history, `expire` pulls its date 
 
 Whether deleting the plugin also takes the payments table, the access records, the products, the coupons and the groups. Off unless asked for, because that data is business history.
 
+## Updates
+
+The plugin is not on wordpress.org. Its `Update URI` header names the repository, so core takes the update check to `update_plugins_github.com` instead of api.wordpress.org, and `Github_Updater` answers it from the latest GitHub release.
+
+Only a plain `X.Y.Z` tag is ever offered. A release candidate is refused three times over: GitHub's `latest` endpoint does not return prereleases, the payload's own `prerelease` and `draft` flags are checked, and the tag is matched against `/^\d+\.\d+\.\d+$/`. So an RC is installed by hand or not at all.
+
+What is offered is returned to core whether or not it is newer than the installed version, because core is the one that compares them. A version that is not newer lands in `no_update`, which is what puts the auto-update control on the plugins screen.
+
+The result is cached in the `gatedmedia_latest_release` site transient for twelve hours, or for one hour after a failed lookup, and is dropped whenever anything finishes installing.
+
+These hooks are attached at plugin load rather than during boot, so they still run on a site where restrict-media-file-access is missing and nothing else of the plugin has started. An update is how a broken install gets repaired.
+
+### `gatedmedia_auto_update`
+
+`apply_filters( 'gatedmedia_auto_update', bool $enabled, string $version )`
+
+Whether a stable release installs itself, true by default. This flag is enough on its own: `WP_Automatic_Updater::should_update()` reads it off the offer and does not consult the site's own auto-update setting, so returning false is the only way to hand the decision back to the administrator.
+
+```php
+// Let the site owner decide, through the toggle on the plugins screen.
+add_filter( 'gatedmedia_auto_update', '__return_false' );
+```
+
+```php
+// Take patches unattended, hold major and minor versions for a person.
+add_filter(
+	'gatedmedia_auto_update',
+	function ( bool $enabled, string $version ): bool {
+		$offered   = explode( '.', $version );
+		$installed = explode( '.', GATEDMEDIA_VERSION );
+
+		return $offered[0] === $installed[0] && $offered[1] === $installed[1];
+	},
+	10,
+	2
+);
+```
+
+### `gatedmedia_update_repository`
+
+`apply_filters( 'gatedmedia_update_repository', string $repository )`
+
+The repository releases are read from, as `owner/name`, default `Pink-Crab/PinkCrab-Gated-Media-Access-Plugin`. The host is not filterable: core only calls any of this because the `Update URI` header names github.com.
+
+```php
+// Take releases from a fork.
+add_filter( 'gatedmedia_update_repository', fn(): string => 'My-Org/gated-media-access' );
+```
+
+### `gatedmedia_update_release`
+
+`apply_filters( 'gatedmedia_update_release', ?array $release )`
+
+The release once it has been parsed, carrying `version`, `notes`, `url`, `package` and `published`, or null where there was nothing usable. Return null to refuse the update outright. The result is what gets cached, so a callback here is not asked again until the cache lapses.
+
+```php
+// Never move past 1.x on this site.
+add_filter(
+	'gatedmedia_update_release',
+	function ( ?array $release ): ?array {
+		if ( null === $release || version_compare( $release['version'], '2.0.0', '<' ) ) {
+			return $release;
+		}
+
+		return null;
+	}
+);
+```
+
+### `gatedmedia_update_offer`
+
+`apply_filters( 'gatedmedia_update_offer', array $offer, array $release, array $plugin_data )`
+
+The finished offer, keyed as core's `update_plugins_{$hostname}` documents: `slug`, `version`, `url`, `package`, `requires`, `requires_php` and `autoupdate`. There is no `package` key at all where the release has no `gated-media-access.zip` asset, which is what makes WordPress say an automatic update is unavailable rather than download something that is not the plugin.
+
+```php
+// Serve the zip from a mirror inside the network.
+add_filter(
+	'gatedmedia_update_offer',
+	function ( array $offer ): array {
+		$offer['package'] = 'https://mirror.example.com/gated-media-access/' . $offer['version'] . '.zip';
+
+		return $offer;
+	}
+);
+```
+
+### `gatedmedia_update_cache_lifetime`
+
+`apply_filters( 'gatedmedia_update_cache_lifetime', int $seconds )`
+
+How long a release is remembered, twelve hours by default and floored at one second. The check runs on admin page loads, so this is the whole of what keeps them off the GitHub API.
+
+```php
+add_filter( 'gatedmedia_update_cache_lifetime', fn(): int => HOUR_IN_SECONDS );
+```
+
 ## Actions
 
 ### `gatedmedia_access_granted`

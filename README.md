@@ -147,9 +147,23 @@ access would still work exactly the same.
 
 ![Notification settings](docs/images/admin-settings-notifications.png)
 
+## Updates
+
+Updates come from this repository's releases, not wordpress.org, and a stable
+release installs itself. Only a plain `X.Y.Z` tag counts: a release candidate is
+never offered, so it is installed by hand or not at all.
+
+Nothing needs configuring, and nothing is added to the plugins screen that is
+not already there. To take the decision back, turn the automatic part off and
+use the toggle WordPress puts on the plugins screen:
+
+```php
+add_filter( 'gatedmedia_auto_update', '__return_false' );
+```
+
 ## Extending it
 
-Forty-two filters and thirteen actions, all documented with examples in
+Forty-seven filters and thirteen actions, all documented with examples in
 [`docs/hooks.md`](docs/hooks.md). The four that matter most:
 
 | | |
@@ -202,7 +216,9 @@ The integration suite installs a real WordPress through `wp-phpunit` and needs
 a database: copy `tests/.env_sample` to `tests/.env` first. The e2e suite runs
 every spec at both sides of the 782px breakpoint, and builds its own fixtures.
 
-CI runs on the local act runner from `.karkinos/workflows/`.
+CI is in `.github/workflows/`: the PHP linters and suite, the asset linters, the
+build, and the browser tests, on every pull request and every push to `main`.
+Publishing a release builds the installable zip and attaches it to that release.
 
 ## Documentation
 
