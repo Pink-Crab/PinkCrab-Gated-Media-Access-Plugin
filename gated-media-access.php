@@ -6,7 +6,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:             Gated Media Access
- * Plugin URI:              https://github.com/Pink-Crab/gated-media-access
+ * Plugin URI:              https://github.com/Pink-Crab/PinkCrab-Gated-Media-Access-Plugin
  * Description:             Gated access to documents, media and posts. Access is granted by on-site payment, by an administrator, or by webhook.
  * Version:                 0.1.0
  * Requires at least:       6.4
@@ -17,12 +17,14 @@
  * License URI:             https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:             gated-media-access
  * Domain Path:             /languages
+ * Update URI:              https://github.com/Pink-Crab/PinkCrab-Gated-Media-Access-Plugin
  */
 
 declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Plugin;
 use PinkCrab\Gated_Access\Registration\Lifecycle;
+use PinkCrab\Gated_Access\Updates\Github_Updater;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -35,6 +37,9 @@ require_once GATEDMEDIA_DIR_PATH . 'vendor/autoload.php';
 
 // Outside the boot below on purpose: the two daily events must be cleared even where restrict-media-file-access has gone and nothing booted.
 register_deactivation_hook( __FILE__, array( Lifecycle::class, 'deactivate' ) );
+
+// Outside it for the same reason: an update is how a broken install is repaired, so it must be offered to a site where nothing else of ours is running.
+( new Github_Updater() )->attach();
 
 /**
  * Boots the plugin, once restrict-media-file-access is confirmed present.

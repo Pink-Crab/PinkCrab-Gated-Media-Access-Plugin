@@ -1,0 +1,94 @@
+name: Release
+
+# Builds the installable zip and attaches it to the release that triggered this run.
+#
+# The zip is what every site installs and what the self-updater downloads, so it holds production vendor and compiled build output and none of the sources or tooling that made them.
+#
+# Release candidates are built too. The updater refuses to offer them, so an RC is installed by hand or not at all.
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and attach the zip
+    runs-on: ubuntu-latest
+
+    env:
+      SLUG: gated-media-access
+
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # The tag names the version everywhere else, so a mismatch would ship a zip that reports the wrong version and never updates past itself.
+      - name: Check the tag matches the version in the code
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${TAG#v}"
+          HEADER=$(sed -n 's/^ \* Version:[[:space:]]*//p' "$SLUG.php" | head -n1 | tr -d '[:space:]')
+          CONST=$(sed -n "s/^define( 'GATEDMEDIA_VERSION', '\([^']*\)'.*/\1/p" "$SLUG.php" | head -n1)
+          PACKAGE=$(node -p "require('./package.json').version")
+
+          echo "Tag:              $VERSION"
+          echo "Plugin header:    $HEADER"
+          echo "GATEDMEDIA_VERSION: $CONST"
+          echo "package.json:     $PACKAGE"
+
+          for FOUND in "$HEADER" "$CONST" "$PACKAGE"; do
+            if [ "$FOUND" != "$VERSION" ]; then
+              echo "::error::'$FOUND' does not match the tag '$VERSION'. Refusing to build."
+              exit 1
+            fi
+          done
+
+      - name: Build assets
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      # Last, and after the build, so vendor holds production dependencies only.
+      - name: Install production dependencies
+        run: composer install --no-interaction --no-progress --no-dev --optimize-autoloader
+
+      # Staged under its own directory name: WordPress takes the single top level directory in the zip as the folder it installs into, and files at the archive root would install as a folder named after the file.
+      - name: Stage the plugin
+        run: |
+          mkdir -p "dist/$SLUG"
+          rsync -a --exclude-from=.distignore ./ "dist/$SLUG/"
+
+      # A zip missing any of these installs and then fails at runtime, which is a worse failure than a build that stops here.
+      - name: Check the payload
+        run: |
+          cd "dist/$SLUG"
+          for REQUIRED in "$SLUG.php" uninstall.php vendor/autoload.php build/blocks build/js/front.js build/css/front.css assets/icons.svg src/Plugin.php; do
+            test -e "$REQUIRED" || { echo "::error::$REQUIRED missing from the zip"; exit 1; }
+          done
+          echo "Staged:"
+          ls -A
+
+      - name: Zip
+        run: cd dist && zip -qr "../$SLUG.zip" "$SLUG"
+
+      - name: Attach the zip to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.SLUG }}.zip
