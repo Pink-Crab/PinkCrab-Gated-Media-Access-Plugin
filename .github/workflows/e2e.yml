@@ -23,10 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 8.4 for the same reason as wp-6-9.yml: two locked dev packages require it, so `composer install` will not run on 8.3.
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           coverage: none
           tools: composer
 

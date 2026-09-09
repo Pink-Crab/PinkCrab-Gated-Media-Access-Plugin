@@ -46,11 +46,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Pinned rather than taken from the runner image, so an image update cannot quietly change the version the suite ran against.
+      # 8.4 rather than the plugin's 8.3 floor: composer.lock pins doctrine/instantiator 2.1.0 and symfony/var-exporter v8.1.4, both of which require 8.4, so `composer install` refuses to run on 8.3. Nothing shipped needs it, and release.yml builds the zip on 8.3.
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, mysql
           coverage: none
           tools: composer
