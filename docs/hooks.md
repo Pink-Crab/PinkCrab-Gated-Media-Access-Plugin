@@ -135,7 +135,7 @@ Each account block raises a filter for its own data, because a `render.php` cann
 | `gatedmedia_product_data` | the product id | `product_id`, `state`, `items`, `price`, `currency`, `term`, `nonce`, `action_url`, `error`, `coupon`, `page_url` |
 | `gatedmedia_auth_data` | none | `state`, `error`, `message`, `invalid`, `email`, `redirect`, `signup_offered`, `minimum`, `action_url`, `nonce` |
 
-The plugin's own classes answer these at priority 10. Hook later to change what they said.
+The plugin's own classes answer these at priority 10. Hook later to change what they said, earlier to answer instead of them.
 
 ```php
 // Put a banner row at the top of Files.
@@ -153,11 +153,71 @@ add_filter(
 );
 ```
 
+A row is whatever the `row` block accepts: `title`, `meta`, `href`, `action_label`, `expiry_state` and `expiry_label`. The keys a section does not use are ignored rather than drawn empty.
+
+```php
+// Order the My Access lists by title rather than by grant date.
+add_filter(
+	'gatedmedia_my_access_data',
+	function ( array $data ): array {
+		foreach ( array( 'groups', 'posts', 'files' ) as $list ) {
+			usort( $data[ $list ], fn( $a, $b ) => strcmp( $a['title'], $b['title'] ) );
+		}
+
+		return $data;
+	},
+	20
+);
+```
+
+The second argument says which page is being drawn, so a detail view can be answered without touching the list.
+
+```php
+// A note on one group's page, and nowhere else.
+add_filter(
+	'gatedmedia_my_access_data',
+	function ( array $data, string $group ): array {
+		if ( '' !== $group && null !== $data['detail'] ) {
+			$data['detail']['note'] = __( 'Updated monthly.', 'my-plugin' );
+		}
+
+		return $data;
+	},
+	20,
+	2
+);
+```
+
+`gatedmedia_product_data` carries the state the page draws, so it is how a site adds one of its own reasons for refusing to sell.
+
+```php
+add_filter(
+	'gatedmedia_product_data',
+	function ( array $data ): array {
+		if ( 'paid' === $data['state'] && my_shop_is_closed() ) {
+			$data['state'] = 'ineligible';
+			$data['error'] = __( 'The shop reopens on Monday.', 'my-plugin' );
+		}
+
+		return $data;
+	},
+	20
+);
+```
+
 ### `gatedmedia_payment_poll`
 
 `apply_filters( 'gatedmedia_payment_poll', array $poll, string $uuid )`
 
-How the order page waits for Stripe's confirmation: `interval` in milliseconds and `attempts`. Printed onto the panel, so the script never decides timing for itself. Values are clamped to at least one second and one attempt.
+How the order page waits for Stripe's confirmation: `interval` in milliseconds and `attempts`. Printed onto the panel, so the script never decides timing for itself. Values are clamped to at least one second and one attempt, so a zero here becomes one rather than turning the poll off.
+
+```php
+// Watch for five minutes on a slow account, rather than one.
+add_filter(
+	'gatedmedia_payment_poll',
+	fn( array $poll ): array => array( 'interval' => 5000, 'attempts' => 60 )
+);
+```
 
 ## Products and payments
 
@@ -192,13 +252,41 @@ Where Stripe sends the buyer back to. Defaults to their own order, flagged as ju
 
 `apply_filters( 'gatedmedia_coupon_valid', bool $valid, ?WP_Post $coupon, int $user_id )`
 
-Whether a coupon applies for this buyer, after the code has been matched and its expiry and limits checked. `$coupon` is null when no coupon matched the code. Asked when the page is priced and again at purchase, so a coupon refused here is refused at the till.
+Whether a coupon applies for this buyer, after the code has been matched and its expiry and limits checked. `$coupon` is null when no coupon matched the code. Asked when the page is priced and again at purchase, so a coupon refused here is refused at the till, and a coupon allowed here must still be allowed then or the buyer sees one price and pays another.
+
+```php
+// This code is for people who have bought before.
+add_filter(
+	'gatedmedia_coupon_valid',
+	function ( bool $valid, ?WP_Post $coupon, int $user_id ): bool {
+		if ( ! $valid || null === $coupon || 'RETURNING' !== $coupon->post_title ) {
+			return $valid;
+		}
+
+		return my_has_bought_before( $user_id );
+	},
+	10,
+	3
+);
+```
 
 ### `gatedmedia_coupon_discount`
 
 `apply_filters( 'gatedmedia_coupon_discount', int $amount, WP_Post $coupon, int $subtotal )`
 
 What the coupon takes off, in minor units, after the percent or fixed calculation. Return more than the subtotal and the price simply reaches zero, which completes the payment on the spot without involving Stripe.
+
+Asked in both places the price is worked out, so this cannot make the page and the charge disagree.
+
+```php
+// Never take more than half off, whatever the coupon says.
+add_filter(
+	'gatedmedia_coupon_discount',
+	fn( int $amount, WP_Post $coupon, int $subtotal ): int => min( $amount, intdiv( $subtotal, 2 ) ),
+	10,
+	3
+);
+```
 
 ### `gatedmedia_coupon_hold_seconds`
 
@@ -226,7 +314,15 @@ add_filter( 'gatedmedia_stripe_secret', fn(): string => MY_STRIPE_SECRET );
 
 `apply_filters( 'gatedmedia_stripe_client_config', array $config )`
 
-`timeout`, `connect_timeout` and `max_network_retries` for the Stripe client. The call runs inline in the buyer's own request, which is why the defaults are far below the SDK's 80 seconds.
+`timeout`, `connect_timeout` and `max_network_retries` for the Stripe client. The call runs inline in the buyer's own request, which is why the defaults are far below the SDK's 80 seconds. Every value is cast through `absint()`, so a negative becomes zero rather than an error.
+
+```php
+// A slow connection, and one more retry.
+add_filter(
+	'gatedmedia_stripe_client_config',
+	fn( array $config ): array => array( 'timeout' => 20, 'connect_timeout' => 8, 'max_network_retries' => 3 )
+);
+```
 
 ## Money and time
 
@@ -340,7 +436,14 @@ add_action( 'gatedmedia_access_granted', function ( int $access_id, int $user_id
 
 `do_action( 'gatedmedia_access_revoked', int $access_id, int $user_id )`
 
-Fires when access is taken away, on all three behaviours. Under `delete` it fires after the row has gone, so read what you need from the ids rather than the record.
+Fires when access is taken away, on all three behaviours. Under `delete` it fires after the row has gone, so read what you need from the ids rather than the record: `get_post( $access_id )` will be null there and not on the other two.
+
+```php
+add_action( 'gatedmedia_access_revoked', function ( int $access_id, int $user_id ): void {
+	// The record may already be gone, so the ids are all there is.
+	my_crm_revoked( $user_id, $access_id );
+}, 10, 2 );
+```
 
 ### `gatedmedia_access_expired`
 
@@ -358,7 +461,15 @@ Fires when a live record's expiry moves: an edit, or a re-grant stacking more da
 
 `do_action( 'gatedmedia_payment_completed', int $payment_id )`
 
-Fires once a payment has completed and its access has landed, from Stripe's confirmation or, for a coupon that took the price to zero, from the checkout itself. The status move guards it, so a redelivered Stripe event fires nothing.
+Fires once a payment has completed and its access has landed, from Stripe's confirmation or, for a coupon that took the price to zero, from the checkout itself. The status move guards it, so a redelivered Stripe event fires nothing and a listener needs no guard of its own.
+
+The argument is the row's own id, not the uuid. `Payment_Store` reads by uuid or by Stripe intent, so a listener wanting the whole payment matches on what it already knows rather than looking the id up.
+
+```php
+add_action( 'gatedmedia_payment_completed', function ( int $payment_id ): void {
+	my_accounts_record_sale( $payment_id );
+} );
+```
 
 ### `gatedmedia_payment_refunded`
 
@@ -376,13 +487,30 @@ Fires when a checkout could not be started at all, which means Stripe refused or
 
 `do_action( 'gatedmedia_stripe_event', \Stripe\Event $event )`
 
-Fires for every verified Stripe delivery, whatever its type, before the plugin acts on the ones it knows. The signature has already been checked, so this is where to handle event types the plugin ignores.
+Fires for every verified Stripe delivery, whatever its type, before the plugin acts on the ones it knows. The signature has already been checked, so this is where to handle event types the plugin ignores, without a second endpoint of your own.
+
+```php
+add_action( 'gatedmedia_stripe_event', function ( \Stripe\Event $event ): void {
+	if ( 'customer.subscription.deleted' === $event->type ) {
+		my_subscriptions_cancel( $event->data->object );
+	}
+} );
+```
 
 ### `gatedmedia_webhook_received`
 
 `do_action( 'gatedmedia_webhook_received', array $payload, string $source, bool $accepted, string $reason )`
 
 Fires for every delivery to the access webhook, accepted or refused, so a sending system's mistakes are visible rather than silent. `$reason` says why a refusal was refused, and is `''` when accepted.
+
+```php
+// Keep the refusals where somebody will see them.
+add_action( 'gatedmedia_webhook_received', function ( array $payload, string $source, bool $accepted, string $reason ): void {
+	if ( ! $accepted ) {
+		my_log( sprintf( '%s was refused: %s', $source, $reason ) );
+	}
+}, 10, 4 );
+```
 
 ### `gatedmedia_account_created`
 

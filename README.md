@@ -149,7 +149,7 @@ access would still work exactly the same.
 
 ## Extending it
 
-Forty-one filters and twelve actions, all documented with examples in
+Forty-two filters and thirteen actions, all documented with examples in
 [`docs/hooks.md`](docs/hooks.md). The four that matter most:
 
 | | |
