@@ -23,7 +23,7 @@ use PinkCrab\Gated_Access\Settings\Settings_Page;
 use PinkCrab\Gated_Access\Support\Uuid;
 
 /**
- * A group is not a term in the ordinary sense, so it is not administered as one. Core's taxonomy screens are off, because they hung a "Groups" entry under Posts, Pages and Media and can only ever show a name, a slug and a misleading count.
+ * A group is not a term in the ordinary sense, so it is not administered as one. Core's taxonomy screens keep no menu entry, because they hung a "Groups" entry under Posts, Pages and Media and can only ever show a name, a slug and a misleading count. The screens themselves stay reachable by URL, so `Access_Taxonomy` maps their four capabilities to this screen's own.
  *
  * A group is a thing that holds content, and that people hold. This screen is those two facts per group in one place, drawn in the Settings screen's vocabulary rather than as a `WP_List_Table`, which would look like the thing this replaces.
  *

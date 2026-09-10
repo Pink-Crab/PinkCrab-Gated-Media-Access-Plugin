@@ -54,6 +54,39 @@ class Test_Product_Route extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * @testdox A draft product's UUID answers for somebody who may edit it, and nobody else.
+	 *
+	 * The UUID URL is a product's only address, so a draft that answers there for no one cannot be previewed at all.
+	 */
+	public function test_a_draft_product_previews_at_its_uuid(): void {
+		$draft_id = self::factory()->post->create(
+			array(
+				'post_type'   => Post_Types::PRODUCT,
+				'post_status' => 'draft',
+			)
+		);
+		$uuid     = Uuid::ensure( 'post', $draft_id );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$mapped = $this->route->route_request( array( Product_Route::QUERY_VAR => $uuid ) );
+
+		$this->assertSame( $draft_id, $mapped['p'] ?? 0 );
+
+		// The mapping is not the page: core refuses an unpublished singular of its own accord.
+		$this->go_to( home_url( '/?' . Product_Route::QUERY_VAR . '=' . $uuid ) );
+
+		$this->assertFalse( is_404() );
+		$this->assertSame( $draft_id, (int) get_queried_object_id() );
+
+		wp_set_current_user( 0 );
+
+		$refused = $this->route->route_request( array( Product_Route::QUERY_VAR => $uuid ) );
+
+		$this->assertSame( array( 'error' => '404' ), $refused );
+	}
+
 	/** @testdox The request filter maps a UUID to the product's own single query. */
 	public function test_route_request_maps_the_uuid(): void {
 		$mapped = $this->route->route_request( array( Product_Route::QUERY_VAR => $this->uuid ) );

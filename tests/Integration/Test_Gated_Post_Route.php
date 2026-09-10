@@ -78,6 +78,33 @@ class Test_Gated_Post_Route extends WP_UnitTestCase {
 		return array( $post_id, Uuid::ensure( 'post', $post_id ) );
 	}
 
+	/**
+	 * @testdox A draft's UUID answers for somebody who may edit it, and nobody else.
+	 *
+	 * A post is gated by its status, so a draft of one carries no gated status yet and its UUID resolved to nothing for everybody, the author included.
+	 */
+	public function test_a_draft_previews_at_its_uuid(): void {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$uuid    = Uuid::ensure( 'post', $post_id );
+		$route   = new Gated_Post_Route( new Restriction() );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$mapped = $route->route_request( array( Gated_Post_Route::QUERY_VAR => $uuid ) );
+
+		$this->assertSame( $post_id, $mapped['p'] ?? 0 );
+
+		// The mapping is not the page: the post boundary refuses on the same request.
+		$this->go_to( home_url( '/gated/' . $uuid . '/' ) );
+
+		$this->assertFalse( is_404() );
+		$this->assertSame( $post_id, (int) get_queried_object_id() );
+
+		wp_set_current_user( 0 );
+
+		$this->assertSame( array( 'error' => '404' ), $route->route_request( array( Gated_Post_Route::QUERY_VAR => $uuid ) ) );
+	}
+
 	private function resolver(): Resolver {
 		return new Resolver( new Access_Taxonomy() );
 	}

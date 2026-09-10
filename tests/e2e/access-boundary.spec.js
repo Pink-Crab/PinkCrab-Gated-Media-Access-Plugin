@@ -101,4 +101,18 @@ test.describe( 'signed out', () => {
 			'Members only.'
 		);
 	} );
+
+	test( 'the single post feed leaks nothing of a restricted post', async ( {
+		request,
+	} ) => {
+		// withoutcomments keeps it a posts feed. The comments feed prints no body, so without this the test would pass while proving nothing.
+		const response = await request.get(
+			'/?name=e2e-refused-post&feed=rss2&withoutcomments=1'
+		);
+		const body = await response.text();
+
+		expect( response.status() ).toBe( 404 );
+		expect( body ).not.toContain( 'Locked away.' );
+		expect( body ).not.toContain( 'Refused post' );
+	} );
 } );

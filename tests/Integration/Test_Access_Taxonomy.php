@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Tests\Integration;
 
 use WP_UnitTestCase;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Registration\Capabilities;
 
 /**
  * The taxonomy exists on the right types, its object-type filter works, and it is invisible to the front while exposed to the editor.
@@ -71,6 +72,34 @@ class Test_Access_Taxonomy extends WP_UnitTestCase {
 		$this->assertFalse( $taxonomy->show_in_quick_edit );
 		// The Groups screens themselves stay.
 		$this->assertTrue( $taxonomy->show_ui );
+	}
+
+	/**
+	 * @testdox Administering a group takes the plugin's own capabilities, not manage_categories.
+	 *
+	 * edit-tags.php?taxonomy=gatedmedia_access is reachable whatever the menu shows, and core gates it on these four capabilities alone. Mapped to manage_categories they were held by every Editor, who could rename or delete a group, and deleting one takes with it the term meta every access record names.
+	 */
+	public function test_term_capabilities_are_the_plugins_own(): void {
+		$taxonomy = get_taxonomy( Access_Taxonomy::TAXONOMY );
+
+		$this->assertNotFalse( $taxonomy );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertFalse( current_user_can( $taxonomy->cap->manage_terms ) );
+		$this->assertFalse( current_user_can( $taxonomy->cap->edit_terms ) );
+		$this->assertFalse( current_user_can( $taxonomy->cap->delete_terms ) );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->assertTrue( current_user_can( $taxonomy->cap->manage_terms ) );
+		$this->assertTrue( current_user_can( $taxonomy->cap->delete_terms ) );
+
+		$this->assertSame( Capabilities::manage_settings(), $taxonomy->cap->manage_terms );
+		$this->assertSame( Capabilities::manage_settings(), $taxonomy->cap->edit_terms );
+		$this->assertSame( Capabilities::manage_settings(), $taxonomy->cap->delete_terms );
+		// Attaching a group to an item is the same act as granting access to it.
+		$this->assertSame( Capabilities::give_access(), $taxonomy->cap->assign_terms );
 	}
 
 	/**

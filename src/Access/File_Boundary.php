@@ -14,7 +14,7 @@ namespace PinkCrab\Gated_Access\Access;
  *
  * Not in `Plugin::SERVICES`, because files are served on `parse_request` before the main query. The bootstrap attaches its two hooks at plugin load and resolves this class lazily on the first protected-file request.
  *
- * Narrow on purpose: the dependency's helper turns a hash into an attachment, the resolver has the last word, and an unrecognised request keeps whatever decision came in.
+ * Narrow on purpose: the dependency's helper turns a hash into an attachment, the resolver has the last word, and a request that places no attachment is refused.
  */
 class File_Boundary {
 
@@ -34,17 +34,16 @@ class File_Boundary {
 	/**
 	 * The decision for `restrict_media_file_access_protect_file`.
 	 *
-	 * Returning true refuses the file (the dependency serves its substitute).
-	 * A hash we cannot place leaves the incoming decision alone.
+	 * True refuses the file. Nothing placed is refused too: the incoming default allows anyone signed in.
 	 *
-	 * @param bool   $refuse         The decision so far (the dependency defaults to refusing the signed out).
+	 * @param bool   $refuse         The decision so far, unused.
 	 * @param string $protected_file The raw URL segment: the file hash, possibly size-suffixed.
 	 */
 	public function protect_file( bool $refuse, string $protected_file ): bool {
 		$attachment_id = $this->attachment_from( $protected_file );
 
 		if ( null === $attachment_id ) {
-			return $refuse;
+			return true;
 		}
 
 		return ! $this->resolver->can_see( get_current_user_id(), 'file', (string) $attachment_id );
@@ -75,10 +74,9 @@ class File_Boundary {
 	 * @param string $protected_file The raw URL segment.
 	 */
 	private function attachment_from( string $protected_file ): ?int {
-		if ( 1 !== preg_match( self::HASH_SHAPE, $protected_file, $matches ) ) {
-			return null;
-		}
+		// Placed as the dependency places it, or it resolves a file this never judged.
+		$hash = 1 === preg_match( self::HASH_SHAPE, $protected_file, $matches ) ? $matches[1] : $protected_file;
 
-		return rmfa_find_attachment_id_by_hash( $matches[1] );
+		return rmfa_find_attachment_id_by_hash( $hash );
 	}
 }

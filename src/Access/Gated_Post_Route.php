@@ -135,7 +135,8 @@ class Gated_Post_Route implements Hookable {
 			return array(
 				'p'            => $post_id,
 				'post_type'    => get_post_type( $post_id ),
-				'post_status'  => Post_Types::STATUS_GATED,
+				// Its own status, not the gated one: a draft being previewed carries neither.
+				'post_status'  => get_post_status( $post_id ),
 				self::VIA_FLAG => 1,
 			);
 		}
@@ -277,7 +278,8 @@ class Gated_Post_Route implements Hookable {
 		$found = get_posts(
 			array(
 				'post_type'      => 'any',
-				'post_status'    => Post_Types::STATUS_GATED,
+				// Unpublished too: a draft of a gated post does not carry the status yet, and its UUID is the address it will answer at.
+				'post_status'    => array( Post_Types::STATUS_GATED, 'draft', 'pending', 'future', 'private' ),
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
@@ -286,7 +288,18 @@ class Gated_Post_Route implements Hookable {
 			)
 		);
 
-		return array() === $found ? null : (int) $found[0];
+		if ( array() === $found ) {
+			return null;
+		}
+
+		$post_id = (int) $found[0];
+
+		// Anything not yet gated answers only to whoever may edit it.
+		if ( Post_Types::STATUS_GATED !== get_post_status( $post_id ) && ! current_user_can( 'edit_post', $post_id ) ) {
+			return null;
+		}
+
+		return $post_id;
 	}
 
 	/**
