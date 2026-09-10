@@ -23,7 +23,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 /**
  * A restricted post is a hard 404 and absent from every listing for anyone without access, visible everywhere for a holder, and unrestricted content is untouched.
  *
- * Listing exclusion runs through the booted plugin's own pre_get_posts hook. The singular refusal is called directly, because firing template_redirect drags canonical redirects along with it.
+ * Listing exclusion runs through the booted plugin's own pre_get_posts hook. The refusal is on `wp`, so go_to() fires it; the direct calls below assert the method on its own, and calling it twice changes nothing.
  *
  * @group integration
  */
@@ -78,6 +78,85 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 		$this->go_to( '/?p=' . $post_id );
 		$this->boundary()->refuse_singular();
 
+		$this->assertTrue( is_404() );
+	}
+
+	/**
+	 * @testdox A single post feed serves nothing for a restricted post.
+	 *
+	 * The 404 flags are not a refusal on their own: set_404() keeps is_feed and drops is_comment_feed, so do_feed() loads the posts feed, and template-loader.php runs that before it ever looks at is_404.
+	 */
+	public function test_feed_serves_nothing_for_a_restricted_post(): void {
+		$post_id = $this->make_restricted_post(
+			array(
+				'post_title'   => 'Xyzzy secret handbook',
+				'post_content' => 'The secret is in the second drawer.',
+			)
+		);
+
+		wp_set_current_user( 0 );
+
+		$this->go_to( '/?p=' . $post_id . '&feed=rss2' );
+		$this->boundary()->refuse_singular();
+
+		$this->assertTrue( is_404() );
+		$this->assertTrue( is_feed() );
+
+		ob_start();
+		do_feed();
+		$feed = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'The secret is in the second drawer.', $feed );
+		$this->assertStringNotContainsString( 'Xyzzy secret handbook', $feed );
+	}
+
+	/**
+	 * @testdox A holder asking for the same feed still gets their post.
+	 *
+	 * Emptying the loop must not reach a holder. Their request is never refused, so is_comment_feed survives and the comments feed answers, which names the post in its channel title.
+	 */
+	public function test_feed_still_serves_a_holder(): void {
+		$post_id = $this->make_restricted_post( array( 'post_title' => 'Xyzzy secret handbook' ) );
+
+		$this->writer->grant( $this->user_id, 'post', (string) $post_id, null, 'admin' );
+		wp_set_current_user( $this->user_id );
+
+		$this->go_to( '/?p=' . $post_id . '&feed=rss2' );
+		$this->boundary()->refuse_singular();
+
+		global $wp_query;
+
+		ob_start();
+		do_feed();
+		$feed = (string) ob_get_clean();
+
+		$this->assertFalse( is_404() );
+		$this->assertSame( 1, $wp_query->post_count );
+		$this->assertStringContainsString( 'Comments on: Xyzzy secret handbook', $feed );
+	}
+
+	/**
+	 * @testdox A single post feed serves nothing for a restricted post with no template layer.
+	 *
+	 * template-loader.php fires template_redirect only when wp_using_themes(), but serves feeds either way, so a refusal hung on that hook never runs where WordPress is loaded with WP_USE_THEMES off. go_to() is that request: WP::main() and no template loader. `withoutcomments` is what keeps it a posts feed, the one that prints the body.
+	 */
+	public function test_feed_serves_nothing_without_the_template_layer(): void {
+		$post_id = $this->make_restricted_post(
+			array(
+				'post_title'   => 'Xyzzy secret handbook',
+				'post_content' => 'The secret is in the second drawer.',
+			)
+		);
+
+		wp_set_current_user( 0 );
+
+		$this->go_to( '/?p=' . $post_id . '&feed=rss2&withoutcomments=1' );
+
+		ob_start();
+		do_feed();
+		$feed = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'The secret is in the second drawer.', $feed );
 		$this->assertTrue( is_404() );
 	}
 

@@ -160,19 +160,53 @@ class Test_File_Boundary extends WP_UnitTestCase {
 		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $hash . '-150x150' ) );
 	}
 
-	/** @testdox A hash that places no attachment leaves the incoming decision alone, either way. */
-	public function test_unknown_hash_untouched(): void {
+	/**
+	 * @testdox A hash the dependency still resolves is refused, whatever shape it arrives in.
+	 *
+	 * The dependency finds the attachment with `meta_value = %s` against postmeta, whose collation is utf8mb4_unicode_520_ci: that ignores case and ignores a trailing space. This boundary's own shape accepted neither, so it abstained on a URL the dependency went on to serve, and the dependency's default hands a protected file to anybody signed in.
+	 */
+	public function test_a_variant_hash_the_dependency_resolves_is_refused(): void {
+		[ $attachment_id, $hash ] = $this->make_protected_attachment();
+
+		$variants = array(
+			'uppercased'     => strtoupper( $hash ),
+			'trailing space' => $hash . ' ',
+		);
+
+		wp_set_current_user( $this->user_id );
+
+		foreach ( $variants as $shape => $variant ) {
+			// The hole only exists because the dependency resolves these to the same attachment.
+			$this->assertSame( $attachment_id, rmfa_find_attachment_id_by_hash( $variant ), $shape );
+
+			$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $variant ), $shape );
+		}
+
+		// Placed and asked, rather than refused for being an odd shape: the holder still gets it.
+		$this->writer->grant( $this->user_id, 'file', (string) $attachment_id, null, 'admin' );
+
+		foreach ( $variants as $shape => $variant ) {
+			$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', ! is_user_logged_in(), $variant ), $shape );
+		}
+	}
+
+	/**
+	 * @testdox A hash that places no attachment is refused, whatever decision came in.
+	 *
+	 * Passing the incoming decision through reads as neutral, but the dependency's default is `! is_user_logged_in()`, so neutral meant handing a protected file to anybody signed in. Nothing placed is nothing to allow.
+	 */
+	public function test_unknown_hash_refused(): void {
 		wp_set_current_user( $this->user_id );
 
 		$unknown = str_repeat( 'ab', 16 );
 
 		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', true, $unknown ) );
-		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', false, $unknown ) );
+		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', false, $unknown ) );
 	}
 
-	/** @testdox A segment that is not hash-shaped at all leaves the incoming decision alone. */
-	public function test_malformed_segment_untouched(): void {
-		$this->assertFalse( apply_filters( 'restrict_media_file_access_protect_file', false, 'not-a-hash!' ) );
+	/** @testdox A segment that is not hash-shaped at all is refused too. */
+	public function test_malformed_segment_refused(): void {
+		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', false, 'not-a-hash!' ) );
 		$this->assertTrue( apply_filters( 'restrict_media_file_access_protect_file', true, 'not-a-hash!' ) );
 	}
 

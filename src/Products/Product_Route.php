@@ -222,7 +222,8 @@ class Product_Route implements Hookable {
 		$found = get_posts(
 			array(
 				'post_type'      => Post_Types::PRODUCT,
-				'post_status'    => 'publish',
+				// Unpublished too, since the UUID is a product's only address and a draft has to be previewable at it.
+				'post_status'    => array( 'publish', 'draft', 'pending', 'future', 'private' ),
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
@@ -231,7 +232,18 @@ class Product_Route implements Hookable {
 			)
 		);
 
-		return array() === $found ? null : (int) $found[0];
+		if ( array() === $found ) {
+			return null;
+		}
+
+		$product_id = (int) $found[0];
+
+		// Unpublished answers only to whoever may edit it.
+		if ( 'publish' !== get_post_status( $product_id ) && ! current_user_can( 'edit_post', $product_id ) ) {
+			return null;
+		}
+
+		return $product_id;
 	}
 
 	/**

@@ -93,11 +93,13 @@ class Access_Taxonomy implements Hookable {
 				'hierarchical'       => false,
 				'show_admin_column'  => true,
 				'rewrite'            => false,
+				// Not manage_categories: every Editor holds it, and these four are all core gates edit-tags.php on, which stays reachable by URL whatever the menu shows.
 				'capabilities'       => array(
-					'manage_terms' => 'manage_categories',
-					'edit_terms'   => 'manage_categories',
-					'delete_terms' => 'manage_categories',
-					'assign_terms' => 'manage_categories',
+					'manage_terms' => Capabilities::manage_settings(),
+					'edit_terms'   => Capabilities::manage_settings(),
+					'delete_terms' => Capabilities::manage_settings(),
+					// Attaching a group to an item is the same act as granting access to it.
+					'assign_terms' => Capabilities::give_access(),
 				),
 			)
 		);

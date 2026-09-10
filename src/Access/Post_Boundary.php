@@ -22,7 +22,7 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
  *
  * The exclusion is "not restricted, or one of these IDs": one term lookup for the marker's objects, the resolver's allowed items for the holder's IDs, and the difference lands in `post__not_in` on every front-of-site query. The 404 and the REST refusal guard the two ways of asking for a post by name.
  *
- * Known edge, accepted: WP_Query ignores `post__not_in` when `p` or `post__in` is set. Singular requests are re-caught at template_redirect and REST items at rest_prepare, so an explicit-ID listing is the one surface that can still list a blocked post.
+ * Known edge, accepted: WP_Query ignores `post__not_in` when `p` or `post__in` is set. Singular requests are re-caught on `wp` and REST items at rest_prepare, so an explicit-ID listing is the one surface that can still list a blocked post.
  */
 class Post_Boundary implements Hookable {
 
@@ -51,8 +51,8 @@ class Post_Boundary implements Hookable {
 	 */
 	public function register_hooks( Hook_Loader $loader ): void {
 		$loader->action( 'pre_get_posts', array( $this, 'exclude_from_queries' ) );
-		// Before redirect_canonical, or a guessed ?p=ID leaks the slug first.
-		$loader->action( 'template_redirect', array( $this, 'refuse_singular' ), 1, 0 );
+		// On `wp`, not template_redirect: that one is skipped where the theme layer is off, and template-loader.php serves feeds either way. Still ahead of redirect_canonical.
+		$loader->action( 'wp', array( $this, 'refuse_singular' ), 1, 0 );
 		// After the taxonomy registers, since its object types name the hooks to guard.
 		$loader->action( 'init', array( $this, 'attach_rest_refusals' ), 1, 20 );
 	}
@@ -111,6 +111,13 @@ class Post_Boundary implements Hookable {
 		$wp_query->set_404();
 		status_header( 404 );
 		nocache_headers();
+
+		// The flags are not the refusal: set_404() keeps is_feed, and template-loader.php runs do_feed() before it looks at is_404, so the fetched post has to leave the loop as well.
+		$wp_query->posts        = array();
+		$wp_query->post_count   = 0;
+		$wp_query->found_posts  = 0;
+		$wp_query->current_post = -1;
+		$wp_query->post         = null;
 
 		// Or redirect_canonical 301s the 404 to the pretty slug, which is a clue.
 		add_filter( 'redirect_canonical', '__return_false' );
