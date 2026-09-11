@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Settings;
 
 use PinkCrab\Gated_Access\Support\Account_Url;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * The three account settings: `account_creation`, `account_route` and `profile_prompt`.
@@ -34,60 +35,27 @@ class Account_Fields {
 	 * The section: how someone gets an account, whether the plugin's own account pages are on, and whether a thin profile is prompted.
 	 */
 	public function render(): void {
-		$option   = Settings::OPTION;
-		$creation = $this->settings->account_creation();
-		?>
-		<div class="gatedmedia-admin-section-head">
-			<h2><?php esc_html_e( 'Accounts', 'gated-media-access' ); ?></h2>
-			<span class="gatedmedia-admin-caps"><?php esc_html_e( 'How people get one, and where it lives', 'gated-media-access' ); ?></span>
-		</div>
-
-		<div class="gatedmedia-admin-field">
-			<label class="gatedmedia-admin-caps" for="gatedmedia_account_creation"><?php esc_html_e( 'How a user gets an account', 'gated-media-access' ); ?></label>
-			<select name="<?php echo esc_attr( $option ); ?>[account_creation]" id="gatedmedia_account_creation">
-				<option value="<?php echo esc_attr( Settings::ACCOUNT_CREATION_REGISTRATION ); ?>" <?php selected( Settings::ACCOUNT_CREATION_REGISTRATION, $creation ); ?>><?php esc_html_e( 'They sign themselves up', 'gated-media-access' ); ?></option>
-				<option value="<?php echo esc_attr( Settings::ACCOUNT_CREATION_ADMIN ); ?>" <?php selected( Settings::ACCOUNT_CREATION_ADMIN, $creation ); ?>><?php esc_html_e( 'An administrator creates them', 'gated-media-access' ); ?></option>
-				<option value="<?php echo esc_attr( Settings::ACCOUNT_CREATION_PURCHASE ); ?>" <?php selected( Settings::ACCOUNT_CREATION_PURCHASE, $creation ); ?>><?php esc_html_e( 'One is made when they buy', 'gated-media-access' ); ?></option>
-			</select>
-			<p class="gatedmedia-admin-help"><?php esc_html_e( 'Only the first draws a sign-up form. This governs this plugin alone, and WordPress’ own registration setting is left exactly as you set it.', 'gated-media-access' ); ?></p>
-		</div>
-
-		<div class="gatedmedia-admin-field">
-			<label class="gatedmedia-admin-caps" for="gatedmedia_auth_pages"><?php esc_html_e( 'Signing in and up', 'gated-media-access' ); ?></label>
-			<select name="<?php echo esc_attr( $option ); ?>[auth_pages]" id="gatedmedia_auth_pages">
-				<option value="<?php echo esc_attr( Settings::AUTH_PAGES_PLUGIN ); ?>" <?php selected( Settings::AUTH_PAGES_PLUGIN, $this->settings->auth_pages() ); ?>><?php esc_html_e( 'On the plugin’s own pages', 'gated-media-access' ); ?></option>
-				<option value="<?php echo esc_attr( Settings::AUTH_PAGES_CORE ); ?>" <?php selected( Settings::AUTH_PAGES_CORE, $this->settings->auth_pages() ); ?>><?php esc_html_e( 'On the WordPress login screen', 'gated-media-access' ); ?></option>
-			</select>
-			<p class="gatedmedia-admin-help"><?php esc_html_e( 'The WordPress screen carries whatever your captcha or two-factor plugin puts on it, and its own styling. Sign-up there needs WordPress’ own registration setting on, and it emails a password rather than signing the buyer straight in.', 'gated-media-access' ); ?></p>
-		</div>
-
-		<div class="gatedmedia-admin-field">
-			<label class="gatedmedia-admin-caps" for="gatedmedia_account_route"><?php esc_html_e( 'Account pages', 'gated-media-access' ); ?></label>
-			<select name="<?php echo esc_attr( $option ); ?>[account_route]" id="gatedmedia_account_route">
-				<option value="1" <?php selected( true, $this->settings->account_route() ); ?>><?php esc_html_e( 'Use the plugin’s own pages', 'gated-media-access' ); ?></option>
-				<option value="0" <?php selected( false, $this->settings->account_route() ); ?>><?php esc_html_e( 'I will place the blocks on my own pages', 'gated-media-access' ); ?></option>
-			</select>
-			<p class="gatedmedia-admin-help">
-				<?php
-				printf(
-					/* translators: %s: the account area's URL. */
-					esc_html__( 'Switched on, the account area answers at %s. Switched off it does not, and the same blocks can be placed on pages of your own.', 'gated-media-access' ),
-					// Not Account_Url::section(): this names the route being switched.
-					'<code>' . esc_html( home_url( '/' . Account_Url::slug() . '/' ) ) . '</code>'
-				);
-				?>
-			</p>
-		</div>
-
-		<div class="gatedmedia-admin-field">
-			<label class="gatedmedia-admin-caps" for="gatedmedia_profile_prompt"><?php esc_html_e( 'Ask for missing details', 'gated-media-access' ); ?></label>
-			<select name="<?php echo esc_attr( $option ); ?>[profile_prompt]" id="gatedmedia_profile_prompt">
-				<option value="0" <?php selected( false, $this->settings->profile_prompt() ); ?>><?php esc_html_e( 'No', 'gated-media-access' ); ?></option>
-				<option value="1" <?php selected( true, $this->settings->profile_prompt() ); ?>><?php esc_html_e( 'On their first sign-in', 'gated-media-access' ); ?></option>
-			</select>
-			<p class="gatedmedia-admin-help"><?php esc_html_e( 'Someone whose profile is missing a required field is asked to complete it. Never when they were part-way through buying something.', 'gated-media-access' ); ?></p>
-		</div>
-		<?php
+		View::render(
+			'admin/settings/accounts',
+			array(
+				'option'           => Settings::OPTION,
+				'creation'         => $this->settings->account_creation(),
+				'creation_options' => array(
+					Settings::ACCOUNT_CREATION_REGISTRATION => __( 'They sign themselves up', 'gated-media-access' ),
+					Settings::ACCOUNT_CREATION_ADMIN    => __( 'An administrator creates them', 'gated-media-access' ),
+					Settings::ACCOUNT_CREATION_PURCHASE => __( 'One is made when they buy', 'gated-media-access' ),
+				),
+				'auth_pages'       => $this->settings->auth_pages(),
+				'auth_options'     => array(
+					Settings::AUTH_PAGES_PLUGIN => __( 'On the plugin’s own pages', 'gated-media-access' ),
+					Settings::AUTH_PAGES_CORE   => __( 'On the WordPress login screen', 'gated-media-access' ),
+				),
+				'account_route'    => $this->settings->account_route(),
+				'profile_prompt'   => $this->settings->profile_prompt(),
+				// Not Account_Url::section(): this names the route being switched.
+				'account_url'      => home_url( '/' . Account_Url::slug() . '/' ),
+			)
+		);
 	}
 
 	/**

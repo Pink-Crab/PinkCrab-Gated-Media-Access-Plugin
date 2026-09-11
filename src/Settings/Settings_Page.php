@@ -13,7 +13,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Notifications\Notification_Sender;
 use PinkCrab\Gated_Access\Registration\Capabilities;
-use PinkCrab\Gated_Access\Support\Account_Url;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * The plugin's top-level menu, and the Settings page under it: the shop currency, the product path, the Stripe mode and keys, the revoke behaviour, the account fields and the notification templates.
@@ -23,6 +23,8 @@ use PinkCrab\Gated_Access\Support\Account_Url;
  * It now has its own submenu item, registered under the parent and never `remove_submenu_page()`d, which `Edit_Access_Page` records as breaking page access.
  *
  * Secrets are never echoed back: a stored secret renders as an empty password input with a saved marker, and an empty submit keeps what is stored, so retyping is needed only to change one.
+ *
+ * The markup is in `views/admin/settings/`.
  *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity") A settings screen is a list of fields and every field is one more branch, so splitting it further buys nothing a reader wants.
  */
@@ -108,175 +110,105 @@ class Settings_Page implements Hookable {
 	 * The top-level page: the ACCESS post type's menu placement means the top-level click lands on the Access list, so this render exists only for a direct visit to the slug.
 	 */
 	public function render(): void {
-		printf(
-			'<div class="wrap"><h1>%s</h1><p><a href="%s">%s</a></p></div>',
-			esc_html__( 'Gated Media Access', 'gated-media-access' ),
-			esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) ),
-			esc_html__( 'Settings', 'gated-media-access' )
+		View::render(
+			'admin/settings/landing',
+			array( 'settings_url' => admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) )
 		);
 	}
 
 	/**
-	 * The Settings form: mode, the six keys, the revoke behaviour and the uninstall choice.
-	 *
-	 * @SuppressWarnings("PHPMD.ExcessiveMethodLength") One form, read top to bottom, with every other section inline here, because splitting one out would hide it from the shape of the screen.
+	 * The Settings form: one form, two tabs, one save.
 	 */
 	public function render_settings(): void {
-		$mode      = $this->settings->stripe_mode();
-		$behaviour = $this->settings->revoke_behaviour();
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Chooses which tab renders; the write handler carries the nonce.
 		$section = isset( $_GET['section'] ) ? sanitize_key( (string) $_GET['section'] ) : '';
-		?>
-		<div class="wrap">
-			<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>">
-				<?php settings_fields( self::GROUP ); ?>
-				<div class="gatedmedia-admin">
-					<header class="gatedmedia-admin-header">
-						<div>
-							<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Gated Media Access', 'gated-media-access' ); ?></span>
-							<h1><?php esc_html_e( 'Settings', 'gated-media-access' ); ?></h1>
-						</div>
-						<button type="submit" class="gatedmedia-admin-button"><?php esc_html_e( 'Save Changes', 'gated-media-access' ); ?></button>
-					</header>
 
-					<nav class="gatedmedia-admin-tabs">
-						<a class="<?php echo 'notifications' === $section ? '' : 'is-active'; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ) ); ?>"><?php esc_html_e( 'General', 'gated-media-access' ); ?></a>
-						<a class="<?php echo 'notifications' === $section ? 'is-active' : ''; ?>" href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::SETTINGS_SLUG . '&section=notifications' ) ); ?>"><?php esc_html_e( 'Notifications', 'gated-media-access' ); ?></a>
-					</nav>
-
-					<?php if ( 'notifications' === $section ) : ?>
-						<?php $this->notifications->render(); ?>
-					<?php else : ?>
-						<?php $this->accounts->render(); ?>
-
-					<div class="gatedmedia-admin-section-head">
-						<h2><?php esc_html_e( 'Store', 'gated-media-access' ); ?></h2>
-						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Currency and address', 'gated-media-access' ); ?></span>
-					</div>
-
-					<div class="gatedmedia-admin-field">
-						<label class="gatedmedia-admin-caps" for="gatedmedia_currency"><?php esc_html_e( 'Currency', 'gated-media-access' ); ?></label>
-						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[currency]" id="gatedmedia_currency">
-							<?php foreach ( \Symfony\Component\Intl\Currencies::getNames() as $code => $name ) : ?>
-								<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $code, $this->settings->currency() ); ?>><?php echo esc_html( "{$code}: {$name}" ); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<p class="gatedmedia-admin-help"><?php esc_html_e( 'Every product is priced and sold in this currency.', 'gated-media-access' ); ?></p>
-					</div>
-
-					<div class="gatedmedia-admin-field">
-						<label class="gatedmedia-admin-caps" for="gatedmedia_product_path"><?php esc_html_e( 'Product URL path', 'gated-media-access' ); ?></label>
-						<span class="gatedmedia-admin-inline">
-							<code><?php echo esc_html( home_url( '/' ) ); ?></code>
-							<input type="text" class="regular-text code" name="<?php echo esc_attr( Settings::OPTION ); ?>[product_path]" id="gatedmedia_product_path" value="<?php echo esc_attr( $this->settings->product_path() ); ?>" />
-							<code>/&lt;uuid&gt;</code>
-						</span>
-						<p class="gatedmedia-admin-help"><?php esc_html_e( 'The only public way to a product is this path plus its UUID, never a slug or an ID.', 'gated-media-access' ); ?></p>
-					</div>
-
-					<div class="gatedmedia-admin-section-head">
-						<h2><?php esc_html_e( 'Stripe', 'gated-media-access' ); ?></h2>
-						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Mode and keys', 'gated-media-access' ); ?></span>
-					</div>
-
-					<div class="gatedmedia-admin-field">
-						<label class="gatedmedia-admin-caps" for="gatedmedia_stripe_mode"><?php esc_html_e( 'Mode', 'gated-media-access' ); ?></label>
-						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[stripe_mode]" id="gatedmedia_stripe_mode">
-							<option value="test" <?php selected( Settings::MODE_TEST, $mode ); ?>><?php esc_html_e( 'Test', 'gated-media-access' ); ?></option>
-							<option value="live" <?php selected( Settings::MODE_LIVE, $mode ); ?>><?php esc_html_e( 'Live', 'gated-media-access' ); ?></option>
-						</select>
-						<p class="gatedmedia-admin-help"><?php esc_html_e( 'Which set of keys checkout and the webhook use.', 'gated-media-access' ); ?></p>
-					</div>
-
-						<?php $this->render_key_rows( Settings::MODE_TEST, __( 'Test', 'gated-media-access' ) ); ?>
-						<?php $this->render_key_rows( Settings::MODE_LIVE, __( 'Live', 'gated-media-access' ) ); ?>
-
-					<div class="gatedmedia-admin-section-head">
-						<h2><?php esc_html_e( 'Access', 'gated-media-access' ); ?></h2>
-						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Revoke behaviour', 'gated-media-access' ); ?></span>
-					</div>
-
-					<div class="gatedmedia-admin-field">
-						<label class="gatedmedia-admin-caps" for="gatedmedia_revoke_behaviour"><?php esc_html_e( 'Revoking access', 'gated-media-access' ); ?></label>
-						<select name="<?php echo esc_attr( Settings::OPTION ); ?>[revoke_behaviour]" id="gatedmedia_revoke_behaviour">
-							<option value="revoke" <?php selected( Settings::REVOKE_BEHAVIOUR_REVOKE, $behaviour ); ?>><?php esc_html_e( 'Mark revoked, keeping the record as history', 'gated-media-access' ); ?></option>
-							<option value="expire" <?php selected( Settings::REVOKE_BEHAVIOUR_EXPIRE, $behaviour ); ?>><?php esc_html_e( 'Expire, pulling the record’s date to now', 'gated-media-access' ); ?></option>
-							<option value="delete" <?php selected( Settings::REVOKE_BEHAVIOUR_DELETE, $behaviour ); ?>><?php esc_html_e( 'Delete, removing the record outright', 'gated-media-access' ); ?></option>
-						</select>
-						<p class="gatedmedia-admin-help"><?php esc_html_e( 'What the Revoke action on the Access list does.', 'gated-media-access' ); ?></p>
-					</div>
-
-					<div class="gatedmedia-admin-section-head">
-						<h2><?php esc_html_e( 'Uninstall', 'gated-media-access' ); ?></h2>
-						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'What deleting the plugin takes', 'gated-media-access' ); ?></span>
-					</div>
-
-					<div class="gatedmedia-admin-check">
-						<input type="hidden" name="<?php echo esc_attr( Settings::OPTION ); ?>[purge_on_uninstall]" value="0" />
-						<input type="checkbox" id="gatedmedia_purge_on_uninstall" name="<?php echo esc_attr( Settings::OPTION ); ?>[purge_on_uninstall]" value="1" <?php checked( true, $this->settings->purge_on_uninstall() ); ?> />
-						<label class="gatedmedia-admin-caps" for="gatedmedia_purge_on_uninstall"><?php esc_html_e( 'Delete all data on uninstall', 'gated-media-access' ); ?></label>
-					</div>
-					<p class="gatedmedia-admin-help"><?php esc_html_e( 'Settings, keys and capabilities always go. Tick this and the payments table, the access records, the products and the coupons go too. There is no undo.', 'gated-media-access' ); ?></p>
-					<?php endif; ?>
-				</div>
-			</form>
-		</div>
-		<?php
+		View::render(
+			'admin/settings/index',
+			array(
+				'group'             => self::GROUP,
+				'form_url'          => admin_url( 'options.php' ),
+				'general_url'       => admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ),
+				'notifications_url' => admin_url( 'admin.php?page=' . self::SETTINGS_SLUG . '&section=notifications' ),
+				'on_notifications'  => 'notifications' === $section,
+				'notifications'     => $this->notifications,
+				'general'           => $this->general_data(),
+			)
+		);
 	}
 
 	/**
-	 * One mode's three key rows: secrets render empty with a saved marker, and the stored value never travels back to the browser.
+	 * What the General tab draws: the accounts section, the store, Stripe, revoking, and the uninstall choice.
 	 *
-	 * @param string $mode  test or live.
-	 * @param string $label The mode as a heading word.
+	 * @return array<string, mixed>
 	 */
-	private function render_key_rows( string $mode, string $label ): void {
+	private function general_data(): array {
+		return array(
+			'option'             => Settings::OPTION,
+			'accounts'           => $this->accounts,
+			'currencies'         => \Symfony\Component\Intl\Currencies::getNames(),
+			'currency'           => $this->settings->currency(),
+			'product_path'       => $this->settings->product_path(),
+			'home_url'           => home_url( '/' ),
+			'stripe_mode'        => $this->settings->stripe_mode(),
+			'mode_test'          => Settings::MODE_TEST,
+			'mode_live'          => Settings::MODE_LIVE,
+			'key_rows'           => $this->key_rows(),
+			'revoke_behaviour'   => $this->settings->revoke_behaviour(),
+			'revoke_options'     => array(
+				Settings::REVOKE_BEHAVIOUR_REVOKE => __( 'Mark revoked, keeping the record as history', 'gated-media-access' ),
+				Settings::REVOKE_BEHAVIOUR_EXPIRE => __( 'Expire, pulling the record’s date to now', 'gated-media-access' ),
+				Settings::REVOKE_BEHAVIOUR_DELETE => __( 'Delete, removing the record outright', 'gated-media-access' ),
+			),
+			'purge_on_uninstall' => $this->settings->purge_on_uninstall(),
+		);
+	}
+
+	/**
+	 * The six Stripe key fields: a publishable key in the clear, the two secrets marked but never carried back.
+	 *
+	 * @return array<int, array{type: string, label: string, name: string, value: string, has_value: bool}>
+	 */
+	private function key_rows(): array {
 		$stored = get_option( Settings::OPTION );
 		$stored = is_array( $stored ) ? $stored : array();
 
-		$publishable = (string) ( $stored[ "stripe_{$mode}_key" ] ?? '' );
-
-		/* translators: %s: test or live. */
-		$this->text_row( sprintf( __( '%s publishable key', 'gated-media-access' ), $label ), "stripe_{$mode}_key", $publishable );
-		/* translators: %s: test or live. */
-		$this->secret_row( sprintf( __( '%s secret key', 'gated-media-access' ), $label ), "stripe_{$mode}_secret", '' !== (string) ( $stored[ "stripe_{$mode}_secret" ] ?? '' ) );
-		/* translators: %s: test or live. */
-		$this->secret_row( sprintf( __( '%s webhook secret', 'gated-media-access' ), $label ), "stripe_{$mode}_webhook_secret", '' !== (string) ( $stored[ "stripe_{$mode}_webhook_secret" ] ?? '' ) );
-	}
-
-	/**
-	 * A plain text row, because publishable keys are not secrets.
-	 *
-	 * @param string $label Its label.
-	 * @param string $name  The option array key.
-	 * @param string $value The stored value.
-	 */
-	private function text_row( string $label, string $name, string $value ): void {
-		printf(
-			'<div class="gatedmedia-admin-field"><label class="gatedmedia-admin-caps" for="gatedmedia_%2$s">%1$s</label><input type="text" class="large-text code" name="%3$s[%2$s]" id="gatedmedia_%2$s" value="%4$s" autocomplete="off" /></div>',
-			esc_html( $label ),
-			esc_attr( $name ),
-			esc_attr( Settings::OPTION ),
-			esc_attr( $value )
+		$modes = array(
+			Settings::MODE_TEST => __( 'Test', 'gated-media-access' ),
+			Settings::MODE_LIVE => __( 'Live', 'gated-media-access' ),
 		);
-	}
 
-	/**
-	 * A secret row: always empty, marked when one is saved, and kept when submitted empty.
-	 *
-	 * @param string $label     Its label.
-	 * @param string $name      The option array key.
-	 * @param bool   $has_value Whether one is stored.
-	 */
-	private function secret_row( string $label, string $name, bool $has_value ): void {
-		printf(
-			'<div class="gatedmedia-admin-field"><label class="gatedmedia-admin-caps" for="gatedmedia_%2$s">%1$s</label><input type="password" class="large-text code" name="%3$s[%2$s]" id="gatedmedia_%2$s" value="" autocomplete="new-password" placeholder="%4$s" /><p class="gatedmedia-admin-help">%5$s</p></div>',
-			esc_html( $label ),
-			esc_attr( $name ),
-			esc_attr( Settings::OPTION ),
-			esc_attr( $has_value ? __( 'saved, leave empty to keep', 'gated-media-access' ) : '' ),
-			esc_html( $has_value ? __( 'A value is saved. It is never shown; type to replace it.', 'gated-media-access' ) : __( 'Nothing saved yet.', 'gated-media-access' ) )
-		);
+		$rows = array();
+
+		foreach ( $modes as $mode => $label ) {
+			$rows[] = array(
+				'type'      => 'text',
+				/* translators: %s: test or live. */
+				'label'     => sprintf( __( '%s publishable key', 'gated-media-access' ), $label ),
+				'name'      => "stripe_{$mode}_key",
+				'value'     => (string) ( $stored[ "stripe_{$mode}_key" ] ?? '' ),
+				'has_value' => false,
+			);
+
+			$secrets = array(
+				/* translators: %s: test or live. */
+				"stripe_{$mode}_secret"         => sprintf( __( '%s secret key', 'gated-media-access' ), $label ),
+				/* translators: %s: test or live. */
+				"stripe_{$mode}_webhook_secret" => sprintf( __( '%s webhook secret', 'gated-media-access' ), $label ),
+			);
+
+			foreach ( $secrets as $name => $secret_label ) {
+				$rows[] = array(
+					'type'      => 'secret',
+					'label'     => $secret_label,
+					'name'      => $name,
+					'value'     => '',
+					'has_value' => '' !== (string) ( $stored[ $name ] ?? '' ),
+				);
+			}
+		}
+
+		return $rows;
 	}
 
 	/**

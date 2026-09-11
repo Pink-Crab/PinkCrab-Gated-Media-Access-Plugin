@@ -338,6 +338,11 @@
 		}
 	}
 
+	// A number field holding days, sized to what it holds.
+	.gatedmedia-admin-days {
+		width: 90px;
+	}
+
 	// A record's fixed facts: label above value, one pair per row.
 	.gatedmedia-admin-summary {
 		margin: 20px 0 0;
