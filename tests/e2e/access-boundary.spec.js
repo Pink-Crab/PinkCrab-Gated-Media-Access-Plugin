@@ -115,4 +115,17 @@ test.describe( 'signed out', () => {
 		expect( body ).not.toContain( 'Locked away.' );
 		expect( body ).not.toContain( 'Refused post' );
 	} );
+
+	test( 'the oEmbed endpoint gives away neither the post nor its existence', async ( {
+		request,
+		baseURL,
+	} ) => {
+		// Core's oEmbed route builds its own response, so the REST refusal never sees it.
+		const response = await request.get(
+			`/wp-json/oembed/1.0/embed?url=${ baseURL }/2026/08/20/e2e-refused-post/`
+		);
+
+		expect( response.status() ).toBe( 404 );
+		expect( await response.text() ).not.toContain( 'Refused post' );
+	} );
 } );

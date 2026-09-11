@@ -55,6 +55,8 @@ class Post_Boundary implements Hookable {
 		$loader->action( 'wp', array( $this, 'refuse_singular' ), 1, 0 );
 		// After the taxonomy registers, since its object types name the hooks to guard.
 		$loader->action( 'init', array( $this, 'attach_rest_refusals' ), 1, 20 );
+		// oEmbed builds its own response and never runs rest_prepare, so it refuses on its own hook.
+		$loader->filter( 'oembed_request_post_id', array( $this, 'refuse_oembed' ), 2 );
 	}
 
 	/**
@@ -163,6 +165,25 @@ class Post_Boundary implements Hookable {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Answers an oEmbed request for a blocked post with the id of no post at all.
+	 *
+	 * `get_oembed_response_data()` reads 0 as "no such post", and the route turns that into the 404 it gives any URL that was never a post.
+	 *
+	 * @param mixed $post_id The post the URL resolved to.
+	 * @return mixed The id, or 0 where it is blocked.
+	 */
+	public function refuse_oembed( $post_id ) {
+		$embedded = (int) $post_id;
+
+		// The same exemption as the REST item: whoever may edit it is whoever restricted it.
+		if ( 0 === $embedded || current_user_can( 'edit_post', $embedded ) ) {
+			return $post_id;
+		}
+
+		return $this->is_blocked( $embedded ) ? 0 : $post_id;
 	}
 
 	/**
