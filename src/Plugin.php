@@ -61,6 +61,7 @@ use PinkCrab\Gated_Access\Admin\Payments_Page;
 use PinkCrab\Gated_Access\Admin\Profile_Access_List;
 use PinkCrab\Gated_Access\Admin\Quick_Edit_Grant;
 use PinkCrab\Gated_Access\Admin\Revoke_Action;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * Builds every service through the container and attaches their hooks in one pass.
@@ -204,14 +205,9 @@ class Plugin {
 	 * Nothing else of ours runs in that state.
 	 */
 	public static function render_missing_dependency_notice(): void {
-		printf(
-			'<div class="notice notice-error"><p>%s</p><p><a href="%s">%s</a></p></div>',
-			esc_html__(
-				'Gated Media Access needs the Restrict Media File Access plugin, which is not active. Until it is, no files are protected and nothing else in this plugin runs.',
-				'gated-media-access'
-			),
-			esc_url( admin_url( 'plugins.php' ) ),
-			esc_html__( 'Go to Plugins', 'gated-media-access' )
+		View::render(
+			'admin/notice-missing-dependency',
+			array( 'plugins_url' => admin_url( 'plugins.php' ) )
 		);
 	}
 
@@ -221,18 +217,12 @@ class Plugin {
 	 * Nothing else of ours runs in that state, because a checkout that cannot be recorded is worse than one that never starts.
 	 */
 	public static function render_missing_table_notice(): void {
-		printf(
-			'<div class="notice notice-error"><p>%s</p><p>%s</p><p><a href="%s">%s</a></p></div>',
-			esc_html(
-				sprintf(
-					/* translators: %s: the database table name. */
-					__( 'Gated Media Access could not create its payments table (%s), so nothing in the plugin is running.', 'gated-media-access' ),
-					Payments_Schema::table_name()
-				)
-			),
-			esc_html__( 'The database user usually needs permission to create tables. Once that is granted, deactivate and reactivate the plugin to try again.', 'gated-media-access' ),
-			esc_url( admin_url( 'plugins.php' ) ),
-			esc_html__( 'Go to Plugins', 'gated-media-access' )
+		View::render(
+			'admin/notice-missing-table',
+			array(
+				'table'       => Payments_Schema::table_name(),
+				'plugins_url' => admin_url( 'plugins.php' ),
+			)
 		);
 	}
 }
