@@ -19,6 +19,7 @@ use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * The one Access surface on a post or file's own edit screen: who holds it directly, each removable through the revoke action, and which groups it sits in, with add and remove right here.
@@ -33,11 +34,7 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
  *
  * Direct records only in the holders list, because a user holding a group that contains this item is the group's business.
  *
- * Over phpmd's class ceiling, and the score is markup rather than logic: three sections are printed here, each with its own empty state and list.
- *
- * Issue #54 moves the admin views to templates, which is where that belongs, and splitting the class would scatter one screen across several.
- *
- * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
+ * The markup is `views/admin/item-access.php`.
  */
 class Item_Access_Metabox implements Hookable {
 
@@ -106,68 +103,28 @@ class Item_Access_Metabox implements Hookable {
 	 * @param WP_Post $post The post or attachment being edited.
 	 */
 	public function render( WP_Post $post ): void {
+		$item_id   = (int) $post->ID;
 		$item_type = 'attachment' === $post->post_type ? 'file' : 'post';
-		$holders   = $this->holders( $item_type, (string) $post->ID );
-
-		if ( array() === $holders ) {
-			printf( '<p>%s</p>', esc_html__( 'Nobody holds direct access to this item.', 'gated-media-access' ) );
-		}
-
-		if ( array() !== $holders ) {
-			echo '<ul>';
-
-			foreach ( $holders as $access_id => $holder ) {
-				printf(
-					'<li>%s <span class="description">(%s)</span> <a href="%s">%s</a></li>',
-					esc_html( $holder['name'] ),
-					esc_html( $holder['expires'] ),
-					esc_url( Revoke_Action::url_for( $access_id ) ),
-					// The word the Access list and the settings page use.
-					esc_html__( 'Revoke', 'gated-media-access' )
-				);
-			}
-
-			echo '</ul>';
-		}
-
-		$this->render_grant( (int) $post->ID );
-		$this->render_groups( (int) $post->ID );
-	}
-
-	/**
-	 * Granting from right here: a user, optional days, one button, applied on save so nothing nests a form inside the editor's own.
-	 *
-	 * @param int $item_id The post or attachment.
-	 */
-	private function render_grant( int $item_id ): void {
-		echo '<div class="gatedmedia-inline-grant">';
 
 		// Ids carry the item, so two boxes on one screen cannot collide.
-		$days_id = 'gatedmedia_metabox_days_' . $item_id;
-		$user_id = 'gatedmedia_metabox_user_' . $item_id . '_search';
+		$picker_id = 'gatedmedia_metabox_user_' . $item_id;
+		$group_id  = 'gatedmedia_metabox_group_' . $item_id;
 
-		printf(
-			'<label class="screen-reader-text" for="%s">%s</label>',
-			esc_attr( $user_id ),
-			esc_html__( 'User to give access to', 'gated-media-access' )
+		View::render(
+			'admin/item-access',
+			array(
+				'holders'         => $this->holder_rows( $item_type, (string) $item_id ),
+				'groups'          => $this->group_rows( $item_id ),
+				'user_picker'     => new User_Picker( self::FIELD_USER, $picker_id ),
+				'group_picker'    => new Group_Picker( self::FIELD_GROUP, $group_id ),
+				'user_field_id'   => $picker_id . '_search',
+				'days_field_id'   => 'gatedmedia_metabox_days_' . $item_id,
+				'days_field_name' => self::FIELD_DAYS,
+				'group_field_id'  => $group_id,
+				'nonce_action'    => self::SAVE_ACTION . '_' . $item_id,
+				'nonce_name'      => self::SAVE_NONCE,
+			)
 		);
-
-		( new User_Picker( self::FIELD_USER, 'gatedmedia_metabox_user_' . $item_id ) )->render();
-
-		printf(
-			'<label class="screen-reader-text" for="%1$s">%2$s</label>
-			<input type="number" min="1" id="%1$s" name="%3$s" placeholder="%4$s" class="gatedmedia-inline-grant-days" />
-			<p class="description">%5$s</p>',
-			esc_attr( $days_id ),
-			esc_html__( 'Days of access, or empty for lifetime', 'gated-media-access' ),
-			esc_attr( self::FIELD_DAYS ),
-			esc_attr__( 'Days', 'gated-media-access' ),
-			esc_html__( 'Empty days means lifetime. Access is given when you save.', 'gated-media-access' )
-		);
-
-		wp_nonce_field( self::SAVE_ACTION . '_' . $item_id, self::SAVE_NONCE );
-
-		echo '</div>';
 	}
 
 	/**
@@ -249,53 +206,28 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * The item's groups: each removable, and a picker to join another.
+	 * The item's groups as rows, each with the nonced link that takes it out.
 	 *
 	 * @param int $item_id The post or attachment.
+	 * @return array<int, array{name: string, remove_url: string}>
 	 */
-	private function render_groups( int $item_id ): void {
-		$current = $this->current_groups( $item_id );
+	private function group_rows( int $item_id ): array {
+		$rows = array();
 
-		printf( '<hr /><p><strong>%s</strong></p>', esc_html__( 'Groups', 'gated-media-access' ) );
-
-		if ( array() === $current ) {
-			printf( '<p>%s</p>', esc_html__( 'This item is in no group.', 'gated-media-access' ) );
-		}
-
-		if ( array() !== $current ) {
-			echo '<ul>';
-
-			foreach ( $current as $uuid => $name ) {
-				printf(
-					'<li>%s <a href="%s">%s</a></li>',
-					esc_html( $name ),
-					esc_url(
-						add_query_arg(
-							array(
-								'op'    => 'remove',
-								'group' => $uuid,
-							),
-							$this->group_url( $item_id )
-						)
+		foreach ( $this->current_groups( $item_id ) as $uuid => $name ) {
+			$rows[] = array(
+				'name'       => $name,
+				'remove_url' => add_query_arg(
+					array(
+						'op'    => 'remove',
+						'group' => $uuid,
 					),
-					esc_html__( 'Remove', 'gated-media-access' )
-				);
-			}
-
-			echo '</ul>';
+					$this->group_url( $item_id )
+				),
+			);
 		}
 
-		$group_id = 'gatedmedia_metabox_group_' . $item_id;
-
-		printf(
-			'<label class="screen-reader-text" for="%s_search">%s</label>',
-			esc_attr( $group_id ),
-			esc_html__( 'Group to add this item to', 'gated-media-access' )
-		);
-
-		( new Group_Picker( self::FIELD_GROUP, $group_id ) )->render();
-
-		printf( '<p class="description">%s</p>', esc_html__( 'The item joins the group when you save.', 'gated-media-access' ) );
+		return $rows;
 	}
 
 	/**
@@ -417,13 +349,13 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * The active direct records for one item: record ID to holder and expiry.
+	 * The active direct records for one item: who holds it, until when, and the link that takes it back.
 	 *
 	 * @param string $item_type One of file, post.
 	 * @param string $item_id   The item.
-	 * @return array<int, array{name: string, expires: string}>
+	 * @return array<int, array{name: string, expires: string, revoke_url: string}>
 	 */
-	private function holders( string $item_type, string $item_id ): array {
+	private function holder_rows( string $item_type, string $item_id ): array {
 		$ids = get_posts(
 			array(
 				'post_type'      => Post_Types::ACCESS,
@@ -454,10 +386,12 @@ class Item_Access_Metabox implements Hookable {
 			$expiry = (string) get_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, true );
 
 			$holders[ $access_id ] = array(
-				'name'    => false === $user ? __( 'Unknown user', 'gated-media-access' ) : $user->display_name,
-				'expires' => '' === $expiry
+				'name'       => false === $user ? __( 'Unknown user', 'gated-media-access' ) : $user->display_name,
+				'expires'    => '' === $expiry
 					? __( 'Lifetime', 'gated-media-access' )
 					: (string) wp_date( (string) get_option( 'date_format' ), (int) strtotime( $expiry . ' +0000' ) ),
+				// The word the Access list and the settings page use.
+				'revoke_url' => Revoke_Action::url_for( $access_id ),
 			);
 		}
 
