@@ -16,6 +16,7 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Money;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * Type, value, limits and expiry, behind `gatedmedia_manage_products`. The code itself is the title, and core keeps `post_name` unique per post type, which is the whole uniqueness story.
@@ -108,49 +109,19 @@ class Coupon_Metabox implements Hookable {
 	public function render( WP_Post $post ): void {
 		wp_nonce_field( self::NONCE_FIELD, self::NONCE_FIELD );
 
-		$type       = (string) get_post_meta( $post->ID, self::META_TYPE, true );
-		$is_percent = 'fixed' !== $type;
-		$value      = (string) get_post_meta( $post->ID, self::META_VALUE, true );
-		$usage      = (string) get_post_meta( $post->ID, self::META_USAGE_LIMIT, true );
-		$per_user   = (string) get_post_meta( $post->ID, self::META_PER_USER_LIMIT, true );
+		$is_percent = 'fixed' !== (string) get_post_meta( $post->ID, self::META_TYPE, true );
 		$expires    = (string) get_post_meta( $post->ID, self::META_EXPIRES_AT, true );
-		?>
-		<p class="description"><?php esc_html_e( 'The code is the title. It must be unique, and WordPress keeps it so.', 'gated-media-access' ); ?></p>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="gatedmedia_discount_type"><?php esc_html_e( 'Discount', 'gated-media-access' ); ?></label></th>
-				<td>
-					<select name="gatedmedia_discount_type" id="gatedmedia_discount_type">
-						<option value="percent" <?php selected( $is_percent ); ?>><?php esc_html_e( 'Percent off', 'gated-media-access' ); ?></option>
-						<option value="fixed" <?php selected( ! $is_percent ); ?>><?php esc_html_e( 'Fixed amount off', 'gated-media-access' ); ?></option>
-					</select>
-					<input type="number" step="any" min="0" class="small-text" name="gatedmedia_discount_value" id="gatedmedia_discount_value" value="<?php echo esc_attr( $this->display_value( $is_percent, $value ) ); ?>" />
-					<p class="description"><?php esc_html_e( 'Whole percent (100 is free), or the amount taken off the price.', 'gated-media-access' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="gatedmedia_usage_limit"><?php esc_html_e( 'Usage limit', 'gated-media-access' ); ?></label></th>
-				<td>
-					<input type="number" min="1" step="1" class="small-text" name="gatedmedia_usage_limit" id="gatedmedia_usage_limit" value="<?php echo esc_attr( $usage ); ?>" />
-					<p class="description"><?php esc_html_e( 'Completed payments in total. Empty for unlimited.', 'gated-media-access' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="gatedmedia_per_user_limit"><?php esc_html_e( 'Per-user limit', 'gated-media-access' ); ?></label></th>
-				<td>
-					<input type="number" min="1" step="1" class="small-text" name="gatedmedia_per_user_limit" id="gatedmedia_per_user_limit" value="<?php echo esc_attr( $per_user ); ?>" />
-					<p class="description"><?php esc_html_e( 'Completed payments per person. Empty for unlimited.', 'gated-media-access' ); ?></p>
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="gatedmedia_coupon_expires"><?php esc_html_e( 'Expires', 'gated-media-access' ); ?></label></th>
-				<td>
-					<input type="date" name="gatedmedia_coupon_expires" id="gatedmedia_coupon_expires" value="<?php echo esc_attr( '' === $expires ? '' : substr( $expires, 0, 10 ) ); ?>" />
-					<p class="description"><?php esc_html_e( 'Usable through this day (UTC). Empty for never.', 'gated-media-access' ); ?></p>
-				</td>
-			</tr>
-		</table>
-		<?php
+
+		View::render(
+			'admin/coupon',
+			array(
+				'is_percent'     => $is_percent,
+				'value'          => $this->display_value( $is_percent, (string) get_post_meta( $post->ID, self::META_VALUE, true ) ),
+				'usage_limit'    => (string) get_post_meta( $post->ID, self::META_USAGE_LIMIT, true ),
+				'per_user_limit' => (string) get_post_meta( $post->ID, self::META_PER_USER_LIMIT, true ),
+				'expires'        => '' === $expires ? '' : substr( $expires, 0, 10 ),
+			)
+		);
 	}
 
 	/**
