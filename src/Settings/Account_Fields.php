@@ -53,6 +53,15 @@ class Account_Fields {
 		</div>
 
 		<div class="gatedmedia-admin-field">
+			<label class="gatedmedia-admin-caps" for="gatedmedia_auth_pages"><?php esc_html_e( 'Signing in and up', 'gated-media-access' ); ?></label>
+			<select name="<?php echo esc_attr( $option ); ?>[auth_pages]" id="gatedmedia_auth_pages">
+				<option value="<?php echo esc_attr( Settings::AUTH_PAGES_PLUGIN ); ?>" <?php selected( Settings::AUTH_PAGES_PLUGIN, $this->settings->auth_pages() ); ?>><?php esc_html_e( 'On the plugin’s own pages', 'gated-media-access' ); ?></option>
+				<option value="<?php echo esc_attr( Settings::AUTH_PAGES_CORE ); ?>" <?php selected( Settings::AUTH_PAGES_CORE, $this->settings->auth_pages() ); ?>><?php esc_html_e( 'On the WordPress login screen', 'gated-media-access' ); ?></option>
+			</select>
+			<p class="gatedmedia-admin-help"><?php esc_html_e( 'The WordPress screen carries whatever your captcha or two-factor plugin puts on it, and its own styling. Sign-up there needs WordPress’ own registration setting on, and it emails a password rather than signing the buyer straight in.', 'gated-media-access' ); ?></p>
+		</div>
+
+		<div class="gatedmedia-admin-field">
 			<label class="gatedmedia-admin-caps" for="gatedmedia_account_route"><?php esc_html_e( 'Account pages', 'gated-media-access' ); ?></label>
 			<select name="<?php echo esc_attr( $option ); ?>[account_route]" id="gatedmedia_account_route">
 				<option value="1" <?php selected( true, $this->settings->account_route() ); ?>><?php esc_html_e( 'Use the plugin’s own pages', 'gated-media-access' ); ?></option>
@@ -98,6 +107,12 @@ class Account_Fields {
 			$known = array( Settings::ACCOUNT_CREATION_REGISTRATION, Settings::ACCOUNT_CREATION_ADMIN, Settings::ACCOUNT_CREATION_PURCHASE );
 
 			$clean['account_creation'] = in_array( $route, $known, true ) ? $route : Settings::ACCOUNT_CREATION_REGISTRATION;
+		}
+
+		if ( isset( $input['auth_pages'] ) ) {
+			$pages = (string) $input['auth_pages'];
+
+			$clean['auth_pages'] = Settings::AUTH_PAGES_CORE === $pages ? Settings::AUTH_PAGES_CORE : Settings::AUTH_PAGES_PLUGIN;
 		}
 
 		// $clean still carries what was stored, so this is the previous value.

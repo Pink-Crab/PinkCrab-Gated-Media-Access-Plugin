@@ -123,6 +123,53 @@ Whether a new account is sent to complete its profile on first sign-in. The prom
 
 The sign-in view's segment, default `sign-in`. One view in four states, so this moves all four. wp-login.php is untouched either way.
 
+### `gatedmedia_auth_pages`
+
+`apply_filters( 'gatedmedia_auth_pages', string $pages )`
+
+Which pages sign people in and up: `plugin`, the default, or `core` for wp-login.php. Core's page carries whatever a captcha or two-factor plugin puts on it, because those hook core and know nothing about this plugin. Signing up there needs the site's own `users_can_register` on, and core emails a password rather than signing the buyer in.
+
+### `gatedmedia_auth_fields`
+
+`apply_filters( 'gatedmedia_auth_fields', string $fields, string $state )`
+
+The fields inside the auth form, as HTML. `$state` is `signin`, `signup` or `reset`. This is where a site re-publishes core's own form hooks, so a plugin that only knows wp-login.php still draws its field here:
+
+```php
+add_filter(
+	'gatedmedia_auth_fields',
+	function ( string $fields, string $state ): string {
+		ob_start();
+		do_action( 'signup' === $state ? 'register_form' : 'login_form' );
+
+		return $fields . ob_get_clean();
+	},
+	10,
+	2
+);
+```
+
+Their JavaScript may still look for core's ids, `#loginform` and `#wp-submit`, which this form does not carry.
+
+### `gatedmedia_auth_signup_errors`
+
+`apply_filters( 'gatedmedia_auth_signup_errors', WP_Error $errors, string $email )`
+
+Whether a sign-up may go ahead. Add to the `WP_Error` to refuse. Signing in needs no equivalent: it goes through `wp_signon()`, so core's `authenticate` already runs. The counterpart for sign-up is core's `registration_errors`, which nothing fires here unless a site asks for it:
+
+```php
+add_filter(
+	'gatedmedia_auth_signup_errors',
+	function ( WP_Error $errors, string $email ): WP_Error {
+		$theirs = apply_filters( 'registration_errors', new WP_Error(), $email, $email );
+
+		return $theirs->has_errors() ? $theirs : $errors;
+	},
+	10,
+	2
+);
+```
+
 ## What the blocks draw
 
 Each account block raises a filter for its own data, because a `render.php` cannot reach the container. The defaults below are what renders when nothing answers, which is also what a signed-out visitor gets.
