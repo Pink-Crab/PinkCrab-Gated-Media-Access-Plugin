@@ -26,6 +26,11 @@
 		</properties>
 	</rule>
 
+	<!-- Templates are included inside a closure by View::include_template(), so their variables are function-scoped and never globals. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound">
+		<exclude-pattern>/views/*</exclude-pattern>
+	</rule>
+
 	<!-- Pin the global prefixes (functions, constants, namespace). -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
