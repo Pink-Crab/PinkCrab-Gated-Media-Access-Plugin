@@ -160,6 +160,19 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$this->assertStringContainsString( '_wpnonce', $html );
 	}
 
+	/** @testdox The form is drawn in the plugin's own admin styling, from a template, not core's form table. */
+	public function test_form_uses_the_plugin_admin_shell(): void {
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertFileExists( GATEDMEDIA_DIR_PATH . 'views/admin/add-access.php' );
+		$this->assertStringContainsString( 'class="gatedmedia-admin"', $html );
+		$this->assertStringContainsString( 'gatedmedia-admin-header', $html );
+		$this->assertStringContainsString( 'gatedmedia-admin-field', $html );
+		$this->assertStringNotContainsString( 'form-table', $html );
+	}
+
 	/** @testdox The metabox's link pre-fills the form: type selected, item filled. */
 	public function test_prefill_from_the_metabox_link(): void {
 		$_GET['gatedmedia_type'] = 'file';
@@ -246,12 +259,12 @@ class Test_Add_Access_Page extends WP_UnitTestCase {
 		$html = (string) ob_get_clean();
 
 		// Search_Picker gives the typed box `{id}_search`, the hidden `{id}`.
-		$this->assertStringContainsString(
-			sprintf( '<label for="%s_search">%s</label>', $element_id, $label ),
+		$this->assertMatchesRegularExpression(
+			sprintf( '/<label[^>]*for="%s_search"[^>]*>%s<\/label>/', preg_quote( $element_id, '/' ), preg_quote( $label, '/' ) ),
 			$html
 		);
-		$this->assertStringNotContainsString(
-			sprintf( '<label for="%s">%s</label>', $element_id, $label ),
+		$this->assertDoesNotMatchRegularExpression(
+			sprintf( '/<label[^>]*for="%s"[^>]*>%s<\/label>/', preg_quote( $element_id, '/' ), preg_quote( $label, '/' ) ),
 			$html
 		);
 	}

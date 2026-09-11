@@ -129,6 +129,39 @@ class Test_Edit_Access_Page extends WP_UnitTestCase {
 		$this->assertStringContainsString( '_wpnonce', $html );
 	}
 
+	/** @testdox The page is drawn in the plugin's own admin styling, from templates, not core's form table. */
+	public function test_page_uses_the_plugin_admin_shell(): void {
+		$access_id      = $this->grant();
+		$_GET['access'] = (string) $access_id;
+
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+
+		unset( $_GET['access'] );
+
+		$this->assertFileExists( GATEDMEDIA_DIR_PATH . 'views/admin/edit-access.php' );
+		$this->assertStringContainsString( 'class="gatedmedia-admin"', $html );
+		$this->assertStringContainsString( 'gatedmedia-admin-header', $html );
+		$this->assertStringContainsString( 'gatedmedia-admin-field', $html );
+		$this->assertStringNotContainsString( 'form-table', $html );
+		$this->assertStringNotContainsString( 'widefat', $html );
+	}
+
+	/** @testdox A record that cannot be edited says so inside the same styled page. */
+	public function test_messages_keep_the_admin_shell(): void {
+		$_GET['access'] = '0';
+
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+
+		unset( $_GET['access'] );
+
+		$this->assertStringContainsString( 'class="gatedmedia-admin"', $html );
+		$this->assertStringContainsString( 'No access record to edit', $html );
+	}
+
 	/** @testdox A revoked record's page offers no form. */
 	public function test_renders_no_form_for_revoked(): void {
 		$access_id = $this->grant();
