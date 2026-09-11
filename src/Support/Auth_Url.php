@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace PinkCrab\Gated_Access\Support;
 
+use PinkCrab\Gated_Access\Settings\Settings;
+
 /**
  * The auth view is one view in four states and one URL to match, with the state riding as a query argument rather than earning a route of its own, and sign in as the bare URL, so the state argument appears only when it is not the default.
  *
@@ -45,6 +47,10 @@ class Auth_Url {
 	 * @param string $redirect Where to land once signed in. '' for nowhere.
 	 */
 	public static function signin( string $redirect = '' ): string {
+		if ( self::core_pages() ) {
+			return wp_login_url( $redirect );
+		}
+
 		return self::state( self::STATE_SIGNIN, $redirect );
 	}
 
@@ -54,6 +60,12 @@ class Auth_Url {
 	 * @param string $redirect Where to land once signed up. '' for nowhere.
 	 */
 	public static function signup( string $redirect = '' ): string {
+		if ( self::core_pages() ) {
+			$url = wp_registration_url();
+
+			return '' === $redirect ? $url : add_query_arg( self::ARG_REDIRECT, $redirect, $url );
+		}
+
 		return self::state( self::STATE_SIGNUP, $redirect );
 	}
 
@@ -63,6 +75,10 @@ class Auth_Url {
 	 * @param string $redirect Carried through so signing in afterwards still lands right.
 	 */
 	public static function reset( string $redirect = '' ): string {
+		if ( self::core_pages() ) {
+			return wp_lostpassword_url( $redirect );
+		}
+
 		return self::state( self::STATE_RESET, $redirect );
 	}
 
@@ -74,9 +90,21 @@ class Auth_Url {
 	 * @param string $redirect Carried through, as above.
 	 */
 	public static function sent( string $redirect = '' ): string {
+		// Core says it itself, on its own page, so there is no state of ours to land on.
+		if ( self::core_pages() ) {
+			return self::reset( $redirect );
+		}
+
 		$url = add_query_arg( self::ARG_SENT, '1', self::state( self::STATE_RESET, $redirect ) );
 
 		return $url;
+	}
+
+	/**
+	 * Whether this site signs people in on wp-login.php rather than here.
+	 */
+	private static function core_pages(): bool {
+		return Settings::AUTH_PAGES_CORE === ( new Settings() )->auth_pages();
 	}
 
 	/**

@@ -144,6 +144,21 @@ class Auth_Action implements Hookable {
 			return;
 		}
 
+		/**
+		 * Filters whether this sign-up may go ahead.
+		 *
+		 * Signing in is already covered, since `wp_signon()` fires core's `authenticate`. This is the sign-up counterpart, for a site re-publishing core's `registration_errors` here.
+		 *
+		 * @param WP_Error $errors Add to it to refuse.
+		 * @param string   $email  The address being registered.
+		 */
+		$refusals = apply_filters( 'gatedmedia_auth_signup_errors', new WP_Error(), $email );
+
+		if ( $refusals instanceof WP_Error && $refusals->has_errors() ) {
+			$this->refuse( $back, 'signup_refused', $email );
+			return;
+		}
+
 		$user_id = wp_insert_user(
 			array(
 				'user_login' => $email,

@@ -45,6 +45,12 @@ class Settings {
 	/** An account appears when a purchase completes, and no other way. */
 	public const ACCOUNT_CREATION_PURCHASE = 'purchase';
 
+	/** Signing in and up happen on this plugin's own pages. The default. */
+	public const AUTH_PAGES_PLUGIN = 'plugin';
+
+	/** Signing in and up happen on wp-login.php. */
+	public const AUTH_PAGES_CORE = 'core';
+
 	/**
 	 * What revoking a record does on this site: revoke, expire or delete.
 	 *
@@ -151,6 +157,25 @@ class Settings {
 		$known = array( self::ACCOUNT_CREATION_REGISTRATION, self::ACCOUNT_CREATION_ADMIN, self::ACCOUNT_CREATION_PURCHASE );
 
 		return in_array( $route, $known, true ) ? $route : self::ACCOUNT_CREATION_REGISTRATION;
+	}
+
+	/**
+	 * Which pages sign people in and up: this plugin's own, or wp-login.php.
+	 *
+	 * Core's page carries whatever a captcha or two-factor plugin puts on it, since those hook core and know nothing about us. Ours carries our styling and the `gatedmedia_auth_fields` and `gatedmedia_auth_signup_errors` hooks instead.
+	 */
+	public function auth_pages(): string {
+		$settings = get_option( self::OPTION );
+		$pages    = is_array( $settings ) && isset( $settings['auth_pages'] ) ? (string) $settings['auth_pages'] : self::AUTH_PAGES_PLUGIN;
+
+		/**
+		 * Filters which pages sign people in and up.
+		 *
+		 * @param string $pages Either plugin or core.
+		 */
+		$pages = (string) apply_filters( 'gatedmedia_auth_pages', $pages );
+
+		return self::AUTH_PAGES_CORE === $pages ? self::AUTH_PAGES_CORE : self::AUTH_PAGES_PLUGIN;
 	}
 
 	/**

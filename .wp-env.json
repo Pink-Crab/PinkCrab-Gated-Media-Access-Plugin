@@ -6,7 +6,9 @@
 	"testsPort": 8932,
 	"plugins": [
 		".",
-		"https://github.com/a8cteam51/restrict-media-file-access/releases/download/v1.4.2/restrict-media-file-access.zip"
+		"https://github.com/a8cteam51/restrict-media-file-access/releases/download/v1.4.2/restrict-media-file-access.zip",
+		"./tests/e2e/fixtures/fake-2fa",
+		"./tests/e2e/fixtures/auth-bridge"
 	],
 	"config": {
 		"WP_DEBUG": true,

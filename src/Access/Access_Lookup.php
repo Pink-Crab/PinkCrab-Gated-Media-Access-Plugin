@@ -30,23 +30,15 @@ class Access_Lookup {
 	public function find_by_reference( string $source, string $reference, string $item_type = '', string $item_id = '' ): ?int {
 		$clauses = array(
 			array(
-				'key'   => Access_Writer::META_SOURCE,
-				'value' => $source,
-			),
-			array(
-				'key'   => Access_Writer::META_REFERENCE,
-				'value' => $reference,
+				'key'   => Access_Writer::META_REF_KEY,
+				'value' => Access_Writer::pair_key( $source, $reference ),
 			),
 		);
 
 		if ( '' !== $item_type && '' !== $item_id ) {
 			$clauses[] = array(
-				'key'   => Access_Writer::META_ITEM_TYPE,
-				'value' => $item_type,
-			);
-			$clauses[] = array(
-				'key'   => Access_Writer::META_ITEM_ID,
-				'value' => $item_id,
+				'key'   => Access_Writer::META_ITEM_KEY,
+				'value' => Access_Writer::pair_key( $item_type, $item_id ),
 			);
 		}
 
@@ -84,12 +76,8 @@ class Access_Lookup {
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Refunds are rare; the pair is the whole condition.
 				'meta_query'     => array(
 					array(
-						'key'   => Access_Writer::META_SOURCE,
-						'value' => $source,
-					),
-					array(
-						'key'   => Access_Writer::META_REFERENCE,
-						'value' => $reference,
+						'key'   => Access_Writer::META_REF_KEY,
+						'value' => Access_Writer::pair_key( $source, $reference ),
 					),
 				),
 			)
@@ -121,12 +109,8 @@ class Access_Lookup {
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One admin screen; the item pair is the whole condition.
 				'meta_query'     => array(
 					array(
-						'key'   => Access_Writer::META_ITEM_TYPE,
-						'value' => $item_type,
-					),
-					array(
-						'key'   => Access_Writer::META_ITEM_ID,
-						'value' => $item_id,
+						'key'   => Access_Writer::META_ITEM_KEY,
+						'value' => Access_Writer::pair_key( $item_type, $item_id ),
 					),
 				),
 			)
@@ -161,12 +145,8 @@ class Access_Lookup {
 				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The write path is rare; stacking needs the item pair.
 				'meta_query'     => array(
 					array(
-						'key'   => Access_Writer::META_ITEM_TYPE,
-						'value' => $item_type,
-					),
-					array(
-						'key'   => Access_Writer::META_ITEM_ID,
-						'value' => $item_id,
+						'key'   => Access_Writer::META_ITEM_KEY,
+						'value' => Access_Writer::pair_key( $item_type, $item_id ),
 					),
 				),
 			)
@@ -189,12 +169,10 @@ class Access_Lookup {
 			return array();
 		}
 
-		$types = array();
-		$ids   = array();
+		$keys = array();
 
 		foreach ( $items as list( $item_type, $item_id ) ) {
-			$types[] = $item_type;
-			$ids[]   = $item_id;
+			$keys[] = Access_Writer::pair_key( $item_type, $item_id );
 		}
 
 		$found = get_posts(
@@ -205,16 +183,11 @@ class Access_Lookup {
 				'posts_per_page' => -1,
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One query for the whole product; the item pair is the condition.
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One query for the whole product, and one key per item rather than a type list crossed with an id list.
 				'meta_query'     => array(
 					array(
-						'key'     => Access_Writer::META_ITEM_TYPE,
-						'value'   => array_values( array_unique( $types ) ),
-						'compare' => 'IN',
-					),
-					array(
-						'key'     => Access_Writer::META_ITEM_ID,
-						'value'   => array_values( array_unique( $ids ) ),
+						'key'     => Access_Writer::META_ITEM_KEY,
+						'value'   => array_values( array_unique( $keys ) ),
 						'compare' => 'IN',
 					),
 				),

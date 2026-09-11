@@ -147,6 +147,7 @@ class Auth_State implements Hookable {
 				self::PASSWORD_MINIMUM
 			),
 			'signup_closed'  => __( 'Accounts are not created here. Ask the site owner for one.', 'gated-media-access' ),
+			'signup_refused' => __( 'That account could not be created. Please try again.', 'gated-media-access' ),
 			'expired'        => __( 'That link has expired. Ask for another.', 'gated-media-access' ),
 		);
 

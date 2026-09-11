@@ -163,7 +163,7 @@ add_filter( 'gatedmedia_auto_update', '__return_false' );
 
 ## Extending it
 
-Forty-seven filters and thirteen actions, all documented with examples in
+Forty-seven filters and twelve actions, all documented with examples in
 [`docs/hooks.md`](docs/hooks.md). The four that matter most:
 
 | | |

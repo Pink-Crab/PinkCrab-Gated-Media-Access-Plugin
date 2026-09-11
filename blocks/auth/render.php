@@ -162,6 +162,16 @@ if ( $gatedmedia_sent ) {
 		)
 	);
 
+	/**
+	 * Filters the fields inside the auth form.
+	 *
+	 * Where a site re-publishes core's `login_form` and `register_form`, so a captcha or two-factor plugin that only knows core still draws its field here.
+	 *
+	 * @param string $fields The form's fields, as HTML.
+	 * @param string $state  Which state is being drawn: signin, signup or reset.
+	 */
+	$gatedmedia_fields = (string) apply_filters( 'gatedmedia_auth_fields', $gatedmedia_fields, $gatedmedia_state );
+
 	$gatedmedia_body .= sprintf(
 		'<form class="gatedmedia-auth" method="post" action="%s">%s</form>',
 		esc_url( (string) ( $gatedmedia_data['action_url'] ?? '' ) ),
