@@ -16,6 +16,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * Filtering the Access list by holder, item type, one item, or source, submitted by the list's own Filter button.
@@ -53,9 +54,27 @@ class Access_Filters implements Hookable {
 			return;
 		}
 
-		$this->render_holder_filter();
-		$this->render_item_filters();
-		$this->render_source_filter();
+		$wanted    = $this->wanted();
+		$item_type = $wanted[ Access_Writer::META_ITEM_TYPE ];
+		$item      = $wanted[ Access_Writer::META_ITEM_ID ];
+
+		View::render(
+			'admin/access-filters',
+			array(
+				'holder_picker' => $this->holder_picker(),
+				'item_type'     => $item_type,
+				'item_types'    => array(
+					'group' => __( 'Groups', 'gated-media-access' ),
+					'post'  => __( 'Posts', 'gated-media-access' ),
+					'file'  => __( 'Files', 'gated-media-access' ),
+				),
+				'item'          => $item,
+				'item_label'    => $this->item_label( $item_type, $item ),
+				'item_endpoint' => $this->item_endpoint( $item_type ),
+				'source'        => $wanted[ Access_Writer::META_SOURCE ],
+				'sources'       => $this->known_sources(),
+			)
+		);
 	}
 
 	/**
@@ -104,86 +123,21 @@ class Access_Filters implements Hookable {
 	}
 
 	/**
-	 * The holder filter: the user picker over core's author query var.
+	 * The holder filter's picker, prefilled with whoever is being filtered on.
+	 *
+	 * It submits core's own `author` query var rather than a meta key of ours.
 	 */
-	private function render_holder_filter(): void {
+	private function holder_picker(): User_Picker {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only prefill of the current filter.
 		$author = isset( $_GET['author'] ) ? absint( $_GET['author'] ) : 0;
 		$holder = 0 === $author ? false : get_userdata( $author );
 
-		self::hidden_label( 'gatedmedia_filter_holder_search', __( 'Filter by holder', 'gated-media-access' ) );
-
-		( new User_Picker(
+		return new User_Picker(
 			'author',
 			'gatedmedia_filter_holder',
 			false === $holder ? '' : (string) $author,
 			false === $holder ? '' : sprintf( '%s (%s)', $holder->display_name, $holder->user_email )
-		) )->render();
-	}
-
-	/**
-	 * A label only assistive technology reads, as core's own toolbar does.
-	 *
-	 * Each control's meaning is carried by its first option, so a visible label would say the same thing twice. A placeholder is not a label, because it goes as soon as anything is typed.
-	 *
-	 * @param string $control_id The control's id.
-	 * @param string $text       What the control is.
-	 */
-	private static function hidden_label( string $control_id, string $text ): void {
-		printf( '<label class="screen-reader-text" for="%s">%s</label>', esc_attr( $control_id ), esc_html( $text ) );
-	}
-
-	/**
-	 * The item type select, and the item search that follows it.
-	 */
-	private function render_item_filters(): void {
-		$wanted    = $this->wanted();
-		$item_type = $wanted[ Access_Writer::META_ITEM_TYPE ];
-		$item      = $wanted[ Access_Writer::META_ITEM_ID ];
-
-		self::hidden_label( 'gatedmedia_filter_item_type', __( 'Filter by item type', 'gated-media-access' ) );
-
-		printf( '<select name="gatedmedia_item_type" id="gatedmedia_filter_item_type">' );
-		printf( '<option value="">%s</option>', esc_html__( 'All item types', 'gated-media-access' ) );
-
-		foreach ( array(
-			'group' => __( 'Groups', 'gated-media-access' ),
-			'post'  => __( 'Posts', 'gated-media-access' ),
-			'file'  => __( 'Files', 'gated-media-access' ),
-		) as $type => $label ) {
-			printf( '<option value="%s"%s>%s</option>', esc_attr( $type ), selected( $item_type, $type, false ), esc_html( $label ) );
-		}
-
-		echo '</select>';
-
-		self::hidden_label( 'gatedmedia_filter_item_search', __( 'Filter by item', 'gated-media-access' ) );
-
-		printf(
-			'<input type="text" class="gatedmedia-picker" id="gatedmedia_filter_item_search" data-gatedmedia-picker="%s" data-gatedmedia-target="gatedmedia_filter_item" value="%s" placeholder="%s" autocomplete="off" />
-			<input type="hidden" name="gatedmedia_item" id="gatedmedia_filter_item" value="%s" />',
-			esc_attr( $this->item_endpoint( $item_type ) ),
-			esc_attr( $this->item_label( $item_type, $item ) ),
-			esc_attr__( 'Any item…', 'gated-media-access' ),
-			esc_attr( $item )
 		);
-	}
-
-	/**
-	 * The source select, over the sources records actually carry.
-	 */
-	private function render_source_filter(): void {
-		$source = $this->wanted()[ Access_Writer::META_SOURCE ];
-
-		self::hidden_label( 'gatedmedia_filter_source', __( 'Filter by source', 'gated-media-access' ) );
-
-		printf( '<select name="gatedmedia_source" id="gatedmedia_filter_source">' );
-		printf( '<option value="">%s</option>', esc_html__( 'All sources', 'gated-media-access' ) );
-
-		foreach ( $this->known_sources() as $known ) {
-			printf( '<option value="%s"%s>%s</option>', esc_attr( $known ), selected( $source, $known, false ), esc_html( $known ) );
-		}
-
-		echo '</select>';
 	}
 
 	/**
