@@ -2,7 +2,7 @@
 /**
  * The grant fields inside quick edit.
  *
- * Core's own inline-edit classes, because the box is drawn inside core's quick edit row.
+ * Core's own inline-edit classes, because the box is drawn inside core's quick edit row and has to sit in its grid.
  *
  * @package PinkCrab\Gated_Access
  *

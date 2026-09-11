@@ -139,26 +139,75 @@ class Groups_Page implements Hookable {
 	 * @return array<string, mixed>
 	 */
 	private function edit_data( WP_Term $group, string $uuid ): array {
+		$items   = $this->item_rows( $this->contents_of( $group ), $uuid );
+		$holders = $this->holder_rows( $this->lookup->holders_of( 'group', $uuid ) );
+
 		return array(
-			'uuid'        => $uuid,
-			'name'        => $group->name,
-			'description' => $group->description,
-			'form_url'    => admin_url( 'admin-post.php' ),
-			'save_action' => Group_Actions::SAVE_ACTION,
-			'item_action' => Group_Actions::ITEM_ACTION,
-			'items'       => $this->item_rows( $this->contents_of( $group ) ),
-			'holders'     => $this->holder_rows( $this->lookup->holders_of( 'group', $uuid ) ),
-			'pickers'     => array(
+			'uuid'         => $uuid,
+			'name'         => $group->name,
+			'form_url'     => admin_url( 'admin-post.php' ),
+			'save_action'  => Group_Actions::SAVE_ACTION,
+			'item_action'  => Group_Actions::ITEM_ACTION,
+			'items'        => $items,
+			'holders'      => $holders,
+			'items_note'   => $this->item_count( count( $items ) ),
+			'holders_note' => $this->holder_count( count( $holders ) ),
+			'details'      => array(
 				array(
-					'picker' => new Post_Picker( 'item', 'gatedmedia_group_post_' . $uuid ),
-					'label'  => __( 'Add a post or page', 'gated-media-access' ),
+					'type'     => 'text',
+					'name'     => 'group_name',
+					'id'       => 'gatedmedia_group_edit_name',
+					'label'    => __( 'Name', 'gated-media-access' ),
+					'value'    => $group->name,
+					'required' => true,
 				),
 				array(
-					'picker' => new File_Picker( 'item', 'gatedmedia_group_file_' . $uuid ),
+					'type'  => 'textarea',
+					'name'  => 'group_description',
+					'id'    => 'gatedmedia_group_edit_description',
+					'label' => __( 'Description', 'gated-media-access' ),
+					'value' => $group->description,
+					'rows'  => 3,
+					'help'  => __( 'For your own reference. Nobody outside the admin sees it.', 'gated-media-access' ),
+				),
+			),
+			'adders'       => array(
+				array(
+					'type'   => 'picker',
+					'id'     => 'gatedmedia_group_post_' . $uuid . '_search',
+					'label'  => __( 'Add a post or page', 'gated-media-access' ),
+					'picker' => new Post_Picker( 'item', 'gatedmedia_group_post_' . $uuid ),
+					'action' => __( 'Add', 'gated-media-access' ),
+				),
+				array(
+					'type'   => 'picker',
+					'id'     => 'gatedmedia_group_file_' . $uuid . '_search',
 					'label'  => __( 'Add a file', 'gated-media-access' ),
+					'picker' => new File_Picker( 'item', 'gatedmedia_group_file_' . $uuid ),
+					'action' => __( 'Add', 'gated-media-access' ),
 				),
 			),
 		);
+	}
+
+	/**
+	 * How many things a group holds, as a person would say it.
+	 *
+	 * @param int $count How many.
+	 */
+	private function item_count( int $count ): string {
+		/* translators: %d: number of items. */
+		return sprintf( _n( '%d item', '%d items', $count, 'gated-media-access' ), $count );
+	}
+
+	/**
+	 * How many people hold a group, as a person would say it.
+	 *
+	 * @param int $count How many.
+	 */
+	private function holder_count( int $count ): string {
+		/* translators: %d: number of people. */
+		return sprintf( _n( '%d person', '%d people', $count, 'gated-media-access' ), $count );
 	}
 
 	/**
@@ -172,20 +221,37 @@ class Groups_Page implements Hookable {
 		$panels = array();
 
 		foreach ( $this->groups() as $index => $group ) {
-			$uuid = Uuid::ensure( 'term', (int) $group->term_id );
+			$uuid    = Uuid::ensure( 'term', (int) $group->term_id );
+			$items   = $this->item_rows( $this->contents_of( $group ) );
+			$holders = $this->holder_rows( $this->lookup->holders_of( 'group', $uuid ) );
 
 			$panels[] = array(
 				'name'    => $group->name,
 				'url'     => self::url_for( $uuid ),
 				'open'    => 0 === $index,
-				'items'   => $this->item_rows( $this->contents_of( $group ) ),
-				'holders' => $this->holder_rows( $this->lookup->holders_of( 'group', $uuid ) ),
+				'items'   => $items,
+				'holders' => $holders,
+				'summary' => sprintf(
+					'%s · %s',
+					$this->item_count( count( $items ) ),
+					/* translators: %d: number of people with access. */
+					sprintf( _n( '%d with access', '%d with access', count( $holders ), 'gated-media-access' ), count( $holders ) )
+				),
 			);
 		}
 
 		return array(
 			'form_url'      => admin_url( 'admin-post.php' ),
 			'create_action' => Group_Actions::CREATE_ACTION,
+			'create_field'  => array(
+				'type'     => 'text',
+				'name'     => 'group_name',
+				'id'       => 'gatedmedia_group_name',
+				'label'    => __( 'Name', 'gated-media-access' ),
+				'action'   => __( 'Create group', 'gated-media-access' ),
+				'required' => true,
+				'help'     => __( 'Content joins a group from the item’s own Access panel.', 'gated-media-access' ),
+			),
 			'groups'        => $panels,
 		);
 	}
@@ -232,12 +298,15 @@ class Groups_Page implements Hookable {
 	}
 
 	/**
-	 * The contents as rows: what it is called, where it is edited, and what kind of thing it is.
+	 * The contents as list rows: what it is called, where it is edited, and what kind of thing it is.
+	 *
+	 * Naming the group adds the control that takes an item out. The list has none, because there is nothing to take it out of there.
 	 *
 	 * @param array<int, int> $object_ids The objects in the term.
-	 * @return array<int, array{title: string, edit_url: string, type_label: string, id: int}>
+	 * @param string          $uuid       The group, '' where nothing can be removed.
+	 * @return array<int, array{title: string, url: string, meta: string, action: string}>
 	 */
-	private function item_rows( array $object_ids ): array {
+	private function item_rows( array $object_ids, string $uuid = '' ): array {
 		$rows = array();
 
 		foreach ( $object_ids as $object_id ) {
@@ -248,10 +317,10 @@ class Groups_Page implements Hookable {
 			}
 
 			$rows[] = array(
-				'id'         => $object_id,
-				'title'      => '' === $object->post_title ? __( '(no title)', 'gated-media-access' ) : $object->post_title,
-				'edit_url'   => (string) get_edit_post_link( $object_id ),
-				'type_label' => 'attachment' === $object->post_type ? __( 'file', 'gated-media-access' ) : $object->post_type,
+				'title'  => '' === $object->post_title ? __( '(no title)', 'gated-media-access' ) : $object->post_title,
+				'url'    => (string) get_edit_post_link( $object_id ),
+				'meta'   => 'attachment' === $object->post_type ? __( 'file', 'gated-media-access' ) : $object->post_type,
+				'action' => '' === $uuid ? '' : $this->remove_control( $uuid, $object_id ),
 			);
 		}
 
@@ -259,10 +328,37 @@ class Groups_Page implements Hookable {
 	}
 
 	/**
-	 * The holders as rows, deleted users left out.
+	 * The control that takes one item out of a group.
+	 *
+	 * A posting form rather than a link: removing something is a write, and a write behind a GET is one prefetch away from happening by itself.
+	 *
+	 * @param string $uuid    The group.
+	 * @param int    $item_id The item to take out.
+	 */
+	private function remove_control( string $uuid, int $item_id ): string {
+		return sprintf(
+			'<form method="post" action="%s" class="gatedmedia-admin-row-action">
+				<input type="hidden" name="action" value="%s" />
+				<input type="hidden" name="group" value="%s" />
+				<input type="hidden" name="item" value="%d" />
+				<input type="hidden" name="op" value="remove" />
+				%s
+				<button type="submit" class="button-link">%s</button>
+			</form>',
+			esc_url( admin_url( 'admin-post.php' ) ),
+			esc_attr( Group_Actions::ITEM_ACTION ),
+			esc_attr( $uuid ),
+			$item_id,
+			wp_nonce_field( Group_Actions::ITEM_ACTION, '_wpnonce', true, false ),
+			esc_html__( 'Remove', 'gated-media-access' )
+		);
+	}
+
+	/**
+	 * The holders as list rows, deleted users left out.
 	 *
 	 * @param array<int, int> $user_ids Who holds the group.
-	 * @return array<int, array{name: string, email: string, edit_url: string}>
+	 * @return array<int, array{title: string, url: string, meta: string}>
 	 */
 	private function holder_rows( array $user_ids ): array {
 		$rows = array();
@@ -275,9 +371,9 @@ class Groups_Page implements Hookable {
 			}
 
 			$rows[] = array(
-				'name'     => $user->display_name,
-				'email'    => $user->user_email,
-				'edit_url' => (string) get_edit_user_link( $user_id ),
+				'title' => $user->display_name,
+				'url'   => (string) get_edit_user_link( $user_id ),
+				'meta'  => $user->user_email,
 			);
 		}
 

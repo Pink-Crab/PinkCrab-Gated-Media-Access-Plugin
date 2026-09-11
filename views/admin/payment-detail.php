@@ -4,65 +4,76 @@
  *
  * @package PinkCrab\Gated_Access
  *
- * @var array{found: bool, payments_url: string, amount: string, status: string, facts: array<string, string>, overuse: string, grant_error: string, grants: array<int, array{status: string, label: string, url: string}>} $data
+ * @var array{found: bool, payments_url: string, amount: string, status: string, facts: array<int, array<string, mixed>>, overuse: string, grant_error: string, grants: array<int, array<string, mixed>>} $data
  */
 
-?>
-<div class="wrap">
-	<div class="gatedmedia-admin">
-		<?php if ( ! $data['found'] ) : ?>
-			<p>
-				<?php esc_html_e( 'No payment found for that reference.', 'gated-media-access' ); ?>
-				<a href="<?php echo esc_url( $data['payments_url'] ); ?>"><?php esc_html_e( 'Back to Payments', 'gated-media-access' ); ?></a>
-			</p>
-		<?php else : ?>
-			<header class="gatedmedia-admin-header">
-				<div>
-					<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Payment', 'gated-media-access' ); ?></span>
-					<h1><?php echo esc_html( $data['amount'] ); ?></h1>
-				</div>
-				<span class="gatedmedia-admin-caps"><?php echo esc_html( $data['status'] ); ?></span>
-			</header>
+use PinkCrab\Gated_Access\Support\View;
 
-			<div class="gatedmedia-admin-section-head">
-				<h2><?php esc_html_e( 'The payment', 'gated-media-access' ); ?></h2>
-				<span class="gatedmedia-admin-caps"><?php esc_html_e( 'As Stripe left it', 'gated-media-access' ); ?></span>
-			</div>
+if ( ! $data['found'] ) {
+	View::render(
+		'components/screen',
+		array(
+			'body' => View::get(
+				'components/page-header',
+				array(
+					'kicker' => __( 'Payment', 'gated-media-access' ),
+					'title'  => __( 'Not found', 'gated-media-access' ),
+					'action' => array(
+						'label' => __( 'Back to Payments', 'gated-media-access' ),
+						'url'   => $data['payments_url'],
+					),
+				)
+			) . View::get( 'components/empty', array( 'message' => __( 'No payment found for that reference.', 'gated-media-access' ) ) ),
+		)
+	);
 
-			<?php foreach ( $data['facts'] as $label => $value ) : ?>
-				<div class="gatedmedia-admin-field">
-					<span class="gatedmedia-admin-caps"><?php echo esc_html( $label ); ?></span>
-					<span><?php echo esc_html( $value ); ?></span>
-				</div>
-			<?php endforeach; ?>
+	return;
+}
 
-			<?php if ( '' !== $data['overuse'] ) : ?>
-				<p class="gatedmedia-admin-help"><?php echo esc_html( $data['overuse'] ); ?></p>
-			<?php endif; ?>
+$body = View::get(
+	'components/page-header',
+	array(
+		'kicker' => __( 'Payment', 'gated-media-access' ),
+		'title'  => $data['amount'],
+		'action' => array(
+			'label' => __( 'Back to Payments', 'gated-media-access' ),
+			'url'   => $data['payments_url'],
+		),
+	)
+) . View::get(
+	'components/section-head',
+	array(
+		'title' => __( 'The payment', 'gated-media-access' ),
+		'note'  => $data['status'],
+	)
+) . View::get( 'components/fields', array( 'fields' => $data['facts'] ) );
 
-			<div class="gatedmedia-admin-section-head">
-				<h2><?php esc_html_e( 'Access granted', 'gated-media-access' ); ?></h2>
-				<span class="gatedmedia-admin-caps"><?php esc_html_e( 'From the frozen snapshot', 'gated-media-access' ); ?></span>
-			</div>
+if ( '' !== $data['overuse'] ) {
+	$body .= View::get( 'components/help', array( 'help' => $data['overuse'] ) );
+}
 
-			<?php if ( '' !== $data['grant_error'] ) : ?>
-				<p class="gatedmedia-admin-help"><?php esc_html_e( 'The last attempt to grant this payment failed:', 'gated-media-access' ); ?></p>
-				<p class="gatedmedia-admin-help"><?php echo esc_html( $data['grant_error'] ); ?></p>
-			<?php endif; ?>
+$body .= View::get(
+	'components/section-head',
+	array(
+		'title' => __( 'Access granted', 'gated-media-access' ),
+		'note'  => __( 'From the frozen snapshot', 'gated-media-access' ),
+	)
+);
 
-			<?php if ( array() === $data['grants'] && '' === $data['grant_error'] ) : ?>
-				<p class="gatedmedia-admin-help"><?php esc_html_e( 'Nothing granted by this payment yet.', 'gated-media-access' ); ?></p>
-			<?php endif; ?>
+// Stripe's retries are finite, so once it gives up this is the only place the failure shows.
+if ( '' !== $data['grant_error'] ) {
+	$body .= View::get( 'components/help', array( 'help' => __( 'The last attempt to grant this payment failed:', 'gated-media-access' ) ) );
+	$body .= View::get( 'components/help', array( 'help' => $data['grant_error'] ) );
+}
 
-			<?php foreach ( $data['grants'] as $grant ) : ?>
-				<div class="gatedmedia-admin-field">
-					<span class="gatedmedia-admin-caps"><?php echo esc_html( $grant['status'] ); ?></span>
-					<span><?php echo esc_html( $grant['label'] ); ?></span>
-					<a href="<?php echo esc_url( $grant['url'] ); ?>"><?php esc_html_e( 'View record', 'gated-media-access' ); ?></a>
-				</div>
-			<?php endforeach; ?>
+if ( array() !== $data['grants'] || '' === $data['grant_error'] ) {
+	$body .= View::get(
+		'components/list',
+		array(
+			'items' => $data['grants'],
+			'empty' => __( 'Nothing granted by this payment yet.', 'gated-media-access' ),
+		)
+	);
+}
 
-			<p><a class="gatedmedia-admin-button" href="<?php echo esc_url( $data['payments_url'] ); ?>"><?php esc_html_e( 'Back to Payments', 'gated-media-access' ); ?></a></p>
-		<?php endif; ?>
-	</div>
-</div>
+View::render( 'components/screen', array( 'body' => $body ) );

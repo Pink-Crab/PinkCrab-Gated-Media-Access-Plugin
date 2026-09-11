@@ -2,47 +2,39 @@
 /**
  * One group on the list: what it holds, and who holds it.
  *
- * The first panel is open, as the notification panels are, because seeing the contents is the point of the screen.
+ * The first panel is open, because seeing the contents is the point of the screen.
  *
  * @package PinkCrab\Gated_Access
  *
- * @var array{name: string, url: string, open: bool, items: array<int, array{title: string, edit_url: string, type_label: string, id: int}>, holders: array<int, array{name: string, email: string, edit_url: string}>} $data
+ * @var array{name: string, url: string, open: bool, summary: string, items: array<int, array<string, mixed>>, holders: array<int, array<string, mixed>>} $data
  */
 
 use PinkCrab\Gated_Access\Support\View;
 
-?>
-<details class="gatedmedia-admin-panel" <?php echo $data['open'] ? 'open' : ''; ?>>
-	<summary>
-		<span class="gatedmedia-admin-panel-title"><a href="<?php echo esc_url( $data['url'] ); ?>"><?php echo esc_html( $data['name'] ); ?></a></span>
-		<span class="gatedmedia-admin-caps">
-			<?php
-			printf(
-				'%s · %s',
-				esc_html(
-					sprintf(
-						/* translators: %d: number of items. */
-						_n( '%d item', '%d items', count( $data['items'] ), 'gated-media-access' ),
-						count( $data['items'] )
-					)
-				),
-				esc_html(
-					sprintf(
-						/* translators: %d: number of people with access. */
-						_n( '%d with access', '%d with access', count( $data['holders'] ), 'gated-media-access' ),
-						count( $data['holders'] )
-					)
-				)
-			);
-			?>
-		</span>
-	</summary>
+$body = sprintf( '<p class="gatedmedia-admin-caps">%s</p>', esc_html__( 'Contains', 'gated-media-access' ) )
+	. View::get(
+		'components/list',
+		array(
+			'items' => $data['items'],
+			'empty' => __( 'Nothing yet.', 'gated-media-access' ),
+		)
+	)
+	. sprintf( '<p class="gatedmedia-admin-caps">%s</p>', esc_html__( 'Who has access', 'gated-media-access' ) )
+	. View::get(
+		'components/list',
+		array(
+			'items' => $data['holders'],
+			'empty' => __( 'Nobody yet.', 'gated-media-access' ),
+		)
+	);
 
-	<div class="gatedmedia-admin-panel-body">
-		<p class="gatedmedia-admin-caps"><?php esc_html_e( 'Contains', 'gated-media-access' ); ?></p>
-		<?php View::render( 'admin/groups/items', array( 'items' => $data['items'] ) ); ?>
-
-		<p class="gatedmedia-admin-caps"><?php esc_html_e( 'Who has access', 'gated-media-access' ); ?></p>
-		<?php View::render( 'admin/groups/holders', array( 'holders' => $data['holders'] ) ); ?>
-	</div>
-</details>
+View::render(
+	'components/panel',
+	array(
+		'title' => $data['name'],
+		'url'   => $data['url'],
+		'open'  => $data['open'],
+		'aside' => sprintf( '<span class="gatedmedia-admin-caps">%s</span>', esc_html( $data['summary'] ) ),
+		'body'  => $body,
+	)
+);

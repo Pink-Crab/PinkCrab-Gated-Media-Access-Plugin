@@ -101,8 +101,20 @@ class Edit_Access_Page implements Hookable {
 				'access_id' => $access_id,
 				'action'    => self::ACTION,
 				'form_url'  => admin_url( 'admin-post.php' ),
-				'expires'   => $editable ? $this->local_expiry( $access_id ) : '',
 				'summary'   => $editable ? $this->summary( $access_id ) : array(),
+				'fields'    => $editable
+					? array(
+						array(
+							'type'       => 'text',
+							'input_type' => 'datetime-local',
+							'name'       => 'gatedmedia_expires',
+							'id'         => 'gatedmedia_expires',
+							'label'      => __( 'Expires', 'gated-media-access' ),
+							'value'      => $this->local_expiry( $access_id ),
+							'help'       => __( 'Clear the field for lifetime access. A past date expires the record immediately.', 'gated-media-access' ),
+						),
+					)
+					: array(),
 			)
 		);
 	}
@@ -188,12 +200,12 @@ class Edit_Access_Page implements Hookable {
 	}
 
 	/**
-	 * What the record is, label to markup, using the list's own cells.
+	 * What the record is, as read-only fields, using the list's own cells.
 	 *
 	 * `Access_List::render_column()` prints, so each cell is captured rather than returned.
 	 *
 	 * @param int $access_id The record.
-	 * @return array<string, string>
+	 * @return array<int, array<string, mixed>>
 	 */
 	private function summary( int $access_id ): array {
 		$columns = array(
@@ -208,7 +220,12 @@ class Edit_Access_Page implements Hookable {
 		foreach ( $columns as $column => $label ) {
 			ob_start();
 			$this->access_list->render_column( $column, $access_id );
-			$summary[ $label ] = (string) ob_get_clean();
+
+			$summary[] = array(
+				'type'   => 'static',
+				'label'  => $label,
+				'markup' => (string) ob_get_clean(),
+			);
 		}
 
 		return $summary;

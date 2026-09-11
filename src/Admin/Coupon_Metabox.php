@@ -115,11 +115,57 @@ class Coupon_Metabox implements Hookable {
 		View::render(
 			'admin/coupon',
 			array(
-				'is_percent'     => $is_percent,
-				'value'          => $this->display_value( $is_percent, (string) get_post_meta( $post->ID, self::META_VALUE, true ) ),
-				'usage_limit'    => (string) get_post_meta( $post->ID, self::META_USAGE_LIMIT, true ),
-				'per_user_limit' => (string) get_post_meta( $post->ID, self::META_PER_USER_LIMIT, true ),
-				'expires'        => '' === $expires ? '' : substr( $expires, 0, 10 ),
+				'fields' => array(
+					array(
+						'type'    => 'select',
+						'name'    => 'gatedmedia_discount_type',
+						'id'      => 'gatedmedia_discount_type',
+						'label'   => __( 'Discount', 'gated-media-access' ),
+						'value'   => $is_percent ? 'percent' : 'fixed',
+						'options' => array(
+							'percent' => __( 'Percent off', 'gated-media-access' ),
+							'fixed'   => __( 'Fixed amount off', 'gated-media-access' ),
+						),
+					),
+					array(
+						'type'  => 'number',
+						'name'  => 'gatedmedia_discount_value',
+						'id'    => 'gatedmedia_discount_value',
+						'label' => __( 'Amount', 'gated-media-access' ),
+						'value' => $this->display_value( $is_percent, (string) get_post_meta( $post->ID, self::META_VALUE, true ) ),
+						'min'   => 0,
+						'step'  => 'any',
+						'class' => 'small-text',
+						'help'  => __( 'Whole percent (100 is free), or the amount taken off the price.', 'gated-media-access' ),
+					),
+					array(
+						'type'  => 'number',
+						'name'  => 'gatedmedia_usage_limit',
+						'id'    => 'gatedmedia_usage_limit',
+						'label' => __( 'Usage limit', 'gated-media-access' ),
+						'value' => (string) get_post_meta( $post->ID, self::META_USAGE_LIMIT, true ),
+						'class' => 'small-text',
+						'help'  => __( 'Completed payments in total. Empty for unlimited.', 'gated-media-access' ),
+					),
+					array(
+						'type'  => 'number',
+						'name'  => 'gatedmedia_per_user_limit',
+						'id'    => 'gatedmedia_per_user_limit',
+						'label' => __( 'Per-user limit', 'gated-media-access' ),
+						'value' => (string) get_post_meta( $post->ID, self::META_PER_USER_LIMIT, true ),
+						'class' => 'small-text',
+						'help'  => __( 'Completed payments per person. Empty for unlimited.', 'gated-media-access' ),
+					),
+					array(
+						'type'       => 'text',
+						'input_type' => 'date',
+						'name'       => 'gatedmedia_coupon_expires',
+						'id'         => 'gatedmedia_coupon_expires',
+						'label'      => __( 'Expires', 'gated-media-access' ),
+						'value'      => '' === $expires ? '' : substr( $expires, 0, 10 ),
+						'help'       => __( 'Usable through this day (UTC). Empty for never.', 'gated-media-access' ),
+					),
+				),
 			)
 		);
 	}

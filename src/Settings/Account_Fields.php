@@ -10,7 +10,6 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Settings;
 
 use PinkCrab\Gated_Access\Support\Account_Url;
-use PinkCrab\Gated_Access\Support\View;
 
 /**
  * The three account settings: `account_creation`, `account_route` and `profile_prompt`.
@@ -33,28 +32,71 @@ class Account_Fields {
 
 	/**
 	 * The section: how someone gets an account, whether the plugin's own account pages are on, and whether a thin profile is prompted.
+	 *
+	 * @return array{title: string, note: string, fields: array<int, array<string, mixed>>}
 	 */
-	public function render(): void {
-		View::render(
-			'admin/settings/accounts',
-			array(
-				'option'           => Settings::OPTION,
-				'creation'         => $this->settings->account_creation(),
-				'creation_options' => array(
-					Settings::ACCOUNT_CREATION_REGISTRATION => __( 'They sign themselves up', 'gated-media-access' ),
-					Settings::ACCOUNT_CREATION_ADMIN    => __( 'An administrator creates them', 'gated-media-access' ),
-					Settings::ACCOUNT_CREATION_PURCHASE => __( 'One is made when they buy', 'gated-media-access' ),
+	public function section(): array {
+		$option = Settings::OPTION;
+
+		return array(
+			'title'  => __( 'Accounts', 'gated-media-access' ),
+			'note'   => __( 'How people get one, and where it lives', 'gated-media-access' ),
+			'fields' => array(
+				array(
+					'type'    => 'select',
+					'name'    => $option . '[account_creation]',
+					'id'      => 'gatedmedia_account_creation',
+					'label'   => __( 'How a user gets an account', 'gated-media-access' ),
+					'value'   => $this->settings->account_creation(),
+					'options' => array(
+						Settings::ACCOUNT_CREATION_REGISTRATION => __( 'They sign themselves up', 'gated-media-access' ),
+						Settings::ACCOUNT_CREATION_ADMIN => __( 'An administrator creates them', 'gated-media-access' ),
+						Settings::ACCOUNT_CREATION_PURCHASE => __( 'One is made when they buy', 'gated-media-access' ),
+					),
+					'help'    => __( 'Only the first draws a sign-up form. This governs this plugin alone, and WordPress’ own registration setting is left exactly as you set it.', 'gated-media-access' ),
 				),
-				'auth_pages'       => $this->settings->auth_pages(),
-				'auth_options'     => array(
-					Settings::AUTH_PAGES_PLUGIN => __( 'On the plugin’s own pages', 'gated-media-access' ),
-					Settings::AUTH_PAGES_CORE   => __( 'On the WordPress login screen', 'gated-media-access' ),
+				array(
+					'type'    => 'select',
+					'name'    => $option . '[auth_pages]',
+					'id'      => 'gatedmedia_auth_pages',
+					'label'   => __( 'Signing in and up', 'gated-media-access' ),
+					'value'   => $this->settings->auth_pages(),
+					'options' => array(
+						Settings::AUTH_PAGES_PLUGIN => __( 'On the plugin’s own pages', 'gated-media-access' ),
+						Settings::AUTH_PAGES_CORE   => __( 'On the WordPress login screen', 'gated-media-access' ),
+					),
+					'help'    => __( 'The WordPress screen carries whatever your captcha or two-factor plugin puts on it, and its own styling. Sign-up there needs WordPress’ own registration setting on, and it emails a password rather than signing the buyer straight in.', 'gated-media-access' ),
 				),
-				'account_route'    => $this->settings->account_route(),
-				'profile_prompt'   => $this->settings->profile_prompt(),
-				// Not Account_Url::section(): this names the route being switched.
-				'account_url'      => home_url( '/' . Account_Url::slug() . '/' ),
-			)
+				array(
+					'type'    => 'select',
+					'name'    => $option . '[account_route]',
+					'id'      => 'gatedmedia_account_route',
+					'label'   => __( 'Account pages', 'gated-media-access' ),
+					'value'   => $this->settings->account_route() ? '1' : '0',
+					'options' => array(
+						'1' => __( 'Use the plugin’s own pages', 'gated-media-access' ),
+						'0' => __( 'I will place the blocks on my own pages', 'gated-media-access' ),
+					),
+					'help'    => sprintf(
+						/* translators: %s: the account area's URL. */
+						__( 'Switched on, the account area answers at %s. Switched off it does not, and the same blocks can be placed on pages of your own.', 'gated-media-access' ),
+						// Not Account_Url::section(): this names the route being switched.
+						home_url( '/' . Account_Url::slug() . '/' )
+					),
+				),
+				array(
+					'type'    => 'select',
+					'name'    => $option . '[profile_prompt]',
+					'id'      => 'gatedmedia_profile_prompt',
+					'label'   => __( 'Ask for missing details', 'gated-media-access' ),
+					'value'   => $this->settings->profile_prompt() ? '1' : '0',
+					'options' => array(
+						'0' => __( 'No', 'gated-media-access' ),
+						'1' => __( 'On their first sign-in', 'gated-media-access' ),
+					),
+					'help'    => __( 'Someone whose profile is missing a required field is asked to complete it. Never when they were part-way through buying something.', 'gated-media-access' ),
+				),
+			),
 		);
 	}
 

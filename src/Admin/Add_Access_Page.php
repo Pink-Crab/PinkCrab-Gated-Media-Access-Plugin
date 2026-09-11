@@ -76,21 +76,73 @@ class Add_Access_Page implements Hookable {
 	 * The item metabox links here pre-filled: its type and item arrive as GET args and become the pickers' initial values, printed server-side so the prefill stands without the script.
 	 */
 	public function render(): void {
-		$prefill = $this->prefill();
-
 		View::render(
 			'admin/add-access',
 			array(
 				'action'   => self::ACTION,
 				'form_url' => admin_url( 'admin-post.php' ),
-				'prefill'  => $prefill,
-				'pickers'  => array(
-					'user'  => new User_Picker( 'gatedmedia_user', 'gatedmedia_user' ),
-					'group' => new Group_Picker( 'gatedmedia_group', 'gatedmedia_group' ),
-					'post'  => new Post_Picker( 'gatedmedia_post', 'gatedmedia_post', $prefill['post_id'], $prefill['post_title'] ),
-					'file'  => new File_Picker( 'gatedmedia_file', 'gatedmedia_file', $prefill['file_id'], $prefill['file_title'] ),
-				),
+				'fields'   => $this->fields(),
 			)
+		);
+	}
+
+	/**
+	 * The form: who, what, and for how long.
+	 *
+	 * The three item pickers are all drawn, each tagged with the type it belongs to, and the admin bundle shows the one the type select names.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function fields(): array {
+		$prefill = $this->prefill();
+
+		return array(
+			array(
+				'type'   => 'picker',
+				'id'     => 'gatedmedia_user_search',
+				'label'  => __( 'User', 'gated-media-access' ),
+				'picker' => new User_Picker( 'gatedmedia_user', 'gatedmedia_user' ),
+			),
+			array(
+				'type'    => 'select',
+				'name'    => 'gatedmedia_item_type',
+				'id'      => 'gatedmedia_item_type',
+				'label'   => __( 'Item type', 'gated-media-access' ),
+				'value'   => $prefill['type'],
+				'options' => array(
+					'group' => __( 'Group', 'gated-media-access' ),
+					'post'  => __( 'Post', 'gated-media-access' ),
+					'file'  => __( 'File', 'gated-media-access' ),
+				),
+			),
+			array(
+				'type'   => 'picker',
+				'id'     => 'gatedmedia_group_search',
+				'label'  => __( 'Group', 'gated-media-access' ),
+				'row'    => 'group',
+				'picker' => new Group_Picker( 'gatedmedia_group', 'gatedmedia_group' ),
+			),
+			array(
+				'type'   => 'picker',
+				'id'     => 'gatedmedia_post_search',
+				'label'  => __( 'Post', 'gated-media-access' ),
+				'row'    => 'post',
+				'picker' => new Post_Picker( 'gatedmedia_post', 'gatedmedia_post', $prefill['post_id'], $prefill['post_title'] ),
+			),
+			array(
+				'type'   => 'picker',
+				'id'     => 'gatedmedia_file_search',
+				'label'  => __( 'File', 'gated-media-access' ),
+				'row'    => 'file',
+				'picker' => new File_Picker( 'gatedmedia_file', 'gatedmedia_file', $prefill['file_id'], $prefill['file_title'] ),
+			),
+			array(
+				'type'  => 'number',
+				'name'  => 'gatedmedia_duration',
+				'id'    => 'gatedmedia_duration',
+				'label' => __( 'Duration (days)', 'gated-media-access' ),
+				'help'  => __( 'Leave empty for lifetime access.', 'gated-media-access' ),
+			),
 		);
 	}
 

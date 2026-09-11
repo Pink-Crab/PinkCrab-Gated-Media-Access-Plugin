@@ -2,18 +2,20 @@
 /**
  * One person's access records, on their profile screen.
  *
- * Read-only: granting and revoking live on the Access screens, one link away.
+ * Core's own table, because this sits inside core's profile form rather than on a screen of ours. Read-only: granting and revoking live on the Access screens, one link away.
  *
  * @package PinkCrab\Gated_Access
  *
  * @var array{rows: array<int, array<string, string>>, columns: array<string, string>, manage_url: string} $data
  */
 
+use PinkCrab\Gated_Access\Support\View;
+
 ?>
 <h2><?php esc_html_e( 'Access', 'gated-media-access' ); ?></h2>
 
 <?php if ( array() === $data['rows'] ) : ?>
-	<p><?php esc_html_e( 'This user holds no access records.', 'gated-media-access' ); ?></p>
+	<?php View::render( 'components/empty', array( 'message' => __( 'This user holds no access records.', 'gated-media-access' ) ) ); ?>
 <?php else : ?>
 	<table class="widefat striped">
 		<thead>
@@ -27,7 +29,7 @@
 			<?php foreach ( $data['rows'] as $row ) : ?>
 				<tr>
 					<?php foreach ( array_keys( $data['columns'] ) as $column ) : ?>
-						<td><?php echo wp_kses_post( $row[ $column ] ); ?></td>
+						<td><?php echo $row[ $column ]; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the Access list's own column renderer. ?></td>
 					<?php endforeach; ?>
 				</tr>
 			<?php endforeach; ?>

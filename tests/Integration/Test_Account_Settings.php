@@ -49,9 +49,10 @@ class Test_Account_Settings extends WP_UnitTestCase {
 	public function test_the_help_text_always_names_the_route_url(): void {
 		$this->store( 'account_route', '0' );
 
-		ob_start();
-		( new Account_Fields( $this->settings ) )->render();
-		$html = (string) ob_get_clean();
+		$html = \PinkCrab\Gated_Access\Support\View::get(
+			'components/fields',
+			array( 'fields' => ( new Account_Fields( $this->settings ) )->section()['fields'] )
+		);
 
 		$this->assertStringContainsString( home_url( '/account/' ), $html );
 	}

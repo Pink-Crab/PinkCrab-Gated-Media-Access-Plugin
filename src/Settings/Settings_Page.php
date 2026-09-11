@@ -131,63 +131,148 @@ class Settings_Page implements Hookable {
 				'general_url'       => admin_url( 'admin.php?page=' . self::SETTINGS_SLUG ),
 				'notifications_url' => admin_url( 'admin.php?page=' . self::SETTINGS_SLUG . '&section=notifications' ),
 				'on_notifications'  => 'notifications' === $section,
-				'notifications'     => $this->notifications,
-				'general'           => $this->general_data(),
+				'notifications'     => $this->notifications->tab(),
+				'general'           => array( 'sections' => $this->general_sections() ),
 			)
 		);
 	}
 
 	/**
-	 * What the General tab draws: the accounts section, the store, Stripe, revoking, and the uninstall choice.
+	 * The General tab, section by section: accounts, the store, Stripe, revoking, and what uninstalling takes.
 	 *
-	 * @return array<string, mixed>
+	 * @return array<int, array{title: string, note: string, fields: array<int, array<string, mixed>>}>
 	 */
-	private function general_data(): array {
+	private function general_sections(): array {
+		$option = Settings::OPTION;
+
 		return array(
-			'option'             => Settings::OPTION,
-			'accounts'           => $this->accounts,
-			'currencies'         => \Symfony\Component\Intl\Currencies::getNames(),
-			'currency'           => $this->settings->currency(),
-			'product_path'       => $this->settings->product_path(),
-			'home_url'           => home_url( '/' ),
-			'stripe_mode'        => $this->settings->stripe_mode(),
-			'mode_test'          => Settings::MODE_TEST,
-			'mode_live'          => Settings::MODE_LIVE,
-			'key_rows'           => $this->key_rows(),
-			'revoke_behaviour'   => $this->settings->revoke_behaviour(),
-			'revoke_options'     => array(
-				Settings::REVOKE_BEHAVIOUR_REVOKE => __( 'Mark revoked, keeping the record as history', 'gated-media-access' ),
-				Settings::REVOKE_BEHAVIOUR_EXPIRE => __( 'Expire, pulling the record’s date to now', 'gated-media-access' ),
-				Settings::REVOKE_BEHAVIOUR_DELETE => __( 'Delete, removing the record outright', 'gated-media-access' ),
+			$this->accounts->section(),
+			array(
+				'title'  => __( 'Store', 'gated-media-access' ),
+				'note'   => __( 'Currency and address', 'gated-media-access' ),
+				'fields' => array(
+					array(
+						'type'    => 'select',
+						'name'    => $option . '[currency]',
+						'id'      => 'gatedmedia_currency',
+						'label'   => __( 'Currency', 'gated-media-access' ),
+						'value'   => $this->settings->currency(),
+						'options' => $this->currencies(),
+						'help'    => __( 'Every product is priced and sold in this currency.', 'gated-media-access' ),
+					),
+					array(
+						'type'  => 'text',
+						'name'  => $option . '[product_path]',
+						'id'    => 'gatedmedia_product_path',
+						'label' => __( 'Product URL path', 'gated-media-access' ),
+						'value' => $this->settings->product_path(),
+						'class' => 'regular-text code',
+						'help'  => sprintf(
+							/* translators: %s: the full product URL shape, e.g. https://example.com/access/<uuid>. */
+							__( 'The only public way to a product is %s, never a slug or an ID.', 'gated-media-access' ),
+							home_url( '/' . $this->settings->product_path() . '/<uuid>' )
+						),
+					),
+				),
 			),
-			'purge_on_uninstall' => $this->settings->purge_on_uninstall(),
+			array(
+				'title'  => __( 'Stripe', 'gated-media-access' ),
+				'note'   => __( 'Mode and keys', 'gated-media-access' ),
+				'fields' => array_merge(
+					array(
+						array(
+							'type'    => 'select',
+							'name'    => $option . '[stripe_mode]',
+							'id'      => 'gatedmedia_stripe_mode',
+							'label'   => __( 'Mode', 'gated-media-access' ),
+							'value'   => $this->settings->stripe_mode(),
+							'options' => array(
+								Settings::MODE_TEST => __( 'Test', 'gated-media-access' ),
+								Settings::MODE_LIVE => __( 'Live', 'gated-media-access' ),
+							),
+							'help'    => __( 'Which set of keys checkout and the webhook use.', 'gated-media-access' ),
+						),
+					),
+					$this->key_fields()
+				),
+			),
+			array(
+				'title'  => __( 'Access', 'gated-media-access' ),
+				'note'   => __( 'Revoke behaviour', 'gated-media-access' ),
+				'fields' => array(
+					array(
+						'type'    => 'select',
+						'name'    => $option . '[revoke_behaviour]',
+						'id'      => 'gatedmedia_revoke_behaviour',
+						'label'   => __( 'Revoking access', 'gated-media-access' ),
+						'value'   => $this->settings->revoke_behaviour(),
+						'options' => array(
+							Settings::REVOKE_BEHAVIOUR_REVOKE => __( 'Mark revoked, keeping the record as history', 'gated-media-access' ),
+							Settings::REVOKE_BEHAVIOUR_EXPIRE => __( 'Expire, pulling the record’s date to now', 'gated-media-access' ),
+							Settings::REVOKE_BEHAVIOUR_DELETE => __( 'Delete, removing the record outright', 'gated-media-access' ),
+						),
+						'help'    => __( 'What the Revoke action on the Access list does.', 'gated-media-access' ),
+					),
+				),
+			),
+			array(
+				'title'  => __( 'Uninstall', 'gated-media-access' ),
+				'note'   => __( 'What deleting the plugin takes', 'gated-media-access' ),
+				'fields' => array(
+					array(
+						'type'    => 'checkbox',
+						'name'    => $option . '[purge_on_uninstall]',
+						'id'      => 'gatedmedia_purge_on_uninstall',
+						'label'   => __( 'Delete all data on uninstall', 'gated-media-access' ),
+						'checked' => $this->settings->purge_on_uninstall(),
+						'help'    => __( 'Settings, keys and capabilities always go. Tick this and the payments table, the access records, the products and the coupons go too. There is no undo.', 'gated-media-access' ),
+					),
+				),
+			),
 		);
+	}
+
+	/**
+	 * Every ISO currency, code first so the list reads the way it is chosen.
+	 *
+	 * @return array<string, string>
+	 */
+	private function currencies(): array {
+		$currencies = array();
+
+		foreach ( \Symfony\Component\Intl\Currencies::getNames() as $code => $name ) {
+			$currencies[ $code ] = "{$code}: {$name}";
+		}
+
+		return $currencies;
 	}
 
 	/**
 	 * The six Stripe key fields: a publishable key in the clear, the two secrets marked but never carried back.
 	 *
-	 * @return array<int, array{type: string, label: string, name: string, value: string, has_value: bool}>
+	 * @return array<int, array<string, mixed>>
 	 */
-	private function key_rows(): array {
+	private function key_fields(): array {
 		$stored = get_option( Settings::OPTION );
 		$stored = is_array( $stored ) ? $stored : array();
+		$option = Settings::OPTION;
 
 		$modes = array(
 			Settings::MODE_TEST => __( 'Test', 'gated-media-access' ),
 			Settings::MODE_LIVE => __( 'Live', 'gated-media-access' ),
 		);
 
-		$rows = array();
+		$fields = array();
 
 		foreach ( $modes as $mode => $label ) {
-			$rows[] = array(
-				'type'      => 'text',
+			$fields[] = array(
+				'type'  => 'text',
 				/* translators: %s: test or live. */
-				'label'     => sprintf( __( '%s publishable key', 'gated-media-access' ), $label ),
-				'name'      => "stripe_{$mode}_key",
-				'value'     => (string) ( $stored[ "stripe_{$mode}_key" ] ?? '' ),
-				'has_value' => false,
+				'label' => sprintf( __( '%s publishable key', 'gated-media-access' ), $label ),
+				'name'  => $option . "[stripe_{$mode}_key]",
+				'id'    => "gatedmedia_stripe_{$mode}_key",
+				'value' => (string) ( $stored[ "stripe_{$mode}_key" ] ?? '' ),
+				'class' => 'large-text code',
 			);
 
 			$secrets = array(
@@ -198,17 +283,22 @@ class Settings_Page implements Hookable {
 			);
 
 			foreach ( $secrets as $name => $secret_label ) {
-				$rows[] = array(
+				$saved = '' !== (string) ( $stored[ $name ] ?? '' );
+
+				$fields[] = array(
 					'type'      => 'secret',
 					'label'     => $secret_label,
-					'name'      => $name,
-					'value'     => '',
-					'has_value' => '' !== (string) ( $stored[ $name ] ?? '' ),
+					'name'      => $option . "[{$name}]",
+					'id'        => 'gatedmedia_' . $name,
+					'has_value' => $saved,
+					'help'      => $saved
+						? __( 'A value is saved. It is never shown; type to replace it.', 'gated-media-access' )
+						: __( 'Nothing saved yet.', 'gated-media-access' ),
 				);
 			}
 		}
 
-		return $rows;
+		return $fields;
 	}
 
 	/**

@@ -128,10 +128,10 @@ class Payment_Detail_Page implements Hookable {
 	}
 
 	/**
-	 * The row's facts, labelled.
+	 * The row's facts, as read-only fields.
 	 *
 	 * @param Payment $payment The row.
-	 * @return array<string, string>
+	 * @return array<int, array<string, mixed>>
 	 */
 	private function facts( Payment $payment ): array {
 		$user    = get_userdata( $payment->user_id );
@@ -147,7 +147,17 @@ class Payment_Detail_Page implements Hookable {
 			__( 'Stripe intent', 'gated-media-access' )  => '' === $payment->stripe_payment_intent_id ? Money::not_applicable() : $payment->stripe_payment_intent_id,
 		);
 
-		return array_map( 'strval', $facts );
+		$fields = array();
+
+		foreach ( $facts as $label => $value ) {
+			$fields[] = array(
+				'type'  => 'static',
+				'label' => $label,
+				'value' => (string) $value,
+			);
+		}
+
+		return $fields;
 	}
 
 	/**
@@ -180,19 +190,19 @@ class Payment_Detail_Page implements Hookable {
 	}
 
 	/**
-	 * What the payment granted: every record its reference wrote, as rows.
+	 * What the payment granted: every record its reference wrote, as list rows.
 	 *
 	 * @param Payment $payment The row.
-	 * @return array<int, array{status: string, label: string, url: string}>
+	 * @return array<int, array{title: string, meta: string, url: string}>
 	 */
 	private function grant_rows( Payment $payment ): array {
 		$rows = array();
 
 		foreach ( $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) as $access_id ) {
 			$rows[] = array(
-				'status' => $this->record_status( $access_id ),
-				'label'  => $this->item_label( $access_id ),
-				'url'    => Edit_Access_Page::url_for( $access_id ),
+				'title' => $this->item_label( $access_id ),
+				'meta'  => $this->record_status( $access_id ),
+				'url'   => Edit_Access_Page::url_for( $access_id ),
 			);
 		}
 

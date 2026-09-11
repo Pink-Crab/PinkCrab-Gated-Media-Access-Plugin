@@ -130,7 +130,7 @@ class Test_Coupon_Metabox extends WP_UnitTestCase {
 		$this->metabox->render( get_post( $this->coupon_id ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'id="gatedmedia_discount_value" value="500"', $html );
+		$this->assertMatchesRegularExpression( '/id="gatedmedia_discount_value"\s+value="500"/', $html );
 	}
 
 	/** @testdox Limits store empty for unlimited, and the count when set. */

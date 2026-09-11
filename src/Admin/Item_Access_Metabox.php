@@ -113,16 +113,34 @@ class Item_Access_Metabox implements Hookable {
 		View::render(
 			'admin/item-access',
 			array(
-				'holders'         => $this->holder_rows( $item_type, (string) $item_id ),
-				'groups'          => $this->group_rows( $item_id ),
-				'user_picker'     => new User_Picker( self::FIELD_USER, $picker_id ),
-				'group_picker'    => new Group_Picker( self::FIELD_GROUP, $group_id ),
-				'user_field_id'   => $picker_id . '_search',
-				'days_field_id'   => 'gatedmedia_metabox_days_' . $item_id,
-				'days_field_name' => self::FIELD_DAYS,
-				'group_field_id'  => $group_id,
-				'nonce_action'    => self::SAVE_ACTION . '_' . $item_id,
-				'nonce_name'      => self::SAVE_NONCE,
+				'holders'      => $this->holder_rows( $item_type, (string) $item_id ),
+				'groups'       => $this->group_rows( $item_id ),
+				'nonce_action' => self::SAVE_ACTION . '_' . $item_id,
+				'nonce_name'   => self::SAVE_NONCE,
+				'grant_fields' => array(
+					array(
+						'type'   => 'picker',
+						'id'     => $picker_id . '_search',
+						'label'  => __( 'User to give access to', 'gated-media-access' ),
+						'picker' => new User_Picker( self::FIELD_USER, $picker_id ),
+					),
+					array(
+						'type'        => 'number',
+						'name'        => self::FIELD_DAYS,
+						'id'          => 'gatedmedia_metabox_days_' . $item_id,
+						'label'       => __( 'Days of access, or empty for lifetime', 'gated-media-access' ),
+						'class'       => 'gatedmedia-inline-grant-days',
+						'placeholder' => __( 'Days', 'gated-media-access' ),
+						'help'        => __( 'Empty days means lifetime. Access is given when you save.', 'gated-media-access' ),
+					),
+				),
+				'group_field'  => array(
+					'type'   => 'picker',
+					'id'     => $group_id . '_search',
+					'label'  => __( 'Group to add this item to', 'gated-media-access' ),
+					'picker' => new Group_Picker( self::FIELD_GROUP, $group_id ),
+					'help'   => __( 'The item joins the group when you save.', 'gated-media-access' ),
+				),
 			)
 		);
 	}
@@ -206,23 +224,29 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * The item's groups as rows, each with the nonced link that takes it out.
+	 * The item's groups as list rows, each with the nonced link that takes it out.
 	 *
 	 * @param int $item_id The post or attachment.
-	 * @return array<int, array{name: string, remove_url: string}>
+	 * @return array<int, array{title: string, action: string}>
 	 */
 	private function group_rows( int $item_id ): array {
 		$rows = array();
 
 		foreach ( $this->current_groups( $item_id ) as $uuid => $name ) {
 			$rows[] = array(
-				'name'       => $name,
-				'remove_url' => add_query_arg(
-					array(
-						'op'    => 'remove',
-						'group' => $uuid,
+				'title'  => $name,
+				'action' => sprintf(
+					'<a class="gatedmedia-admin-row-action" href="%s">%s</a>',
+					esc_url(
+						add_query_arg(
+							array(
+								'op'    => 'remove',
+								'group' => $uuid,
+							),
+							$this->group_url( $item_id )
+						)
 					),
-					$this->group_url( $item_id )
+					esc_html__( 'Remove', 'gated-media-access' )
 				),
 			);
 		}
@@ -349,11 +373,11 @@ class Item_Access_Metabox implements Hookable {
 	}
 
 	/**
-	 * The active direct records for one item: who holds it, until when, and the link that takes it back.
+	 * The active direct records for one item, as list rows: who holds it, until when, and the link that takes it back.
 	 *
 	 * @param string $item_type One of file, post.
 	 * @param string $item_id   The item.
-	 * @return array<int, array{name: string, expires: string, revoke_url: string}>
+	 * @return array<int, array{title: string, meta: string, action: string}>
 	 */
 	private function holder_rows( string $item_type, string $item_id ): array {
 		$ids = get_posts(
@@ -385,13 +409,17 @@ class Item_Access_Metabox implements Hookable {
 			$user   = null === $record ? false : get_userdata( (int) $record->post_author );
 			$expiry = (string) get_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, true );
 
-			$holders[ $access_id ] = array(
-				'name'       => false === $user ? __( 'Unknown user', 'gated-media-access' ) : $user->display_name,
-				'expires'    => '' === $expiry
+			$holders[] = array(
+				'title'  => false === $user ? __( 'Unknown user', 'gated-media-access' ) : $user->display_name,
+				'meta'   => '' === $expiry
 					? __( 'Lifetime', 'gated-media-access' )
 					: (string) wp_date( (string) get_option( 'date_format' ), (int) strtotime( $expiry . ' +0000' ) ),
-				// The word the Access list and the settings page use.
-				'revoke_url' => Revoke_Action::url_for( $access_id ),
+				'action' => sprintf(
+					'<a class="gatedmedia-admin-row-action" href="%s">%s</a>',
+					esc_url( Revoke_Action::url_for( $access_id ) ),
+					// The word the Access list and the settings page use.
+					esc_html__( 'Revoke', 'gated-media-access' )
+				),
 			);
 		}
 

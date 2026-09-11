@@ -13,7 +13,6 @@ use WP_Query;
 use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
-use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Support\View;
@@ -58,21 +57,58 @@ class Access_Filters implements Hookable {
 		$item_type = $wanted[ Access_Writer::META_ITEM_TYPE ];
 		$item      = $wanted[ Access_Writer::META_ITEM_ID ];
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only prefill of the current filter.
+		$author = isset( $_GET['author'] ) ? absint( $_GET['author'] ) : 0;
+		$holder = 0 === $author ? false : get_userdata( $author );
+
 		View::render(
 			'admin/access-filters',
 			array(
-				'holder_picker' => $this->holder_picker(),
-				'item_type'     => $item_type,
-				'item_types'    => array(
-					'group' => __( 'Groups', 'gated-media-access' ),
-					'post'  => __( 'Posts', 'gated-media-access' ),
-					'file'  => __( 'Files', 'gated-media-access' ),
+				'controls' => array(
+					array(
+						'type'        => 'search',
+						'id'          => 'gatedmedia_filter_holder',
+						'label'       => __( 'Filter by holder', 'gated-media-access' ),
+						// Core's own author query var, not a meta key of ours.
+						'name'        => 'author',
+						'endpoint'    => 'gatedmedia_search_users',
+						'value'       => false === $holder ? '' : (string) $author,
+						'label_value' => false === $holder ? '' : sprintf( '%s (%s)', $holder->display_name, $holder->user_email ),
+						'placeholder' => __( 'Any holder…', 'gated-media-access' ),
+					),
+					array(
+						'type'    => 'select',
+						'id'      => 'gatedmedia_filter_item_type',
+						'label'   => __( 'Filter by item type', 'gated-media-access' ),
+						'name'    => 'gatedmedia_item_type',
+						'value'   => $item_type,
+						'blank'   => __( 'All item types', 'gated-media-access' ),
+						'options' => array(
+							'group' => __( 'Groups', 'gated-media-access' ),
+							'post'  => __( 'Posts', 'gated-media-access' ),
+							'file'  => __( 'Files', 'gated-media-access' ),
+						),
+					),
+					array(
+						'type'        => 'search',
+						'id'          => 'gatedmedia_filter_item',
+						'label'       => __( 'Filter by item', 'gated-media-access' ),
+						'name'        => 'gatedmedia_item',
+						'endpoint'    => $this->item_endpoint( $item_type ),
+						'value'       => $item,
+						'label_value' => $this->item_label( $item_type, $item ),
+						'placeholder' => __( 'Any item…', 'gated-media-access' ),
+					),
+					array(
+						'type'    => 'select',
+						'id'      => 'gatedmedia_filter_source',
+						'label'   => __( 'Filter by source', 'gated-media-access' ),
+						'name'    => 'gatedmedia_source',
+						'value'   => $wanted[ Access_Writer::META_SOURCE ],
+						'blank'   => __( 'All sources', 'gated-media-access' ),
+						'options' => array_combine( $this->known_sources(), $this->known_sources() ),
+					),
 				),
-				'item'          => $item,
-				'item_label'    => $this->item_label( $item_type, $item ),
-				'item_endpoint' => $this->item_endpoint( $item_type ),
-				'source'        => $wanted[ Access_Writer::META_SOURCE ],
-				'sources'       => $this->known_sources(),
 			)
 		);
 	}
@@ -120,24 +156,6 @@ class Access_Filters implements Hookable {
 			Access_Writer::META_SOURCE    => $text( 'gatedmedia_source' ),
 		);
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-	}
-
-	/**
-	 * The holder filter's picker, prefilled with whoever is being filtered on.
-	 *
-	 * It submits core's own `author` query var rather than a meta key of ours.
-	 */
-	private function holder_picker(): User_Picker {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only prefill of the current filter.
-		$author = isset( $_GET['author'] ) ? absint( $_GET['author'] ) : 0;
-		$holder = 0 === $author ? false : get_userdata( $author );
-
-		return new User_Picker(
-			'author',
-			'gatedmedia_filter_holder',
-			false === $holder ? '' : (string) $author,
-			false === $holder ? '' : sprintf( '%s (%s)', $holder->display_name, $holder->user_email )
-		);
 	}
 
 	/**
