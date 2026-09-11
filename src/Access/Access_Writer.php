@@ -36,6 +36,24 @@ class Access_Writer implements Hookable {
 	public const META_CREATED_BY = 'gatedmedia_created_by';
 	public const META_PAYLOAD    = 'gatedmedia_payload';
 
+	/** `source|reference`, joined, so finding a payment's records is one meta clause and not two. */
+	public const META_REF_KEY = 'gatedmedia_ref_key';
+
+	/** `item_type|item_id`, joined, for the same reason. */
+	public const META_ITEM_KEY = 'gatedmedia_item_key';
+
+	/**
+	 * Joins a pair into one lookup key.
+	 *
+	 * Each half is encoded first: `stripe` with reference `a|b` and `stripe|a` with reference `b` would otherwise be the same string, and one payment's refund would reach another's records.
+	 *
+	 * @param string $first  The first half.
+	 * @param string $second The second half.
+	 */
+	public static function pair_key( string $first, string $second ): string {
+		return rawurlencode( $first ) . '|' . rawurlencode( $second );
+	}
+
 	/**
 	 * What each payment added to a stacked record: `source|reference|days`, one meta row per contribution.
 	 *
@@ -379,6 +397,7 @@ class Access_Writer implements Hookable {
 			if ( '' !== $reference ) {
 				add_post_meta( $record_id, self::META_SOURCE, $source );
 				add_post_meta( $record_id, self::META_REFERENCE, $reference );
+				add_post_meta( $record_id, self::META_REF_KEY, self::pair_key( $source, $reference ) );
 				add_post_meta( $record_id, self::META_CONTRIBUTION, $source . '|' . $reference . '|' . $duration_days );
 			}
 
@@ -413,6 +432,8 @@ class Access_Writer implements Hookable {
 				: gmdate( 'Y-m-d H:i:s', time() + $duration_days * DAY_IN_SECONDS ),
 			self::META_SOURCE     => $source,
 			self::META_REFERENCE  => $reference,
+			self::META_REF_KEY    => self::pair_key( $source, $reference ),
+			self::META_ITEM_KEY   => self::pair_key( $item_type, $item_id ),
 		);
 
 		if ( $created_by > 0 ) {
@@ -464,12 +485,23 @@ class Access_Writer implements Hookable {
 			'auth_callback'     => '__return_false',
 		);
 
+		$key = array(
+			'type'              => 'string',
+			'single'            => false,
+			'show_in_rest'      => false,
+			'sanitize_callback' => static fn ( $value ): string => is_string( $value ) ? $value : '',
+			'auth_callback'     => '__return_false',
+		);
+
 		return array(
 			self::META_ITEM_TYPE    => $text,
 			self::META_ITEM_ID      => $text,
 			self::META_EXPIRES_AT   => $text,
 			self::META_SOURCE       => $text,
 			self::META_REFERENCE    => $text,
+			// Not $text: sanitize_text_field() strips percent-encoded sequences, which is exactly what pair_key() puts in. These two are written by this class alone, never posted.
+			self::META_REF_KEY      => $key,
+			self::META_ITEM_KEY     => $key,
 			self::META_CREATED_BY   => array(
 				'type'              => 'integer',
 				'single'            => true,
