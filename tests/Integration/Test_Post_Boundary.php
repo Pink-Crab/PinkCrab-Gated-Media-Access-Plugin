@@ -227,6 +227,52 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 		$this->assertSame( 200, $served->get_status() );
 	}
 
+	/**
+	 * @testdox The oEmbed endpoint answers for a blocked post as it does for one that does not exist.
+	 *
+	 * Core's oEmbed route builds its own response from the post and never runs `rest_prepare_{$type}`, so the REST refusal never saw it. It answered 200 with the title and author of a post that 404s on every other surface, which made it an existence oracle too.
+	 */
+	public function test_oembed_refuses_a_blocked_post(): void {
+		$restricted_id = $this->make_restricted_post( array( 'post_title' => 'Xyzzy secret handbook' ) );
+
+		wp_set_current_user( $this->user_id );
+
+		$request = new WP_REST_Request( 'GET', '/oembed/1.0/embed' );
+		$request->set_param( 'url', get_permalink( $restricted_id ) );
+
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 404, $response->get_status() );
+		$this->assertStringNotContainsString( 'Xyzzy secret handbook', (string) wp_json_encode( $response->get_data() ) );
+	}
+
+	/** @testdox A holder's oEmbed request is answered as it always was. */
+	public function test_oembed_serves_a_holder(): void {
+		$restricted_id = $this->make_restricted_post( array( 'post_title' => 'Xyzzy secret handbook' ) );
+
+		$holder_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$this->writer->grant( $holder_id, 'post', (string) $restricted_id, null, 'admin' );
+
+		wp_set_current_user( $holder_id );
+
+		$request = new WP_REST_Request( 'GET', '/oembed/1.0/embed' );
+		$request->set_param( 'url', get_permalink( $restricted_id ) );
+
+		$this->assertSame( 200, rest_do_request( $request )->get_status() );
+	}
+
+	/** @testdox An unrestricted post's oEmbed response is untouched. */
+	public function test_oembed_leaves_an_unrestricted_post_alone(): void {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Ordinary post' ) );
+
+		wp_set_current_user( 0 );
+
+		$request = new WP_REST_Request( 'GET', '/oembed/1.0/embed' );
+		$request->set_param( 'url', get_permalink( $post_id ) );
+
+		$this->assertSame( 200, rest_do_request( $request )->get_status() );
+	}
+
 	/** @testdox The REST collection omits a restricted post for a non-holder. */
 	public function test_rest_collection(): void {
 		$restricted_id = $this->make_restricted_post();
