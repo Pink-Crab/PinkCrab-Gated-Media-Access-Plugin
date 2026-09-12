@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * Editing one access record: its expiry, and only its expiry.
@@ -90,26 +91,49 @@ class Edit_Access_Page implements Hookable {
 	public function render(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display; the write handler carries the nonce.
 		$access_id = isset( $_GET['access'] ) ? absint( $_GET['access'] ) : 0;
-		$record    = get_post( $access_id );
+		$message   = $this->refusal( get_post( $access_id ) );
+		$editable  = '' === $message;
 
-		printf( '<div class="wrap"><h1>%s</h1>', esc_html__( 'Edit Access', 'gated-media-access' ) );
+		View::render(
+			'admin/edit-access',
+			array(
+				'message'   => $message,
+				'access_id' => $access_id,
+				'action'    => self::ACTION,
+				'form_url'  => admin_url( 'admin-post.php' ),
+				'summary'   => $editable ? $this->summary( $access_id ) : array(),
+				'fields'    => $editable
+					? array(
+						array(
+							'type'       => 'text',
+							'input_type' => 'datetime-local',
+							'name'       => 'gatedmedia_expires',
+							'id'         => 'gatedmedia_expires',
+							'label'      => __( 'Expires', 'gated-media-access' ),
+							'value'      => $this->local_expiry( $access_id ),
+							'help'       => __( 'Clear the field for lifetime access. A past date expires the record immediately.', 'gated-media-access' ),
+						),
+					)
+					: array(),
+			)
+		);
+	}
 
+	/**
+	 * Why this record cannot be edited, or '' when it can.
+	 *
+	 * @param WP_Post|null $record What the `access` argument named.
+	 */
+	private function refusal( ?WP_Post $record ): string {
 		if ( ! $record instanceof WP_Post || Post_Types::ACCESS !== $record->post_type ) {
-			printf( '<p>%s</p></div>', esc_html__( 'No access record to edit. Pick one from the Access screen.', 'gated-media-access' ) );
-
-			return;
+			return __( 'No access record to edit. Pick one from the Access screen.', 'gated-media-access' );
 		}
 
 		if ( Post_Types::STATUS_REVOKED === $record->post_status ) {
-			printf( '<p>%s</p></div>', esc_html__( 'This record is revoked and stays that way. Grant access again from the Add Access screen instead.', 'gated-media-access' ) );
-
-			return;
+			return __( 'This record is revoked and stays that way. Grant access again from the Add Access screen instead.', 'gated-media-access' );
 		}
 
-		$this->render_summary( $access_id );
-		$this->render_form( $access_id );
-
-		echo '</div>';
+		return '';
 	}
 
 	/**
@@ -176,55 +200,47 @@ class Edit_Access_Page implements Hookable {
 	}
 
 	/**
-	 * What the record is, using the list's own cells, read-only.
+	 * What the record is, as read-only fields, using the list's own cells.
+	 *
+	 * `Access_List::render_column()` prints, so each cell is captured rather than returned.
 	 *
 	 * @param int $access_id The record.
+	 * @return array<int, array<string, mixed>>
 	 */
-	private function render_summary( int $access_id ): void {
-		echo '<table class="widefat striped" style="margin: 1em 0;"><tbody>';
-
-		$rows = array(
+	private function summary( int $access_id ): array {
+		$columns = array(
 			'gatedmedia_holder' => __( 'Holder', 'gated-media-access' ),
 			'gatedmedia_item'   => __( 'Item', 'gated-media-access' ),
 			'gatedmedia_status' => __( 'Status', 'gated-media-access' ),
 			'gatedmedia_source' => __( 'Source', 'gated-media-access' ),
 		);
 
-		foreach ( $rows as $column => $label ) {
-			printf( '<tr><th scope="row" style="width: 10em;">%s</th><td>', esc_html( $label ) );
+		$summary = array();
+
+		foreach ( $columns as $column => $label ) {
+			ob_start();
 			$this->access_list->render_column( $column, $access_id );
-			echo '</td></tr>';
+
+			$summary[] = array(
+				'type'   => 'static',
+				'label'  => $label,
+				'markup' => (string) ob_get_clean(),
+			);
 		}
 
-		echo '</tbody></table>';
+		return $summary;
 	}
 
 	/**
-	 * The expiry field, prefilled in the site's timezone.
+	 * The stored expiry as the field wants it, in the site's timezone.
 	 *
 	 * @param int $access_id The record.
 	 */
-	private function render_form( int $access_id ): void {
+	private function local_expiry( int $access_id ): string {
 		$stored = (string) get_post_meta( $access_id, Access_Writer::META_EXPIRES_AT, true );
-		$local  = '' === $stored
+
+		return '' === $stored
 			? ''
 			: ( new DateTimeImmutable( $stored, new DateTimeZone( 'UTC' ) ) )->setTimezone( wp_timezone() )->format( 'Y-m-d\TH:i' );
-		?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="<?php echo esc_attr( self::ACTION ); ?>" />
-			<input type="hidden" name="access" value="<?php echo esc_attr( (string) $access_id ); ?>" />
-			<?php wp_nonce_field( self::ACTION . '_' . $access_id ); ?>
-			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row"><label for="gatedmedia_expires"><?php esc_html_e( 'Expires', 'gated-media-access' ); ?></label></th>
-					<td>
-						<input type="datetime-local" name="gatedmedia_expires" id="gatedmedia_expires" value="<?php echo esc_attr( $local ); ?>" />
-						<p class="description"><?php esc_html_e( 'Clear the field for lifetime access. A past date expires the record immediately.', 'gated-media-access' ); ?></p>
-					</td>
-				</tr>
-			</table>
-			<?php submit_button( __( 'Update Access', 'gated-media-access' ) ); ?>
-		</form>
-		<?php
 	}
 }

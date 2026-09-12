@@ -136,6 +136,17 @@ class Test_Item_Access_Metabox extends WP_UnitTestCase {
 		$this->assertStringContainsString( Item_Access_Metabox::SAVE_NONCE, $html );
 	}
 
+	/** @testdox The box is drawn from a template, holders, grant and groups in one. */
+	public function test_the_box_renders_from_a_template(): void {
+		$post_id = self::factory()->post->create();
+		$html    = $this->render( $post_id );
+
+		$this->assertFileExists( GATEDMEDIA_DIR_PATH . 'views/admin/item-access.php' );
+		$this->assertStringContainsString( 'Nobody holds direct access', $html );
+		$this->assertStringContainsString( 'gatedmedia-inline-grant', $html );
+		$this->assertStringContainsString( 'This item is in no group', $html );
+	}
+
 	/** @testdox An inline grant for nobody writes nothing. */
 	public function test_inline_grant_refuses_no_user(): void {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );

@@ -16,6 +16,7 @@ use PinkCrab\Gated_Access\Admin\Pickers\User_Picker;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * An Access column on the restrictable list tables, and a grant inside its quick edit: pick a user, give days or lifetime, save the row.
@@ -118,22 +119,11 @@ class Quick_Edit_Grant implements Hookable {
 		}
 
 		wp_nonce_field( self::NONCE, self::NONCE, false );
-		?>
-		<fieldset class="inline-edit-col-right gatedmedia-quick-grant">
-			<div class="inline-edit-col">
-				<h4><?php esc_html_e( 'Grant access', 'gated-media-access' ); ?></h4>
-				<label class="inline-edit-group">
-					<span class="title"><?php esc_html_e( 'User', 'gated-media-access' ); ?></span>
-					<span class="input-text-wrap"><?php ( new User_Picker( 'gatedmedia_qe_user', 'gatedmedia_qe_user' ) )->render(); ?></span>
-				</label>
-				<label class="inline-edit-group">
-					<span class="title"><?php esc_html_e( 'Days', 'gated-media-access' ); ?></span>
-					<span class="input-text-wrap"><input type="number" min="1" name="gatedmedia_qe_duration" /></span>
-				</label>
-				<em class="inline-edit-group"><?php esc_html_e( 'A picked user gains access to this item when the row saves, and empty days means lifetime. Nobody picked, nothing granted.', 'gated-media-access' ); ?></em>
-			</div>
-		</fieldset>
-		<?php
+
+		View::render(
+			'admin/quick-edit-grant',
+			array( 'picker' => new User_Picker( 'gatedmedia_qe_user', 'gatedmedia_qe_user' ) )
+		);
 	}
 
 	/**

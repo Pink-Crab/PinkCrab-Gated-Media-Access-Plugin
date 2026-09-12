@@ -14,6 +14,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Registration\Capabilities;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * The same list, for one person, on their profile screen: every record they hold, whatever its status, read-only because granting and revoking live on the Access screens one link away.
@@ -48,45 +49,48 @@ class Profile_Access_List implements Hookable {
 			return;
 		}
 
-		printf( '<h2>%s</h2>', esc_html__( 'Access', 'gated-media-access' ) );
-
-		$records = $this->records_for( $user->ID );
-
-		if ( array() === $records ) {
-			printf( '<p>%s</p>', esc_html__( 'This user holds no access records.', 'gated-media-access' ) );
-
-			return;
-		}
-
-		echo '<table class="widefat striped"><thead><tr>';
-		printf(
-			'<th>%s</th><th>%s</th><th>%s</th><th>%s</th>',
-			esc_html__( 'Item', 'gated-media-access' ),
-			esc_html__( 'Status', 'gated-media-access' ),
-			esc_html__( 'Expires', 'gated-media-access' ),
-			esc_html__( 'Source', 'gated-media-access' )
+		$columns = array(
+			'gatedmedia_item'   => __( 'Item', 'gated-media-access' ),
+			'gatedmedia_status' => __( 'Status', 'gated-media-access' ),
+			'gatedmedia_expiry' => __( 'Expires', 'gated-media-access' ),
+			'gatedmedia_source' => __( 'Source', 'gated-media-access' ),
 		);
-		echo '</tr></thead><tbody>';
 
-		foreach ( $records as $access_id ) {
-			echo '<tr>';
+		View::render(
+			'admin/profile-access',
+			array(
+				'columns'    => $columns,
+				'rows'       => $this->rows( $this->records_for( $user->ID ), array_keys( $columns ) ),
+				'manage_url' => add_query_arg( 'author', $user->ID, admin_url( 'edit.php?post_type=' . Post_Types::ACCESS ) ),
+			)
+		);
+	}
 
-			foreach ( array( 'gatedmedia_item', 'gatedmedia_status', 'gatedmedia_expiry', 'gatedmedia_source' ) as $column ) {
-				echo '<td>';
+	/**
+	 * One row per record, its cells rendered exactly as the Access list renders them.
+	 *
+	 * `Access_List::render_column()` prints, so each cell is captured rather than returned.
+	 *
+	 * @param array<int, int>    $record_ids The records.
+	 * @param array<int, string> $columns    Which columns, in order.
+	 * @return array<int, array<string, string>>
+	 */
+	private function rows( array $record_ids, array $columns ): array {
+		$rows = array();
+
+		foreach ( $record_ids as $access_id ) {
+			$row = array();
+
+			foreach ( $columns as $column ) {
+				ob_start();
 				$this->access_list->render_column( $column, $access_id );
-				echo '</td>';
+				$row[ $column ] = (string) ob_get_clean();
 			}
 
-			echo '</tr>';
+			$rows[] = $row;
 		}
 
-		echo '</tbody></table>';
-
-		printf(
-			'<p><a href="%s">%s</a></p>',
-			esc_url( add_query_arg( 'author', $user->ID, admin_url( 'edit.php?post_type=' . Post_Types::ACCESS ) ) ),
-			esc_html__( 'Manage on the Access screen', 'gated-media-access' )
-		);
+		return $rows;
 	}
 
 	/**

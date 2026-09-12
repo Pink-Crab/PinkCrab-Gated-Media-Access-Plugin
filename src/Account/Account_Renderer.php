@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Account;
 
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * Draws the shell every account view sits in, and fills its main column with the current section's block.
@@ -33,54 +34,32 @@ class Account_Renderer {
 	 * @param string             $detail   The optional second URL segment.
 	 */
 	public function markup( Account_Section $current, Section_Collection $sections, string $detail = '' ): string {
-		ob_start();
-		?>
-<div class="gatedmedia gatedmedia-account alignwide">
-		<?php $this->sidebar( $current, $sections ); ?>
+		$items = $this->nav_items( $current, $sections );
 
-	<div class="gatedmedia-account__body">
-		<?php $this->tabs( $current, $sections ); ?>
-
-		<div class="gatedmedia-account__main">
-			<?php $this->page_header( $current ); ?>
-			<?php $this->section_content( $current, $detail ); ?>
-		</div>
-	</div>
-</div>
-		<?php
-		return (string) ob_get_clean();
-	}
-
-	/**
-	 * The wide sidebar. Hidden below 782px, where the tab strip replaces it.
-	 *
-	 * The "Account" wordmark is not a heading; the page's one h1 is the section title.
-	 *
-	 * @param Account_Section    $current  The section being viewed.
-	 * @param Section_Collection $sections Everything in the nav.
-	 */
-	private function sidebar( Account_Section $current, Section_Collection $sections ): void {
-		?>
-	<div class="gatedmedia-account__sidebar">
-		<div class="gatedmedia-account__brand">
-			<span class="gatedmedia-heading gatedmedia-heading--page"><?php esc_html_e( 'Account', 'gated-media-access' ); ?></span>
-			<p class="gatedmedia-text gatedmedia-text--meta"><?php esc_html_e( 'Manage your access', 'gated-media-access' ); ?></p>
-		</div>
-
-		<?php
-		$nav = Block::render(
-			'gated-media-access/account-nav',
+		return View::get(
+			'account/shell',
 			array(
-				'items'   => $this->nav_items( $current, $sections ),
-				'variant' => 'sidebar',
-				'label'   => __( 'Account', 'gated-media-access' ),
+				'nav'         => Block::render(
+					'gated-media-access/account-nav',
+					array(
+						'items'   => $items,
+						'variant' => 'sidebar',
+						'label'   => __( 'Account', 'gated-media-access' ),
+					)
+				),
+				'tabs'        => Block::render(
+					'gated-media-access/account-nav',
+					array(
+						'items'   => $items,
+						'variant' => 'tabs',
+						'label'   => __( 'Account sections', 'gated-media-access' ),
+					)
+				),
+				// My Access is drawn with no sub-line, and an empty description renders nothing rather than an empty paragraph.
+				'description' => $current->description(),
+				'content'     => $this->section_content( $current, $detail ),
 			)
 		);
-
-		echo $nav; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the nav block.
-		?>
-	</div>
-		<?php
 	}
 
 	/**
@@ -108,45 +87,6 @@ class Account_Renderer {
 	}
 
 	/**
-	 * The narrow scrolling tab strip, from the same sections as the sidebar.
-	 *
-	 * @param Account_Section    $current  The section being viewed.
-	 * @param Section_Collection $sections Everything in the nav.
-	 */
-	private function tabs( Account_Section $current, Section_Collection $sections ): void {
-		$tabs = Block::render(
-			'gated-media-access/account-nav',
-			array(
-				'items'   => $this->nav_items( $current, $sections ),
-				'variant' => 'tabs',
-				'label'   => __( 'Account sections', 'gated-media-access' ),
-			)
-		);
-
-		echo $tabs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the nav block.
-	}
-
-	/**
-	 * The line beneath the page title saying what the page is for.
-	 *
-	 * **The title itself is the theme's.** The virtual page is titled with the section, so the theme renders it as the page heading, and printing our own would put two h1s on the page.
-	 *
-	 * My Access is drawn with no sub-line, so an empty description renders nothing at all rather than an empty paragraph.
-	 *
-	 * @param Account_Section $current The section being viewed.
-	 */
-	private function page_header( Account_Section $current ): void {
-		if ( '' === $current->description() ) {
-			return;
-		}
-		?>
-			<header class="gatedmedia-page-intro">
-				<p class="gatedmedia-text gatedmedia-text--meta"><?php echo esc_html( $current->description() ); ?></p>
-			</header>
-		<?php
-	}
-
-	/**
 	 * The section's block, rendered through the block itself.
 	 *
 	 * `do_blocks()` on a block comment rather than a direct render callback, so this route and an editor-placed block go through the same code and produce the same markup.
@@ -154,19 +94,18 @@ class Account_Renderer {
 	 * @param Account_Section $current The section being viewed.
 	 * @param string          $detail  The optional second URL segment.
 	 */
-	private function section_content( Account_Section $current, string $detail ): void {
+	private function section_content( Account_Section $current, string $detail ): string {
 		$block = $current->block();
 
 		if ( ! \WP_Block_Type_Registry::get_instance()->is_registered( $block ) ) {
-			$this->missing_block( $block );
-			return;
+			return $this->missing_block( $block );
 		}
 
 		$attributes = '' === $detail
 			? ''
 			: ' ' . (string) wp_json_encode( array( 'detail' => $detail ) );
 
-		echo do_blocks( sprintf( '<!-- wp:%s%s /-->', $block, $attributes ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output is escaped by the block.
+		return do_blocks( sprintf( '<!-- wp:%s%s /-->', $block, $attributes ) );
 	}
 
 	/**
@@ -176,20 +115,14 @@ class Account_Renderer {
 	 *
 	 * @param string $block The block name that is missing.
 	 */
-	private function missing_block( string $block ): void {
+	private function missing_block( string $block ): string {
 		if ( ! ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) {
-			return;
+			return '';
 		}
 
-		printf(
-			'<div class="gatedmedia-notice gatedmedia-notice--error"><div class="gatedmedia-notice__body">%s</div></div>',
-			esc_html(
-				sprintf(
-					/* translators: %s: block name, e.g. my-plugin/subscriptions */
-					__( 'The block "%s" is not registered, so this section cannot render.', 'gated-media-access' ),
-					$block
-				)
-			)
+		return View::get(
+			'account/missing-block',
+			array( 'block' => $block )
 		);
 	}
 

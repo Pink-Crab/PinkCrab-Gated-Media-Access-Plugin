@@ -90,6 +90,7 @@ class Test_Payment_Detail_Page extends WP_UnitTestCase {
 		$html = (string) ob_get_clean();
 		unset( $_GET['payment'] );
 
+		$this->assertFileExists( GATEDMEDIA_DIR_PATH . 'views/admin/payment-detail.php' );
 		$this->assertStringContainsString( '£12.50', $html );
 		$this->assertStringContainsString( $payment->uuid, $html );
 		$this->assertStringContainsString( 'Terry Buyer', $html );

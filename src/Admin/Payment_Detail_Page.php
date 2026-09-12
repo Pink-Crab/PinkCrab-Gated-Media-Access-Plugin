@@ -20,11 +20,16 @@ use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Support\Money;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * One payment, whole: the row as Stripe left it, and the access it granted.
  *
  * Read-only like the list it hangs off, because the record of what happened is not editable. Reached from the Payments list's Reference column, and registered hidden with an empty parent rather than `remove_submenu_page()`.
+ *
+ * The markup is `views/admin/payment-detail.php`.
+ *
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects") Moving the markup out added View as a thirteenth name. One payment is read from the store, the lookup, the taxonomy and the records it wrote, and each is a real dependency of the answer.
  */
 class Payment_Detail_Page implements Hookable {
 
@@ -87,43 +92,48 @@ class Payment_Detail_Page implements Hookable {
 		$uuid    = isset( $_GET['payment'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['payment'] ) ) : '';
 		$payment = '' === $uuid ? null : $this->store->find_by_uuid( $uuid );
 
+		$payments_url = admin_url( 'admin.php?page=' . Payments_Page::PAGE_SLUG );
+
 		if ( null === $payment ) {
-			printf(
-				'<div class="wrap"><div class="gatedmedia-admin"><p>%s <a href="%s">%s</a></p></div></div>',
-				esc_html__( 'No payment found for that reference.', 'gated-media-access' ),
-				esc_url( admin_url( 'admin.php?page=' . Payments_Page::PAGE_SLUG ) ),
-				esc_html__( 'Back to Payments', 'gated-media-access' )
+			View::render(
+				'admin/payment-detail',
+				array(
+					'found'        => false,
+					'payments_url' => $payments_url,
+					'amount'       => '',
+					'status'       => '',
+					'facts'        => array(),
+					'overuse'      => '',
+					'grant_error'  => '',
+					'grants'       => array(),
+				)
 			);
 
 			return;
 		}
 
-		?>
-		<div class="wrap">
-			<div class="gatedmedia-admin">
-				<header class="gatedmedia-admin-header">
-					<div>
-						<span class="gatedmedia-admin-caps"><?php esc_html_e( 'Payment', 'gated-media-access' ); ?></span>
-						<h1><?php echo esc_html( Money::format( $payment->amount_total, $payment->currency ) ); ?></h1>
-					</div>
-					<span class="gatedmedia-admin-caps"><?php echo esc_html( $this->status_label( $payment->status ) ); ?></span>
-				</header>
-
-				<?php $this->render_row( $payment ); ?>
-				<?php $this->render_grants( $payment ); ?>
-
-				<p><a class="gatedmedia-admin-button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . Payments_Page::PAGE_SLUG ) ); ?>"><?php esc_html_e( 'Back to Payments', 'gated-media-access' ); ?></a></p>
-			</div>
-		</div>
-		<?php
+		View::render(
+			'admin/payment-detail',
+			array(
+				'found'        => true,
+				'payments_url' => $payments_url,
+				'amount'       => Money::format( $payment->amount_total, $payment->currency ),
+				'status'       => $this->status_label( $payment->status ),
+				'facts'        => $this->facts( $payment ),
+				'overuse'      => $this->overuse_message( $payment ),
+				'grant_error'  => $payment->grant_error,
+				'grants'       => $this->grant_rows( $payment ),
+			)
+		);
 	}
 
 	/**
-	 * The row's facts, labelled.
+	 * The row's facts, as read-only fields.
 	 *
 	 * @param Payment $payment The row.
+	 * @return array<int, array<string, mixed>>
 	 */
-	private function render_row( Payment $payment ): void {
+	private function facts( Payment $payment ): array {
 		$user    = get_userdata( $payment->user_id );
 		$product = get_post( $payment->product_id );
 
@@ -137,99 +147,66 @@ class Payment_Detail_Page implements Hookable {
 			__( 'Stripe intent', 'gated-media-access' )  => '' === $payment->stripe_payment_intent_id ? Money::not_applicable() : $payment->stripe_payment_intent_id,
 		);
 
-		?>
-		<div class="gatedmedia-admin-section-head">
-			<h2><?php esc_html_e( 'The payment', 'gated-media-access' ); ?></h2>
-			<span class="gatedmedia-admin-caps"><?php esc_html_e( 'As Stripe left it', 'gated-media-access' ); ?></span>
-		</div>
-		<?php
+		$fields = array();
 
 		foreach ( $facts as $label => $value ) {
-			printf(
-				'<div class="gatedmedia-admin-field"><span class="gatedmedia-admin-caps">%s</span><span>%s</span></div>',
-				esc_html( $label ),
-				esc_html( (string) $value )
+			$fields[] = array(
+				'type'  => 'static',
+				'label' => $label,
+				'value' => (string) $value,
 			);
 		}
 
-		$this->render_coupon_overuse( $payment );
+		return $fields;
 	}
 
 	/**
-	 * Says so when this payment took its coupon past a limit, and stays quiet otherwise.
+	 * Says so when this payment took its coupon past a limit, and '' otherwise.
 	 *
 	 * A checkout reserves a limited coupon only briefly, so two that overlap for longer can both complete, and nothing can be refused once Stripe has the money, so this reports rather than prevents.
 	 *
 	 * @param Payment $payment The row.
 	 */
-	private function render_coupon_overuse( Payment $payment ): void {
+	private function overuse_message( Payment $payment ): string {
 		$overuse = $this->store->coupon_overuse( $payment );
 
 		if ( null === $overuse ) {
-			return;
+			return '';
 		}
 
-		printf(
-			'<p class="gatedmedia-admin-help">%s</p>',
-			esc_html(
-				$overuse['per_user']
-					? sprintf(
-						/* translators: 1: which of this buyer's uses this was, 2: the coupon's per-buyer limit. */
-						__( 'This payment is this buyer’s use %1$d of a coupon limited to %2$d each. Two of their checkouts overlapped, and nothing was refused after the money was taken.', 'gated-media-access' ),
-						$overuse['used'],
-						$overuse['limit']
-					)
-					: sprintf(
-						/* translators: 1: which use this was, 2: the coupon's limit. */
-						__( 'This payment is use %1$d of a coupon limited to %2$d. Two checkouts overlapped, and nothing was refused after the money was taken.', 'gated-media-access' ),
-						$overuse['used'],
-						$overuse['limit']
-					)
+		return $overuse['per_user']
+			? sprintf(
+				/* translators: 1: which of this buyer's uses this was, 2: the coupon's per-buyer limit. */
+				__( 'This payment is this buyer’s use %1$d of a coupon limited to %2$d each. Two of their checkouts overlapped, and nothing was refused after the money was taken.', 'gated-media-access' ),
+				$overuse['used'],
+				$overuse['limit']
 			)
-		);
+			: sprintf(
+				/* translators: 1: which use this was, 2: the coupon's limit. */
+				__( 'This payment is use %1$d of a coupon limited to %2$d. Two checkouts overlapped, and nothing was refused after the money was taken.', 'gated-media-access' ),
+				$overuse['used'],
+				$overuse['limit']
+			);
 	}
 
 	/**
-	 * What the payment granted: every record its reference wrote, or the frozen snapshot on a pending or failed row.
+	 * What the payment granted: every record its reference wrote, as list rows.
 	 *
 	 * @param Payment $payment The row.
+	 * @return array<int, array{title: string, meta: string, url: string}>
 	 */
-	private function render_grants( Payment $payment ): void {
-		$records = $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid );
+	private function grant_rows( Payment $payment ): array {
+		$rows = array();
 
-		?>
-		<div class="gatedmedia-admin-section-head">
-			<h2><?php esc_html_e( 'Access granted', 'gated-media-access' ); ?></h2>
-			<span class="gatedmedia-admin-caps"><?php esc_html_e( 'From the frozen snapshot', 'gated-media-access' ); ?></span>
-		</div>
-		<?php
-
-		// Stripe's retries are finite, so once it gives up this is the only place the failure shows.
-		if ( '' !== $payment->grant_error ) {
-			printf(
-				'<p class="gatedmedia-admin-help">%s</p><p class="gatedmedia-admin-help">%s</p>',
-				esc_html__( 'The last attempt to grant this payment failed:', 'gated-media-access' ),
-				esc_html( $payment->grant_error )
+		foreach ( $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid ) as $access_id ) {
+			$rows[] = array(
+				'title' => $this->item_label( $access_id ),
+				'meta'  => $this->record_status( $access_id ),
+				'url'   => Edit_Access_Page::url_for( $access_id ),
 			);
 		}
 
-		if ( array() === $records ) {
-			if ( '' === $payment->grant_error ) {
-				printf( '<p class="gatedmedia-admin-help">%s</p>', esc_html__( 'Nothing granted by this payment yet.', 'gated-media-access' ) );
-			}
-
-			return;
-		}
-
-		foreach ( $records as $access_id ) {
-			printf(
-				'<div class="gatedmedia-admin-field"><span class="gatedmedia-admin-caps">%s</span><span>%s</span> <a href="%s">%s</a></div>',
-				esc_html( $this->record_status( $access_id ) ),
-				esc_html( $this->item_label( $access_id ) ),
-				esc_url( Edit_Access_Page::url_for( $access_id ) ),
-				esc_html__( 'View record', 'gated-media-access' )
-			);
-		}
+		return $rows;
 	}
 
 	/**

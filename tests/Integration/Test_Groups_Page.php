@@ -307,6 +307,85 @@ class Test_Groups_Page extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'gatedmedia_notice=no-item', $url );
 	}
 
+	/** @testdox The list draws every group as a panel, with what it holds and who holds it, from templates. */
+	public function test_list_renders_a_panel_per_group(): void {
+		[ $term_id, $uuid ] = $this->make_group( 'Reports' );
+		$post_id            = self::factory()->post->create( array( 'post_title' => 'Q3 Market Report' ) );
+		wp_set_object_terms( $post_id, array( $term_id ), Access_Taxonomy::TAXONOMY );
+
+		$holder = self::factory()->user->create( array( 'user_email' => 'holder@example.test' ) );
+		$this->writer->grant( $holder, 'group', $uuid, null, 'admin' );
+
+		$html = $this->render();
+
+		$this->assertFileExists( GATEDMEDIA_DIR_PATH . 'views/admin/groups/index.php' );
+		$this->assertStringContainsString( 'gatedmedia-admin-panel', $html );
+		$this->assertStringContainsString( 'Reports', $html );
+		$this->assertStringContainsString( 'Q3 Market Report', $html );
+		$this->assertStringContainsString( 'holder@example.test', $html );
+		$this->assertStringContainsString( '1 item', $html );
+		$this->assertStringContainsString( '1 with access', $html );
+	}
+
+	/** @testdox With no groups the list says so rather than drawing an empty panel. */
+	public function test_list_with_no_groups(): void {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'No groups yet.', $html );
+		$this->assertStringNotContainsString( 'gatedmedia-admin-panel', $html );
+	}
+
+	/** @testdox One group's page draws its name, its contents with a remove control, and its holders. */
+	public function test_edit_renders_the_group(): void {
+		[ $term_id, $uuid ] = $this->make_group( 'Handbooks' );
+		$post_id            = self::factory()->post->create( array( 'post_title' => 'Staff Handbook' ) );
+		wp_set_object_terms( $post_id, array( $term_id ), Access_Taxonomy::TAXONOMY );
+
+		$holder = self::factory()->user->create( array( 'user_email' => 'reader@example.test' ) );
+		$this->writer->grant( $holder, 'group', $uuid, null, 'admin' );
+
+		$html = $this->render( Groups_Page::MODE_EDIT, $uuid );
+
+		$this->assertFileExists( GATEDMEDIA_DIR_PATH . 'views/admin/groups/edit.php' );
+		$this->assertStringContainsString( 'name="group_name"', $html );
+		$this->assertStringContainsString( 'value="Handbooks"', $html );
+		$this->assertStringContainsString( 'Staff Handbook', $html );
+		$this->assertStringContainsString( 'reader@example.test', $html );
+		$this->assertStringContainsString( 'value="remove"', $html );
+		$this->assertStringContainsString( Group_Actions::ITEM_ACTION, $html );
+	}
+
+	/** @testdox A notice from a write is drawn on the screen it redirected back to. */
+	public function test_notice_renders_from_the_flag(): void {
+		$_GET['gatedmedia_notice'] = 'created';
+
+		$html = $this->render();
+
+		unset( $_GET['gatedmedia_notice'] );
+
+		$this->assertStringContainsString( 'Group created.', $html );
+		$this->assertStringContainsString( 'notice-success', $html );
+	}
+
+	/**
+	 * The screen's markup, in whichever mode.
+	 *
+	 * @param string $mode The `mode` argument, '' for the list.
+	 * @param string $uuid The group, when editing one.
+	 */
+	private function render( string $mode = '', string $uuid = '' ): string {
+		$_GET['mode']  = $mode;
+		$_GET['group'] = $uuid;
+
+		ob_start();
+		$this->page->render();
+		$html = (string) ob_get_clean();
+
+		unset( $_GET['mode'], $_GET['group'] );
+
+		return $html;
+	}
+
 	/** @testdox Each group has a URL of its own, carrying the mode and the group. */
 	public function test_a_group_has_its_own_url(): void {
 		$url = Groups_Page::url_for( 'abc-123' );

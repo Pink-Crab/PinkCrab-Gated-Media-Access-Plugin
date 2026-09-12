@@ -14,6 +14,7 @@ use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Payments\Payment_Store;
 use PinkCrab\Gated_Access\Registration\Capabilities;
 use PinkCrab\Gated_Access\Settings\Settings_Page;
+use PinkCrab\Gated_Access\Support\View;
 
 /**
  * The Payments submenu entry and its read-only list, behind `gatedmedia_view_payments`.
@@ -60,12 +61,8 @@ class Payments_Page implements Hookable {
 	public function render(): void {
 		$table = $this->build_table();
 		$table->prepare_items();
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Payments', 'gated-media-access' ); ?></h1>
-			<?php $table->display(); ?>
-		</div>
-		<?php
+
+		View::render( 'admin/payments', array( 'table' => $table ) );
 	}
 
 	/**
