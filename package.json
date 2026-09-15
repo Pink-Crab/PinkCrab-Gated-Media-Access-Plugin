@@ -1,6 +1,6 @@
 {
 	"name": "gated-media-access",
-	"version": "0.1.0",
+	"version": "0.1.0-RC1",
 	"private": true,
 	"description": "Gated access to documents, media and posts. Front end assets and blocks.",
 	"homepage": "https://github.com/Pink-Crab/gated-media-access",
