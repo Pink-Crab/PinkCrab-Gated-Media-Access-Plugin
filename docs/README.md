@@ -9,3 +9,4 @@ What the plugin looks like in use. Every image is a capture of the real thing on
 | [Signing in](signing-in.md) | The plugin's own sign in, sign up and password reset |
 | [Administration](administration.md) | Access records, groups, products, payments and settings |
 | [Hooks](hooks.md) | Every filter and action, what it passes and how to use it |
+| [Customising](customising.md) | Restyling the front end with CSS, block filters and the plugin's own filters |
