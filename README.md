@@ -199,6 +199,19 @@ The sixteen interface pieces the account area is built from are ordinary
 blocks, so `render_block_gated-media-access/row` and its siblings let you
 change how anything draws without a filter of ours.
 
+### Restyling
+
+The whole front end can be restyled from a plugin of your own, with CSS, block
+filters and the plugin's own filters, leaving the theme alone.
+[gated-media-access-restyle](https://github.com/gin0115/gated-media-access-restyle)
+does exactly that, and [`docs/customising.md`](docs/customising.md) shows how.
+**[Try it in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/gin0115/gated-media-access-restyle/main/blueprint.json)**.
+
+| | |
+|---|---|
+| ![My Access, before](docs/images/restyle-before-my-access.jpg) | ![My Access, restyled](docs/images/restyle-after-my-access.jpg) |
+| As shipped | Restyled |
+
 ## Development
 
 ```bash
@@ -230,3 +243,4 @@ Publishing a release builds the installable zip and attaches it to that release.
 | [Buying access](docs/buying.md) | The product page, coupons, free products, and the wait for Stripe |
 | [Signing in](docs/signing-in.md) | Sign in, sign up and password reset |
 | [Administration](docs/administration.md) | Access records, groups, products, payments and settings |
+| [Customising](docs/customising.md) | Restyling the front end with CSS, block filters and the plugin's own filters |
