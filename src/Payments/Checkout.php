@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Products\Product_Meta;
 use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Support\Account_Url;
+use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
  * The order of operations is the whole point: the payment row is created *before* the person leaves for Stripe, so the confirmation has something to attach to and the return page something to poll.
@@ -45,8 +46,9 @@ class Checkout {
 	 * @param Access_Writer  $writer   The one writer of access records.
 	 * @param Stripe_Gateway $gateway  The one class that talks to Stripe.
 	 * @param Resolver       $resolver What the claimant can already see.
+	 * @param Settings       $settings Says whether a signed-out visitor may buy.
 	 */
-	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway, private Resolver $resolver ) {
+	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway, private Resolver $resolver, private Settings $settings ) {
 		// Built here rather than injected: they are calculations over the same store, with no lifecycle of their own and nobody else resolving them.
 		$this->holds   = new Coupon_Hold();
 		$this->coupons = new Coupon_Pricing( $store, $this->holds );
@@ -87,11 +89,26 @@ class Checkout {
 
 		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
 
+		if ( 0 === $user_id && ! $this->guest_may_buy( $price ) ) {
+			return new WP_Error( 'gatedmedia_needs_account', __( 'Sign in to continue.', 'gated-media-access' ) );
+		}
+
 		if ( 0 === $price ) {
 			return $this->claim_free( $product, $user_id );
 		}
 
 		return $this->priced_purchase( $product, $user_id, $price, $coupon_code );
+	}
+
+	/**
+	 * Whether a signed-out visitor may go through with this purchase.
+	 *
+	 * Only where the site makes accounts at purchase, and only for something priced: the account is made when the payment completes, so a free product has no completion to make it at, and granting to nobody would write a record held by user 0.
+	 *
+	 * @param int $price The product's price in minor units.
+	 */
+	public function guest_may_buy( int $price ): bool {
+		return 0 !== $price && Settings::ACCOUNT_CREATION_PURCHASE === $this->settings->account_creation();
 	}
 
 	/**

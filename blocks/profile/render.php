@@ -22,6 +22,7 @@
 declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
 
 defined( 'ABSPATH' ) || exit;
@@ -59,7 +60,7 @@ if ( $gatedmedia_is_saved ) {
 		'gated-media-access/notice',
 		array(
 			'kind' => 'success',
-			'text' => __( 'Your details have been saved.', 'gated-media-access' ),
+			'text' => Labels::text( 'account.profile.saved' ),
 		)
 	);
 } elseif ( $gatedmedia_is_forced ) {
@@ -67,7 +68,7 @@ if ( $gatedmedia_is_saved ) {
 		'gated-media-access/notice',
 		array(
 			'kind' => 'info',
-			'text' => __( 'Please complete your details before continuing.', 'gated-media-access' ),
+			'text' => Labels::text( 'account.profile.required' ),
 			// Deliberately not dismissible, which is what makes it forced.
 		)
 	);
@@ -76,7 +77,7 @@ if ( $gatedmedia_is_saved ) {
 		'gated-media-access/notice',
 		array(
 			'kind'        => 'info',
-			'text'        => __( 'Your profile is incomplete.', 'gated-media-access' ),
+			'text'        => Labels::text( 'account.profile.incomplete' ),
 			'dismissible' => true,
 		)
 	);
@@ -89,11 +90,11 @@ $gatedmedia_inputs = Block::render(
 	'gated-media-access/field',
 	array(
 		'name'     => 'email',
-		'label'    => __( 'Email', 'gated-media-access' ),
+		'label'    => Labels::text( 'account.profile.email' ),
 		'type'     => 'email',
 		'value'    => $gatedmedia_user->user_email,
 		'disabled' => true,
-		'message'  => __( 'Your email cannot be changed here.', 'gated-media-access' ),
+		'message'  => Labels::text( 'account.profile.email_note' ),
 	)
 );
 
@@ -114,13 +115,13 @@ foreach ( $gatedmedia_shown as $gatedmedia_key => $gatedmedia_field ) {
 $gatedmedia_actions = Block::render(
 	'gated-media-access/button',
 	array(
-		'label' => __( 'Save', 'gated-media-access' ),
+		'label' => Labels::text( 'account.profile.save' ),
 		'type'  => 'submit',
 	)
 ) . Block::render(
 	'gated-media-access/button',
 	array(
-		'label'   => __( 'Cancel', 'gated-media-access' ),
+		'label'   => Labels::text( 'account.profile.cancel' ),
 		'href'    => remove_query_arg( 'profile' ),
 		'variant' => 'link',
 	)

@@ -166,6 +166,18 @@ class Stripe_Webhook implements Hookable {
 			return null;
 		}
 
+		if ( 0 === $payment->user_id ) {
+			$claimed = $this->claim_for_buyer( $payment, $session );
+
+			if ( $claimed instanceof WP_Error ) {
+				$this->store->record_grant_error( $uuid, $claimed->get_error_message() );
+
+				return $claimed;
+			}
+
+			$payment = $claimed;
+		}
+
 		$failed = $this->checkout->grant_snapshot( $payment );
 
 		if ( $failed instanceof WP_Error ) {
@@ -194,6 +206,77 @@ class Stripe_Webhook implements Hookable {
 		do_action( 'gatedmedia_payment_completed', $payment->payment_id );
 
 		return null;
+	}
+
+	/**
+	 * Gives a row that was bought signed out the account it belongs to.
+	 *
+	 * The buyer was nobody when they pressed buy, so the address Stripe collected on its own page is the first the site hears of them. An address that already has an account gets that account rather than a second one, because the same person typing the same address twice is one person.
+	 *
+	 * A failure here comes back as an error, so the row stays pending and Stripe delivers again, rather than stranding a payment nobody can claim.
+	 *
+	 * @param Payment              $payment The row with no user.
+	 * @param \Stripe\StripeObject $session The event's checkout session.
+	 * @return Payment|WP_Error The row naming its buyer, or why it could not.
+	 */
+	private function claim_for_buyer( Payment $payment, \Stripe\StripeObject $session ): Payment|WP_Error {
+		$details = $session['customer_details'] ?? null;
+		$email   = null === $details ? '' : (string) ( $details['email'] ?? '' );
+		$email   = '' === $email ? (string) ( $session['customer_email'] ?? '' ) : $email;
+
+		if ( false === is_email( $email ) ) {
+			return new WP_Error( 'gatedmedia_no_buyer_email', 'The completed session carried no address to make an account from.' );
+		}
+
+		$existing = get_user_by( 'email', $email );
+		$user_id  = false === $existing ? $this->register_buyer( $email ) : (int) $existing->ID;
+
+		if ( $user_id instanceof WP_Error ) {
+			return $user_id;
+		}
+
+		if ( ! $this->store->assign_user( $payment->uuid, $user_id ) ) {
+			return new WP_Error( 'gatedmedia_buyer_not_stored', 'The buyer could not be recorded against the payment.' );
+		}
+
+		$claimed = $this->store->find_by_uuid( $payment->uuid );
+
+		return null === $claimed ? new WP_Error( 'gatedmedia_payment_gone', 'The payment vanished while its buyer was being recorded.' ) : $claimed;
+	}
+
+	/**
+	 * A new account for an address that has none, named by the address alone since Stripe collects nothing else.
+	 *
+	 * @param string $email What the buyer typed on Stripe's page.
+	 * @return int|WP_Error The new user, or why there is none.
+	 */
+	private function register_buyer( string $email ): int|WP_Error {
+		$login = sanitize_user( (string) strstr( $email, '@', true ), true );
+		$login = '' === $login ? 'buyer' : $login;
+		$login = false === username_exists( $login ) ? $login : $login . '-' . wp_generate_password( 6, false, false );
+
+		$user_id = wp_insert_user(
+			array(
+				'user_login' => $login,
+				'user_email' => $email,
+				'user_pass'  => wp_generate_password( 24 ),
+				'role'       => get_option( 'default_role', 'subscriber' ),
+			)
+		);
+
+		if ( $user_id instanceof WP_Error ) {
+			return $user_id;
+		}
+
+		/**
+		 * Fires when a purchase has made an account for a buyer who had none.
+		 *
+		 * @param int    $user_id The new account.
+		 * @param string $email   The address it was made from.
+		 */
+		do_action( 'gatedmedia_buyer_registered', (int) $user_id, $email );
+
+		return (int) $user_id;
 	}
 
 	/**

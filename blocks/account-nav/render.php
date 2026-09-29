@@ -17,6 +17,8 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Labels;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_items = isset( $attributes['items'] ) && is_array( $attributes['items'] )
@@ -33,7 +35,7 @@ $gatedmedia_base = $gatedmedia_tabs ? 'gatedmedia-tab-strip' : 'gatedmedia-accou
 
 $gatedmedia_label = isset( $attributes['label'] ) && '' !== $attributes['label']
 	? (string) $attributes['label']
-	: __( 'Account', 'gated-media-access' );
+	: Labels::text( 'account.brand.title' );
 ?>
 <nav
 	<?php echo wp_kses_data( get_block_wrapper_attributes( array( 'class' => $gatedmedia_base ) ) ); ?>

@@ -21,6 +21,7 @@ use PinkCrab\Gated_Access\Products\Product_Offer;
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 use PinkCrab\Gated_Access\Support\Money;
 
 defined( 'ABSPATH' ) || exit;
@@ -86,7 +87,7 @@ if ( array() !== $gatedmedia_items ) {
 		. '<section class="gatedmedia-section">'
 		. Block::render(
 			'gated-media-access/section-heading',
-			array( 'text' => __( 'What you get', 'gated-media-access' ) )
+			array( 'text' => Labels::text( 'product.contents.heading' ) )
 		)
 		. Block::render(
 			'gated-media-access/contents',
@@ -131,12 +132,12 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		'gated-media-access/notice',
 		array(
 			'kind' => 'success',
-			'text' => __( 'You already have this.', 'gated-media-access' ),
+			'text' => Labels::text( 'product.held.notice' ),
 		)
 	) . Block::render(
 		'gated-media-access/button',
 		array(
-			'label'   => __( 'View your access', 'gated-media-access' ),
+			'label'   => Labels::text( 'product.held.button' ),
 			'href'    => Account_Url::section( 'my-access' ),
 			'variant' => 'secondary',
 		)
@@ -146,29 +147,37 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 		'gated-media-access/notice',
 		array(
 			'kind' => 'info',
-			'text' => __( 'This is only available to invited email addresses. If you were sent an invitation, sign in with that address.', 'gated-media-access' ),
+			'text' => Labels::text( 'product.ineligible.notice' ),
 		)
 	);
 } elseif ( Product_Offer::STATE_SIGNED_OUT === $gatedmedia_state ) {
 	// Two controls, two destinations. The submit posts the buy form, so the product and coupon travel with it and `Checkout_Action::require_login()` picks the auth state.
 	$gatedmedia_signup_offered = true === ( $gatedmedia_data['signup_offered'] ?? false );
+	$gatedmedia_guest_buys     = true === ( $gatedmedia_data['guest_checkout'] ?? false );
+
+	if ( $gatedmedia_guest_buys ) {
+		// The account is made from the address they give Stripe, so there is nothing to do here first.
+		$gatedmedia_label = Labels::text( 'product.button.paid' );
+	} elseif ( $gatedmedia_signup_offered ) {
+		$gatedmedia_label = Labels::text( 'product.button.signup' );
+	} else {
+		$gatedmedia_label = Labels::text( 'product.button.signin' );
+	}
 
 	$gatedmedia_signed_out = Block::render(
 		'gated-media-access/button',
 		array(
-			'label' => $gatedmedia_signup_offered
-				? __( 'Create an account to continue', 'gated-media-access' )
-				: __( 'Sign in to continue', 'gated-media-access' ),
+			'label' => $gatedmedia_label,
 			'type'  => 'submit',
 			'full'  => true,
 		)
 	);
 
-	if ( $gatedmedia_signup_offered ) {
+	if ( $gatedmedia_signup_offered || $gatedmedia_guest_buys ) {
 		$gatedmedia_signed_out .= Block::render(
 			'gated-media-access/button',
 			array(
-				'label'   => __( 'Already have an account? Sign in', 'gated-media-access' ),
+				'label'   => Labels::text( 'product.button.have_account' ),
 				'href'    => Auth_Url::signin( (string) ( $gatedmedia_data['page_url'] ?? '' ) ),
 				'variant' => 'secondary',
 				'full'    => true,
@@ -191,7 +200,7 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 			'gated-media-access/notice',
 			array(
 				'kind' => 'info',
-				'text' => __( 'Your access to this has ended.', 'gated-media-access' ),
+				'text' => Labels::text( 'product.lapsed.notice' ),
 			)
 		)
 		: '';
@@ -228,8 +237,8 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 			Block::render(
 				'gated-media-access/coupon',
 				array(
-					'label'      => __( 'Coupon code', 'gated-media-access' ),
-					'applyLabel' => __( 'Apply', 'gated-media-access' ),
+					'label'      => Labels::text( 'coupon.field.label' ),
+					'applyLabel' => Labels::text( 'coupon.button.apply' ),
 					'code'       => $gatedmedia_code,
 					'applied'    => $gatedmedia_applied,
 					'discount'   => $gatedmedia_applied
@@ -262,8 +271,8 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 			'gated-media-access/button',
 			array(
 				'label' => $gatedmedia_free
-					? __( 'Join', 'gated-media-access' )
-					: __( 'Get access', 'gated-media-access' ),
+					? Labels::text( 'product.button.free' )
+					: Labels::text( 'product.button.paid' ),
 				'type'  => 'submit',
 				'full'  => true,
 			)
@@ -279,8 +288,7 @@ if ( $gatedmedia_price > 0
 		'gated-media-access/action-bar',
 		array(
 			'label' => sprintf(
-				/* translators: %s: the price, already formatted. */
-				__( 'Get access, %s', 'gated-media-access' ),
+				Labels::text( 'product.button.priced' ),
 				Money::format(
 					$gatedmedia_applied ? (int) $gatedmedia_coupon_data['total'] : $gatedmedia_price,
 					$gatedmedia_currency

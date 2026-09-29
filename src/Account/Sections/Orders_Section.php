@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Account\Sections;
 
 use PinkCrab\Gated_Access\Account\Account_Section;
+use PinkCrab\Gated_Access\Support\Labels;
 
 /**
  * The record of what was taken and when.
@@ -29,21 +30,21 @@ class Orders_Section implements Account_Section {
 	 * The page title.
 	 */
 	public function title(): string {
-		return __( 'Orders', 'gated-media-access' );
+		return Labels::text( 'account.section.orders' );
 	}
 
 	/**
 	 * The line beneath the title.
 	 */
 	public function description(): string {
-		return __( 'What you have taken, and when.', 'gated-media-access' );
+		return Labels::text( 'account.orders.note' );
 	}
 
 	/**
 	 * The nav label.
 	 */
 	public function menu_label(): string {
-		return __( 'Orders', 'gated-media-access' );
+		return Labels::text( 'account.section.orders' );
 	}
 
 	/**

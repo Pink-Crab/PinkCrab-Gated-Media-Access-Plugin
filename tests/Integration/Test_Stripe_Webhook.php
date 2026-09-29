@@ -67,7 +67,7 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		$this->post_item = self::factory()->post->create();
 
 		$gateway  = new Stripe_Gateway( new Settings() );
-		$checkout = new Checkout( $this->store, $writer, $gateway, new Resolver( new Access_Taxonomy() ) );
+		$checkout = new Checkout( $this->store, $writer, $gateway, new Resolver( new Access_Taxonomy() ), new Settings() );
 
 		global $wp_rest_server;
 		$wp_rest_server = new WP_REST_Server();
@@ -305,6 +305,64 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * @testdox A guest payment makes the account from the address Stripe collected, and grants to it.
+	 *
+	 * The row is written with no user, because when a signed-out visitor
+	 * pressed buy there was nobody to name. Stripe collects the address on its
+	 * own page, so the completion is the first moment the buyer is known.
+	 */
+	public function test_a_guest_payment_creates_the_account_and_grants_to_it(): void {
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		$payment    = $this->store->create_pending( 0, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ) );
+
+		$this->deliver( (string) wp_json_encode( $this->guest_completion( $payment->uuid, 'new.buyer@example.test' ) ) );
+
+		$created = get_user_by( 'email', 'new.buyer@example.test' );
+
+		$this->assertInstanceOf( \WP_User::class, $created, 'the buyer paid, so they must end up with an account' );
+
+		$read = $this->store->find_by_uuid( $payment->uuid );
+
+		$this->assertSame( Payment::STATUS_COMPLETE, $read->status );
+		$this->assertSame( (int) $created->ID, $read->user_id, 'the row must name who it turned out to belong to' );
+
+		$records = $this->lookup->records_for_reference( Checkout::SOURCE_STRIPE, $payment->uuid );
+
+		$this->assertCount( 1, $records );
+		$this->assertSame( (int) $created->ID, (int) get_post_field( 'post_author', $records[0] ) );
+	}
+
+	/** @testdox A guest payment from an address that already has an account grants to that account. */
+	public function test_a_guest_payment_reuses_an_existing_account(): void {
+		$existing = self::factory()->user->create( array( 'user_email' => 'known@example.test' ) );
+		$before   = count_users()['total_users'];
+
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		$payment    = $this->store->create_pending( 0, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ) );
+
+		$this->deliver( (string) wp_json_encode( $this->guest_completion( $payment->uuid, 'known@example.test' ) ) );
+
+		$this->assertSame( $before, count_users()['total_users'], 'a second account for the same address is a duplicate person' );
+		$this->assertSame( $existing, $this->store->find_by_uuid( $payment->uuid )->user_id );
+	}
+
+	/**
+	 * @testdox A guest payment with no address stays pending and asks Stripe to deliver again.
+	 *
+	 * There is no one to grant to and no way to make an account, so completing
+	 * the row would strand a payment nobody can claim.
+	 */
+	public function test_a_guest_payment_without_an_address_is_retried(): void {
+		$product_id = self::factory()->post->create( array( 'post_type' => Post_Types::PRODUCT ) );
+		$payment    = $this->store->create_pending( 0, $product_id, 1000, 'GBP', array( "post:{$this->post_item}" ) );
+
+		$response = $this->deliver( (string) wp_json_encode( $this->guest_completion( $payment->uuid ) ) );
+
+		$this->assertSame( 500, $response->get_status() );
+		$this->assertSame( Payment::STATUS_PENDING, $this->store->find_by_uuid( $payment->uuid )->status );
+	}
+
 	/** @testdox A confirmation for a payment that is not ours is acknowledged and ignored. */
 	public function test_unknown_payment_is_ignored(): void {
 		$body = (string) wp_json_encode( $this->completed_event( '00000000-0000-4000-8000-000000000000' ) );
@@ -471,6 +529,23 @@ class Test_Stripe_Webhook extends WP_UnitTestCase {
 	 */
 	private function completed_event( string $uuid, string $payment_status = 'paid' ): array {
 		return $this->session_event( 'checkout.session.completed', $uuid, $payment_status );
+	}
+
+	/**
+	 * A completion for a row with no user, carrying the address Stripe collected on its own page.
+	 *
+	 * @param string $uuid  The payment it confirms.
+	 * @param string $email What the buyer typed, '' to leave the field out.
+	 * @return array<string, mixed>
+	 */
+	private function guest_completion( string $uuid, string $email = '' ): array {
+		$session = $this->session_event( 'checkout.session.completed', $uuid );
+
+		if ( '' !== $email ) {
+			$session['data']['object']['customer_details'] = array( 'email' => $email );
+		}
+
+		return $session;
 	}
 
 	/**

@@ -17,6 +17,8 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Labels;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_code = isset( $attributes['code'] ) ? (string) $attributes['code'] : '';
@@ -30,7 +32,7 @@ if ( true === ( $attributes['applied'] ?? false ) && '' !== $gatedmedia_code ) {
 			'<!-- wp:gated-media-access/button %s /-->',
 			(string) wp_json_encode(
 				array(
-					'label'   => __( 'Remove', 'gated-media-access' ),
+					'label'   => Labels::text( 'coupon.button.remove' ),
 					'href'    => isset( $attributes['removeHref'] ) ? (string) $attributes['removeHref'] : '',
 					'variant' => 'link',
 				)
@@ -45,10 +47,8 @@ if ( true === ( $attributes['applied'] ?? false ) && '' !== $gatedmedia_code ) {
 			<?php
 			echo esc_html(
 				'' !== $gatedmedia_discount
-					/* translators: 1: coupon code, 2: what it took off, e.g. £12.25. */
-					? sprintf( __( '%1$s applied, %2$s off', 'gated-media-access' ), $gatedmedia_code, $gatedmedia_discount )
-					/* translators: %s: coupon code. */
-					: sprintf( __( '%s applied', 'gated-media-access' ), $gatedmedia_code )
+					? sprintf( Labels::text( 'coupon.applied.with_amount' ), $gatedmedia_code, $gatedmedia_discount )
+					: sprintf( Labels::text( 'coupon.applied.plain' ), $gatedmedia_code )
 			);
 			?>
 		</span>
@@ -61,11 +61,11 @@ if ( true === ( $attributes['applied'] ?? false ) && '' !== $gatedmedia_code ) {
 
 $gatedmedia_label = isset( $attributes['label'] ) && '' !== $attributes['label']
 	? (string) $attributes['label']
-	: __( 'Coupon code', 'gated-media-access' );
+	: Labels::text( 'coupon.field.label' );
 
 $gatedmedia_apply = isset( $attributes['applyLabel'] ) && '' !== $attributes['applyLabel']
 	? (string) $attributes['applyLabel']
-	: __( 'Apply', 'gated-media-access' );
+	: Labels::text( 'coupon.button.apply' );
 
 $gatedmedia_field = do_blocks(
 	sprintf(

@@ -20,6 +20,7 @@
 declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -51,31 +52,31 @@ $gatedmedia_past        = $gatedmedia_data['past'];
 $gatedmedia_types = array(
 	array(
 		'value' => 'all',
-		'label' => __( 'All', 'gated-media-access' ),
+		'label' => Labels::text( 'files.filter.all' ),
 	),
 	array(
 		'value' => 'pdf',
-		'label' => __( 'PDF', 'gated-media-access' ),
+		'label' => Labels::text( 'files.filter.pdf' ),
 	),
 	array(
 		'value' => 'video',
-		'label' => __( 'Video', 'gated-media-access' ),
+		'label' => Labels::text( 'files.filter.video' ),
 	),
 	array(
 		'value' => 'zip',
-		'label' => __( 'ZIP', 'gated-media-access' ),
+		'label' => Labels::text( 'files.filter.zip' ),
 	),
 	array(
 		'value' => 'audio',
-		'label' => __( 'Audio', 'gated-media-access' ),
+		'label' => Labels::text( 'files.filter.audio' ),
 	),
 );
 
 $gatedmedia_filter = Block::render(
 	'gated-media-access/filter',
 	array(
-		'searchLabel' => __( 'Search files', 'gated-media-access' ),
-		'typeLabel'   => __( 'Filter by type', 'gated-media-access' ),
+		'searchLabel' => Labels::text( 'files.search.placeholder' ),
+		'typeLabel'   => Labels::text( 'files.filter.label' ),
 		'types'       => $gatedmedia_types,
 		'active'      => 'all',
 	)
@@ -97,7 +98,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 				'meta'             => (string) ( $item['meta'] ?? '' ),
 				'state'            => 'unavailable',
 				'filterType'       => (string) ( $item['type'] ?? '' ),
-				'unavailableLabel' => __( 'No longer available', 'gated-media-access' ),
+				'unavailableLabel' => Labels::text( 'files.state.gone' ),
 			)
 		);
 	}
@@ -114,12 +115,12 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 	$aside .= 'downloading' === $section
 		? sprintf(
 			'<span class="gatedmedia-text gatedmedia-text--meta" role="status">%s</span>',
-			esc_html__( 'Downloading…', 'gated-media-access' )
+			esc_html( Labels::text( 'files.button.downloading' ) )
 		)
 		: Block::render(
 			'gated-media-access/button',
 			array(
-				'label'   => __( 'Download', 'gated-media-access' ),
+				'label'   => Labels::text( 'files.button.download' ),
 				'href'    => (string) ( $item['href'] ?? '' ),
 				'variant' => 'secondary',
 				'icon'    => 'i-download',
@@ -132,7 +133,7 @@ $gatedmedia_row = static function ( array $item, string $section ): string {
 			'title'       => (string) ( $item['title'] ?? '' ),
 			'meta'        => (string) ( $item['meta'] ?? '' ),
 			'filterType'  => (string) ( $item['type'] ?? '' ),
-			'actionLabel' => 'available' === $section ? __( 'Download', 'gated-media-access' ) : '',
+			'actionLabel' => 'available' === $section ? Labels::text( 'files.button.download' ) : '',
 			'actionHref'  => (string) ( $item['href'] ?? '' ),
 			'actionIcon'  => 'i-download',
 		),
@@ -165,17 +166,17 @@ $gatedmedia_section = static function ( string $heading, array $items, string $s
 		. '</section>';
 };
 
-$gatedmedia_body = $gatedmedia_section( __( 'Available', 'gated-media-access' ), $gatedmedia_available, 'available', $gatedmedia_row )
-	. $gatedmedia_section( __( 'Downloading', 'gated-media-access' ), $gatedmedia_downloading, 'downloading', $gatedmedia_row )
-	. $gatedmedia_section( __( 'Past access', 'gated-media-access' ), $gatedmedia_past, 'past', $gatedmedia_row );
+$gatedmedia_body = $gatedmedia_section( Labels::text( 'files.state.available' ), $gatedmedia_available, 'available', $gatedmedia_row )
+	. $gatedmedia_section( Labels::text( 'files.state.downloading' ), $gatedmedia_downloading, 'downloading', $gatedmedia_row )
+	. $gatedmedia_section( Labels::text( 'files.state.past' ), $gatedmedia_past, 'past', $gatedmedia_row );
 
 if ( '' === $gatedmedia_body ) {
 	$gatedmedia_body = Block::render(
 		'gated-media-access/empty-state',
 		array(
 			'icon'    => 'i-files',
-			'title'   => __( 'No files yet', 'gated-media-access' ),
-			'message' => __( 'Files you are given access to will appear here, ready to download.', 'gated-media-access' ),
+			'title'   => Labels::text( 'files.empty' ),
+			'message' => Labels::text( 'files.empty_note' ),
 		)
 	);
 }

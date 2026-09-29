@@ -16,6 +16,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
 use PinkCrab\Gated_Access\Registration\Capabilities;
+use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
  * A restricted post with no access is a hard 404 with no clues, absent from archives, search, REST and sitemaps, while the restricted posts a person does hold stay visible everywhere.
@@ -23,6 +24,8 @@ use PinkCrab\Gated_Access\Registration\Capabilities;
  * The exclusion is "not restricted, or one of these IDs": one term lookup for the marker's objects, the resolver's allowed items for the holder's IDs, and the difference lands in `post__not_in` on every front-of-site query. The 404 and the REST refusal guard the two ways of asking for a post by name.
  *
  * Known edge, accepted: WP_Query ignores `post__not_in` when `p` or `post__in` is set. Singular requests are re-caught on `wp` and REST items at rest_prepare, so an explicit-ID listing is the one surface that can still list a blocked post.
+ *
+ * One opening, off by default: with `admin_preview` on, whoever may edit the post can open it by its URL and is told they are only seeing it as an editor. It covers the direct URL alone, so listings and search hide the post either way.
  */
 class Post_Boundary implements Hookable {
 
@@ -36,12 +39,20 @@ class Post_Boundary implements Hookable {
 	private bool $building = false;
 
 	/**
+	 * The post this request is being shown only because the viewer may edit it, 0 when that is not what happened.
+	 *
+	 * @var int
+	 */
+	private int $previewing = 0;
+
+	/**
 	 * Access decisions come from the resolver, the marker term from `Restriction`.
 	 *
 	 * @param Resolver    $resolver    The last word on who sees what.
 	 * @param Restriction $restriction Owns the marker term.
+	 * @param Settings    $settings    Says whether editors may preview.
 	 */
-	public function __construct( private Resolver $resolver, private Restriction $restriction ) {
+	public function __construct( private Resolver $resolver, private Restriction $restriction, private Settings $settings ) {
 	}
 
 	/**
@@ -57,6 +68,7 @@ class Post_Boundary implements Hookable {
 		$loader->action( 'init', array( $this, 'attach_rest_refusals' ), 1, 20 );
 		// oEmbed builds its own response and never runs rest_prepare, so it refuses on its own hook.
 		$loader->filter( 'oembed_request_post_id', array( $this, 'refuse_oembed' ), 2 );
+		$loader->filter( 'the_content', array( $this, 'announce_bypass' ) );
 	}
 
 	/**
@@ -108,6 +120,12 @@ class Post_Boundary implements Hookable {
 			return;
 		}
 
+		if ( $this->may_bypass( (int) $queried->ID ) ) {
+			$this->previewing = (int) $queried->ID;
+
+			return;
+		}
+
 		global $wp_query;
 
 		$wp_query->set_404();
@@ -123,6 +141,48 @@ class Post_Boundary implements Hookable {
 
 		// Or redirect_canonical 301s the 404 to the pretty slug, which is a clue.
 		add_filter( 'redirect_canonical', '__return_false' );
+	}
+
+	/**
+	 * Whether this viewer may open a blocked post anyway.
+	 *
+	 * The setting alone is not the answer: it decides whether whoever may edit the post gets in, and the filter then has the last word either way, so a site can open the boundary to a role we do not know about or close it to editors it does not trust.
+	 *
+	 * @param int $post_id The blocked post.
+	 */
+	private function may_bypass( int $post_id ): bool {
+		$user_id = get_current_user_id();
+		$allowed = $this->settings->admin_preview() && current_user_can( 'edit_post', $post_id );
+
+		/**
+		 * Filters whether a viewer may open a restricted post they do not hold.
+		 *
+		 * @param bool $allowed Whether the setting and capability let them in.
+		 * @param int  $user_id Who is asking, 0 when signed out.
+		 * @param int  $post_id The blocked post.
+		 */
+		return (bool) apply_filters( 'gatedmedia_boundary_bypass', $allowed, $user_id, $post_id );
+	}
+
+	/**
+	 * Says the post is only open because of the bypass, above its content.
+	 *
+	 * Without it the previewer is reading a page that a customer without access would be told does not exist, with nothing to tell them apart.
+	 *
+	 * @param mixed $content The post content.
+	 * @return mixed The content, with the notice where one is owed.
+	 */
+	public function announce_bypass( $content ) {
+		if ( 0 === $this->previewing || ! is_string( $content ) || get_the_ID() !== $this->previewing ) {
+			return $content;
+		}
+
+		$notice = sprintf(
+			'<p class="gatedmedia-admin-preview-notice">%s</p>',
+			esc_html__( 'You are viewing this as an editor. Anyone without access to it gets a 404 here.', 'gated-media-access' )
+		);
+
+		return $notice . $content;
 	}
 
 	/**

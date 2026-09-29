@@ -14,8 +14,7 @@
 	<div class="gatedmedia-notice__body">
 		<?php
 		printf(
-			/* translators: %s: block name, e.g. my-plugin/subscriptions */
-			esc_html__( 'The block "%s" is not registered, so this section cannot render.', 'gated-media-access' ),
+			esc_html( \PinkCrab\Gated_Access\Support\Labels::text( 'account.missing_block' ) ),
 			esc_html( $data['block'] )
 		);
 		?>

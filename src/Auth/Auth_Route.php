@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Assets\Asset_Loader;
 use PinkCrab\Gated_Access\Blocks\Sprite;
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Auth_Url;
+use PinkCrab\Gated_Access\Support\Labels;
 
 /**
  * `Account_Route`'s mirror image, deliberately: that route exists for people who are signed in and turns everyone else away, this one exists for people who are not and turns *them* away.
@@ -79,12 +80,12 @@ class Auth_Route implements Hookable {
 	 */
 	public static function title_for( string $state ): string {
 		$titles = array(
-			Auth_Url::STATE_SIGNUP => __( 'Create your account', 'gated-media-access' ),
-			Auth_Url::STATE_RESET  => __( 'Reset your password', 'gated-media-access' ),
-			Auth_Url::STATE_SENT   => __( 'Check your email', 'gated-media-access' ),
+			Auth_Url::STATE_SIGNUP => Labels::text( 'auth.title.signup' ),
+			Auth_Url::STATE_RESET  => Labels::text( 'auth.title.reset' ),
+			Auth_Url::STATE_SENT   => Labels::text( 'auth.title.sent' ),
 		);
 
-		return $titles[ $state ] ?? __( 'Sign in', 'gated-media-access' );
+		return $titles[ $state ] ?? Labels::text( 'auth.title.signin' );
 	}
 
 	/**
