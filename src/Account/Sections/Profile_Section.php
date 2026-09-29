@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Account\Sections;
 
 use PinkCrab\Gated_Access\Account\Account_Section;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
+use PinkCrab\Gated_Access\Support\Labels;
 
 /**
  * The one profile shape, and the only account view that writes anything.
@@ -30,21 +31,21 @@ class Profile_Section implements Account_Section {
 	 * The page title.
 	 */
 	public function title(): string {
-		return __( 'Profile', 'gated-media-access' );
+		return Labels::text( 'account.section.profile' );
 	}
 
 	/**
 	 * The line beneath the title.
 	 */
 	public function description(): string {
-		return __( 'Your details.', 'gated-media-access' );
+		return Labels::text( 'account.profile.note' );
 	}
 
 	/**
 	 * The nav label.
 	 */
 	public function menu_label(): string {
-		return __( 'Profile', 'gated-media-access' );
+		return Labels::text( 'account.section.profile' );
 	}
 
 	/**

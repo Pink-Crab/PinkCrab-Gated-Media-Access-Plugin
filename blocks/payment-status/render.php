@@ -17,6 +17,8 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Labels;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_status = isset( $attributes['status'] ) ? (string) $attributes['status'] : 'pending';
@@ -26,26 +28,26 @@ $gatedmedia_states = array(
 	'pending'  => array(
 		'icon'    => '',
 		'kind'    => 'pending',
-		'heading' => __( 'Confirming your payment', 'gated-media-access' ),
-		'message' => __( 'This usually takes a few seconds. Reload the page to check again.', 'gated-media-access' ),
+		'heading' => Labels::text( 'payment.confirming' ),
+		'message' => Labels::text( 'payment.confirming_note' ),
 	),
 	'complete' => array(
 		'icon'    => 'i-success',
 		'kind'    => 'complete',
-		'heading' => __( "You're in", 'gated-media-access' ),
-		'message' => __( 'Your access is ready.', 'gated-media-access' ),
+		'heading' => Labels::text( 'payment.ready' ),
+		'message' => Labels::text( 'payment.ready_note' ),
 	),
 	'refunded' => array(
 		'icon'    => 'i-refund',
 		'kind'    => 'refunded',
-		'heading' => __( 'This order was refunded', 'gated-media-access' ),
-		'message' => __( 'The access it created has been withdrawn.', 'gated-media-access' ),
+		'heading' => Labels::text( 'payment.refunded' ),
+		'message' => Labels::text( 'payment.refunded_note' ),
 	),
 	'failed'   => array(
 		'icon'    => 'i-error',
 		'kind'    => 'failed',
-		'heading' => __( 'Payment not completed', 'gated-media-access' ),
-		'message' => __( "We couldn't take your payment, and you have not been charged.", 'gated-media-access' ),
+		'heading' => Labels::text( 'payment.failed' ),
+		'message' => Labels::text( 'payment.failed_note' ),
 	),
 );
 
@@ -115,7 +117,7 @@ if ( 'pending' === $gatedmedia_status && '' !== $gatedmedia_uuid && is_user_logg
 		esc_url( rest_url( 'gated-media-access/v1/payment/' . $gatedmedia_uuid ) ),
 		max( 1000, (int) ( $gatedmedia_timing['interval'] ?? 3000 ) ),
 		max( 1, (int) ( $gatedmedia_timing['attempts'] ?? 20 ) ),
-		esc_attr__( 'This is taking longer than usual. Your payment is safe and your access will appear here shortly, so you can close this page.', 'gated-media-access' )
+		esc_attr( Labels::text( 'payment.slow_note' ) )
 	);
 }
 ?>
@@ -140,8 +142,7 @@ if ( 'pending' === $gatedmedia_status && '' !== $gatedmedia_uuid && is_user_logg
 	<p class="gatedmedia-text gatedmedia-text--meta">
 		<?php
 		printf(
-			/* translators: %s: the payment's public reference. */
-			esc_html__( 'Reference: %s', 'gated-media-access' ),
+			esc_html( Labels::text( 'payment.reference' ) ),
 			esc_html( $gatedmedia_reference )
 		);
 		?>

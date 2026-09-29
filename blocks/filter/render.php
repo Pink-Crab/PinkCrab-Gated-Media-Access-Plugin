@@ -17,6 +17,8 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Labels;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_types = isset( $attributes['types'] ) && is_array( $attributes['types'] )
@@ -25,11 +27,11 @@ $gatedmedia_types = isset( $attributes['types'] ) && is_array( $attributes['type
 
 $gatedmedia_search_label = isset( $attributes['searchLabel'] ) && '' !== $attributes['searchLabel']
 	? (string) $attributes['searchLabel']
-	: __( 'Search', 'gated-media-access' );
+	: Labels::text( 'filter.search.placeholder' );
 
 $gatedmedia_type_label = isset( $attributes['typeLabel'] ) && '' !== $attributes['typeLabel']
 	? (string) $attributes['typeLabel']
-	: __( 'Filter by type', 'gated-media-access' );
+	: Labels::text( 'filter.type.label' );
 
 $gatedmedia_active = isset( $attributes['active'] ) ? (string) $attributes['active'] : 'all';
 

@@ -12,9 +12,10 @@ namespace PinkCrab\Gated_Access\Settings;
 /**
  * The one settings option, `gatedmedia_settings`, an array this class only reads and `Settings_Page` writes.
  *
- * One reader per setting keeps every accessor the same shape, so the method count grows with the option, and they stay together with the counter quieted.
+ * One reader per setting keeps every accessor the same shape, so the method count grows with the option, and they stay together with the counter quieted. The complexity is that same count read another way: every reader is stored value, then filter, then fall back, and splitting the class by theme would put the same three lines behind two doors instead of one.
  *
  * @SuppressWarnings("PHPMD.TooManyPublicMethods")
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 class Settings {
 
@@ -102,6 +103,21 @@ class Settings {
 		 * @param bool $purge The stored setting.
 		 */
 		return (bool) apply_filters( 'gatedmedia_purge_on_uninstall', $purge );
+	}
+
+	/**
+	 * Whether someone who may edit a restricted post can open it on the front end instead of getting the 404. Off by default, with `gatedmedia_admin_preview` having the last word.
+	 */
+	public function admin_preview(): bool {
+		$settings = get_option( self::OPTION );
+		$preview  = is_array( $settings ) && '1' === (string) ( $settings['admin_preview'] ?? '0' );
+
+		/**
+		 * Filters whether editors may preview restricted posts on the front end.
+		 *
+		 * @param bool $preview The stored setting.
+		 */
+		return (bool) apply_filters( 'gatedmedia_admin_preview', $preview );
 	}
 
 	/**

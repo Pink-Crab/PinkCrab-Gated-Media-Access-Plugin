@@ -107,6 +107,31 @@ class Payment_Store {
 	}
 
 	/**
+	 * Names the buyer on a row that was started signed out.
+	 *
+	 * Guarded on the row still having none, so a redelivery cannot move a payment onto a different account.
+	 *
+	 * @param string $uuid    The payment.
+	 * @param int    $user_id Who it turned out to belong to.
+	 */
+	public function assign_user( string $uuid, int $user_id ): bool {
+		global $wpdb;
+
+		$table = Payments_Schema::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Our own table; the name is not user input.
+		$moved = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET user_id = %d WHERE uuid = %s AND user_id = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$user_id,
+				$uuid
+			)
+		);
+
+		return is_int( $moved ) && $moved > 0;
+	}
+
+	/**
 	 * Pending to complete, exactly once: true means this caller was first and grants access, false means another delivery already did.
 	 *
 	 * @param string $uuid      The payment.

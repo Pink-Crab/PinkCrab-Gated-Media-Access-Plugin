@@ -15,20 +15,22 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Labels;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_value = isset( $attributes['value'] ) ? (string) $attributes['value'] : 'active';
 
 // Icon and default wording per value.
 $gatedmedia_values = array(
-	'complete' => array( 'i-check', __( 'Complete', 'gated-media-access' ) ),
-	'refunded' => array( 'i-refund', __( 'Refunded', 'gated-media-access' ) ),
-	'active'   => array( 'i-active', __( 'Active', 'gated-media-access' ) ),
-	'expired'  => array( 'i-blocked', __( 'Expired', 'gated-media-access' ) ),
-	'revoked'  => array( 'i-revoked', __( 'Revoked', 'gated-media-access' ) ),
+	'complete' => array( 'i-check', Labels::text( 'status.complete' ) ),
+	'refunded' => array( 'i-refund', Labels::text( 'status.refunded' ) ),
+	'active'   => array( 'i-active', Labels::text( 'status.active' ) ),
+	'expired'  => array( 'i-blocked', Labels::text( 'status.expired' ) ),
+	'revoked'  => array( 'i-revoked', Labels::text( 'status.revoked' ) ),
 	// A payment's own two states (Payment::STATUS_*).
-	'pending'  => array( 'i-clock', __( 'Pending', 'gated-media-access' ) ),
-	'failed'   => array( 'i-error', __( 'Failed', 'gated-media-access' ) ),
+	'pending'  => array( 'i-clock', Labels::text( 'status.pending' ) ),
+	'failed'   => array( 'i-error', Labels::text( 'status.failed' ) ),
 );
 
 if ( ! isset( $gatedmedia_values[ $gatedmedia_value ] ) ) {

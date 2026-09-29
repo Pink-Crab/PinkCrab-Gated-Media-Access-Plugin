@@ -19,6 +19,7 @@ use PinkCrab\Gated_Access\Access\Post_Boundary;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Access\Restriction;
 use PinkCrab\Gated_Access\Registration\Access_Taxonomy;
+use PinkCrab\Gated_Access\Settings\Settings;
 
 /**
  * A restricted post is a hard 404 and absent from every listing for anyone without access, visible everywhere for a holder, and unrestricted content is untouched.
@@ -41,6 +42,13 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 
 		// The framework unregisters every meta key after each test, so re-register.
 		$this->writer->register_meta();
+	}
+
+	public function tear_down(): void {
+		remove_all_filters( 'gatedmedia_boundary_bypass' );
+		delete_option( Settings::OPTION );
+
+		parent::tear_down();
 	}
 
 	/** @testdox A holder sees the restricted post; it is not a 404 for them. */
@@ -158,6 +166,129 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'The secret is in the second drawer.', $feed );
 		$this->assertTrue( is_404() );
+	}
+
+	/**
+	 * @testdox Off by default: someone who can edit the post still gets a 404.
+	 *
+	 * The guard on the whole feature. `refuse_rest_item()` and `refuse_oembed()`
+	 * already exempt `edit_post`, so it would be easy to "make them consistent"
+	 * and change what every existing site does. Off is the default.
+	 */
+	public function test_an_editor_still_gets_a_404_by_default(): void {
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->go_to( '/?p=' . $post_id );
+		$this->boundary()->refuse_singular();
+
+		$this->assertTrue( is_404() );
+	}
+
+	/** @testdox With the preview on, someone who can edit the post sees it instead of a 404. */
+	public function test_preview_lets_an_editor_through(): void {
+		update_option( Settings::OPTION, array( 'admin_preview' => '1' ) );
+
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->go_to( '/?p=' . $post_id );
+		$this->boundary()->refuse_singular();
+
+		$this->assertTrue( is_singular() );
+		$this->assertFalse( is_404() );
+	}
+
+	/** @testdox With the preview on, a user who cannot edit the post still gets a 404. */
+	public function test_preview_does_not_help_a_subscriber(): void {
+		update_option( Settings::OPTION, array( 'admin_preview' => '1' ) );
+
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( $this->user_id );
+
+		$this->go_to( '/?p=' . $post_id );
+		$this->boundary()->refuse_singular();
+
+		$this->assertTrue( is_404(), 'the preview is for whoever may edit the post, nobody else' );
+	}
+
+	/** @testdox The bypass filter has the last word over the setting, both ways. */
+	public function test_the_bypass_filter_has_the_last_word(): void {
+		$post_id = $this->make_restricted_post();
+		$admin   = self::factory()->user->create( array( 'role' => 'administrator' ) );
+
+		wp_set_current_user( $admin );
+
+		// Setting off, filter on.
+		$seen = array();
+		add_filter(
+			'gatedmedia_boundary_bypass',
+			static function ( bool $allowed, int $user_id, int $blocked ) use ( &$seen ): bool {
+				$seen[] = array( $allowed, $user_id, $blocked );
+
+				return true;
+			},
+			10,
+			3
+		);
+
+		$this->go_to( '/?p=' . $post_id );
+		$this->boundary()->refuse_singular();
+
+		$this->assertFalse( is_404(), 'the filter must be able to open it with the setting off' );
+		$this->assertSame( array( false, $admin, $post_id ), $seen[0], 'the filter is passed the decision, the user and the post' );
+
+		remove_all_filters( 'gatedmedia_boundary_bypass' );
+
+		// Setting on, filter off.
+		update_option( Settings::OPTION, array( 'admin_preview' => '1' ) );
+		add_filter( 'gatedmedia_boundary_bypass', '__return_false', 10, 3 );
+
+		$this->go_to( '/?p=' . $post_id );
+		$this->boundary()->refuse_singular();
+
+		$this->assertTrue( is_404(), 'the filter must be able to close it with the setting on' );
+	}
+
+	/**
+	 * @testdox Someone seeing the post only through the bypass is told so, and a real holder is not.
+	 *
+	 * Without the notice the previewer has no way to know a customer without
+	 * access would get a 404 here.
+	 */
+	public function test_the_bypass_says_so_and_a_holder_sees_nothing(): void {
+		update_option( Settings::OPTION, array( 'admin_preview' => '1' ) );
+
+		$post_id = $this->make_restricted_post();
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$this->go_to( '/?p=' . $post_id );
+
+		$boundary = $this->boundary();
+		$boundary->refuse_singular();
+
+		$this->assertStringContainsString(
+			'gatedmedia-admin-preview-notice',
+			$boundary->announce_bypass( 'The body.' ),
+			'the previewer must be told the post is only open to them'
+		);
+
+		// A holder is reading it normally, so there is nothing to announce.
+		$holder = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+
+		$this->writer->grant( $holder, 'post', (string) $post_id, null, 'admin' );
+		wp_set_current_user( $holder );
+
+		$this->go_to( '/?p=' . $post_id );
+
+		$holders_view = $this->boundary();
+		$holders_view->refuse_singular();
+
+		$this->assertSame( 'The body.', $holders_view->announce_bypass( 'The body.' ) );
 	}
 
 	/** @testdox An unrestricted post is untouched by the singular refusal. */
@@ -396,6 +527,6 @@ class Test_Post_Boundary extends WP_UnitTestCase {
 	 * A fresh boundary, called directly, because template_redirect drags canonical redirects along.
 	 */
 	private function boundary(): Post_Boundary {
-		return new Post_Boundary( new Resolver( new Access_Taxonomy() ), new Restriction() );
+		return new Post_Boundary( new Resolver( new Access_Taxonomy() ), new Restriction(), new Settings() );
 	}
 }

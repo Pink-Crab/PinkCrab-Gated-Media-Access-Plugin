@@ -19,6 +19,7 @@ use PinkCrab\Gated_Access\Payments\Checkout_Action;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Item_Label;
+use PinkCrab\Gated_Access\Support\Labels;
 
 /**
  * Turns a product into the shape the page draws: its contents, its price, and which of the six states the person looking at it is in.
@@ -109,6 +110,9 @@ class Product_Offer implements Hookable {
 
 		// Whether a stranger looking at this page can make themselves an account: under `admin` and `purchase` they cannot, and the signed-out controls must not say otherwise.
 		$data['signup_offered'] = Settings::ACCOUNT_CREATION_REGISTRATION === $this->settings->account_creation();
+
+		// Under `purchase` they need neither: the buy goes through signed out and the account is made when the money lands.
+		$data['guest_checkout'] = $this->checkout->guest_may_buy( $price );
 
 		return $data;
 	}
@@ -260,7 +264,7 @@ class Product_Offer implements Hookable {
 	 */
 	private function term( string $duration ): string {
 		if ( Product_Meta::DURATION_LIFETIME === $duration ) {
-			return __( 'Lifetime access', 'gated-media-access' );
+			return Labels::text( 'product.term.lifetime' );
 		}
 
 		$days = (int) $duration;
@@ -299,12 +303,13 @@ class Product_Offer implements Hookable {
 		}
 
 		$messages = array(
-			'gatedmedia_no_product'   => __( 'That product is not for sale.', 'gated-media-access' ),
-			'gatedmedia_not_eligible' => __( 'This product is not available to you.', 'gated-media-access' ),
-			'gatedmedia_bad_coupon'   => __( 'That coupon cannot be used.', 'gated-media-access' ),
-			'gatedmedia_payment_row'  => __( 'The payment could not be started. Nothing has been charged.', 'gated-media-access' ),
+			'gatedmedia_no_product'    => Labels::text( 'product.error.not_for_sale' ),
+			'gatedmedia_not_eligible'  => Labels::text( 'product.error.not_eligible' ),
+			'gatedmedia_bad_coupon'    => Labels::text( 'product.error.bad_coupon' ),
+			'gatedmedia_payment_row'   => Labels::text( 'product.error.no_row' ),
+			'gatedmedia_needs_account' => Labels::text( 'product.error.needs_account' ),
 		);
 
-		return $messages[ $code ] ?? __( 'We could not start that purchase. Nothing has been charged.', 'gated-media-access' );
+		return $messages[ $code ] ?? Labels::text( 'product.error.no_session' );
 	}
 }

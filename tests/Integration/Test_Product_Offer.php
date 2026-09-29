@@ -71,7 +71,8 @@ class Test_Product_Offer extends WP_UnitTestCase {
 			new Payment_Store(),
 			$this->writer,
 			new Stripe_Gateway( new Settings() ),
-			new Resolver( $taxonomy )
+			new Resolver( $taxonomy ),
+			new Settings()
 		);
 
 		$this->data = new Product_Offer(
@@ -105,6 +106,7 @@ class Test_Product_Offer extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		unset( $_GET[ Checkout_Action::COUPON_FIELD ], $_GET[ Checkout_Action::ERROR_FLAG ] );
+		delete_option( Settings::OPTION );
 
 		parent::tear_down();
 	}
@@ -127,6 +129,36 @@ class Test_Product_Offer extends WP_UnitTestCase {
 		wp_set_current_user( 0 );
 
 		$this->assertSame( Product_Offer::STATE_SIGNED_OUT, $this->state() );
+	}
+
+	/**
+	 * @testdox Signed out with accounts made at purchase, the page says buy rather than sign in.
+	 *
+	 * The control used to read "Sign in to continue" under every route but
+	 * `registration`, which was true when `purchase` did nothing. It buys now,
+	 * so a page that still asks for a sign-in is telling the buyer to do
+	 * something they cannot.
+	 */
+	public function test_signed_out_can_buy_when_accounts_are_made_at_purchase(): void {
+		wp_set_current_user( 0 );
+		update_option( Settings::OPTION, array( 'account_creation' => Settings::ACCOUNT_CREATION_PURCHASE ) );
+
+		$data = $this->data->product( self::DEFAULTS, $this->product_id );
+
+		$this->assertSame( Product_Offer::STATE_SIGNED_OUT, $data['state'] );
+		$this->assertTrue( $data['guest_checkout'] );
+		$this->assertFalse( $data['signup_offered'], 'there is no sign-up form to send them to' );
+	}
+
+	/** @testdox Signed out on the other account routes, buying is not offered. */
+	public function test_signed_out_cannot_buy_on_the_other_routes(): void {
+		wp_set_current_user( 0 );
+
+		foreach ( array( Settings::ACCOUNT_CREATION_REGISTRATION, Settings::ACCOUNT_CREATION_ADMIN ) as $route ) {
+			update_option( Settings::OPTION, array( 'account_creation' => $route ) );
+
+			$this->assertFalse( $this->data->product( self::DEFAULTS, $this->product_id )['guest_checkout'], "{$route} needs an account first" );
+		}
 	}
 
 	/** @testdox A priced product a signed-in stranger may buy is simply for sale. */

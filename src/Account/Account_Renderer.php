@@ -11,6 +11,7 @@ namespace PinkCrab\Gated_Access\Account;
 
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 use PinkCrab\Gated_Access\Support\View;
 
 /**
@@ -44,7 +45,7 @@ class Account_Renderer {
 					array(
 						'items'   => $items,
 						'variant' => 'sidebar',
-						'label'   => __( 'Account', 'gated-media-access' ),
+						'label'   => Labels::text( 'account.brand.title' ),
 					)
 				),
 				'tabs'        => Block::render(
@@ -52,7 +53,7 @@ class Account_Renderer {
 					array(
 						'items'   => $items,
 						'variant' => 'tabs',
-						'label'   => __( 'Account sections', 'gated-media-access' ),
+						'label'   => Labels::text( 'account.nav.label' ),
 					)
 				),
 				// My Access is drawn with no sub-line, and an empty description renders nothing rather than an empty paragraph.

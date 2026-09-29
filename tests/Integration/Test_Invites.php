@@ -55,7 +55,7 @@ class Test_Invites extends WP_UnitTestCase {
 
 		$this->lookup  = new Access_Lookup();
 		$this->invites = new Invites(
-			new Checkout( new Payment_Store(), $writer, new Stripe_Gateway( new Settings() ), new Resolver( new Access_Taxonomy() ) ),
+			new Checkout( new Payment_Store(), $writer, new Stripe_Gateway( new Settings() ), new Resolver( new Access_Taxonomy() ), new Settings() ),
 			new Notification_Sender( new Settings() )
 		);
 		$this->invites->register_meta();

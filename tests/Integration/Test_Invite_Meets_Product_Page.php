@@ -61,7 +61,7 @@ class Test_Invite_Meets_Product_Page extends WP_UnitTestCase {
 		$writer->register_meta();
 		( new Product_Meta( new Settings(), $taxonomy ) )->register_meta();
 
-		$checkout = new Checkout( new Payment_Store(), $writer, new Stripe_Gateway( new Settings() ), new Resolver( $taxonomy ) );
+		$checkout = new Checkout( new Payment_Store(), $writer, new Stripe_Gateway( new Settings() ), new Resolver( $taxonomy ), new Settings() );
 
 		$this->invites = new Invites( $checkout, new Notification_Sender( new Settings() ) );
 		$this->invites->register_meta();
@@ -115,7 +115,7 @@ class Test_Invite_Meets_Product_Page extends WP_UnitTestCase {
 		$taxonomy = new Access_Taxonomy();
 
 		$offer = new Product_Offer(
-			new Checkout( new Payment_Store(), new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() ), new Stripe_Gateway( new Settings() ), new Resolver( $taxonomy ) ),
+			new Checkout( new Payment_Store(), new Access_Writer( new Access_Validator( $taxonomy ), new Access_Lookup() ), new Stripe_Gateway( new Settings() ), new Resolver( $taxonomy ), new Settings() ),
 			new Resolver( $taxonomy ),
 			new Access_Lookup(),
 			new Item_Label( $taxonomy ),

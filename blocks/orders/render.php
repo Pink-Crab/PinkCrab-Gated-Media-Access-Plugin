@@ -23,6 +23,7 @@ declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -64,8 +65,8 @@ if ( '' !== $gatedmedia_order_id ) {
 			'gated-media-access/empty-state',
 			array(
 				'icon'    => 'i-empty',
-				'title'   => __( 'Order not found', 'gated-media-access' ),
-				'message' => __( 'We could not find that order on your account.', 'gated-media-access' ),
+				'title'   => Labels::text( 'orders.missing' ),
+				'message' => Labels::text( 'orders.missing_note' ),
 			)
 		);
 	} else {
@@ -75,7 +76,7 @@ if ( '' !== $gatedmedia_order_id ) {
 		$gatedmedia_back = Block::render(
 			'gated-media-access/button',
 			array(
-				'label'   => __( 'Back to orders', 'gated-media-access' ),
+				'label'   => Labels::text( 'orders.back' ),
 				'href'    => (string) ( $gatedmedia_data['section_url'] ?? '' ),
 				'variant' => 'link',
 				'icon'    => 'i-back',
@@ -119,7 +120,7 @@ if ( '' !== $gatedmedia_order_id ) {
 					'reference'   => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
 					// Passed separately: the poll matches on the uuid, not on the reference.
 					'uuid'        => (string) ( $gatedmedia_detail['uuid'] ?? '' ),
-					'actionLabel' => 'complete' === $gatedmedia_status ? __( 'Go to my access', 'gated-media-access' ) : '',
+					'actionLabel' => 'complete' === $gatedmedia_status ? Labels::text( 'orders.to_access' ) : '',
 					'actionHref'  => 'complete' === $gatedmedia_status ? Account_Url::section( 'my-access' ) : '',
 				)
 			);
@@ -131,14 +132,13 @@ if ( '' !== $gatedmedia_order_id ) {
 			$gatedmedia_body .= '<section class="gatedmedia-section">'
 				. Block::render(
 					'gated-media-access/section-heading',
-					array( 'text' => __( 'What this included at the time', 'gated-media-access' ) )
+					array( 'text' => Labels::text( 'orders.snapshot.heading' ) )
 				)
 				. Block::render(
 					'gated-media-access/contents',
 					array(
 						'items' => $gatedmedia_contents,
-						/* translators: %s: the order date. */
-						'note'  => sprintf( __( 'Frozen as it was on %s.', 'gated-media-access' ), (string) ( $gatedmedia_detail['date'] ?? '' ) ),
+						'note'  => sprintf( Labels::text( 'orders.placed' ), (string) ( $gatedmedia_detail['date'] ?? '' ) ),
 					)
 				)
 				. '</section>';
@@ -169,7 +169,7 @@ if ( '' !== $gatedmedia_order_id ) {
 			$gatedmedia_body .= '<section class="gatedmedia-section">'
 				. Block::render(
 					'gated-media-access/section-heading',
-					array( 'text' => __( 'Access this created', 'gated-media-access' ) )
+					array( 'text' => Labels::text( 'orders.granted.heading' ) )
 				)
 				. '<div class="gatedmedia-order-access">' . $gatedmedia_access_rows . '</div>'
 				. '</section>';
@@ -218,8 +218,8 @@ if ( '' !== $gatedmedia_order_id ) {
 			'gated-media-access/empty-state',
 			array(
 				'icon'    => 'i-orders',
-				'title'   => __( 'No orders yet', 'gated-media-access' ),
-				'message' => __( 'Anything you pay for will be listed here, with what it included.', 'gated-media-access' ),
+				'title'   => Labels::text( 'orders.empty' ),
+				'message' => Labels::text( 'orders.empty_note' ),
 			)
 		);
 	}

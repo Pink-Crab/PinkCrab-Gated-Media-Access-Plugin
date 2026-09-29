@@ -21,6 +21,7 @@ use PinkCrab\Gated_Access\Auth\Auth_Action;
 use PinkCrab\Gated_Access\Auth\Auth_Route;
 use PinkCrab\Gated_Access\Support\Auth_Url;
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -54,9 +55,9 @@ $gatedmedia_sent     = Auth_Url::STATE_SENT === $gatedmedia_state;
 
 // The sub-line. The sent state has none.
 $gatedmedia_sublines = array(
-	Auth_Url::STATE_SIGNUP => __( "You'll use this to reach everything you've been given access to.", 'gated-media-access' ),
-	Auth_Url::STATE_SIGNIN => __( 'Welcome back.', 'gated-media-access' ),
-	Auth_Url::STATE_RESET  => __( "We'll email you a link.", 'gated-media-access' ),
+	Auth_Url::STATE_SIGNUP => Labels::text( 'auth.note.signup' ),
+	Auth_Url::STATE_SIGNIN => Labels::text( 'auth.welcome' ),
+	Auth_Url::STATE_RESET  => Labels::text( 'auth.note.reset' ),
 );
 
 $gatedmedia_subline = $gatedmedia_sublines[ $gatedmedia_state ] ?? '';
@@ -88,7 +89,7 @@ if ( $gatedmedia_sent ) {
 		array(
 			'kind' => 'info',
 			'icon' => 'i-clock',
-			'text' => __( 'If that email has an account, a reset link is on its way.', 'gated-media-access' ),
+			'text' => Labels::text( 'auth.reset.sent' ),
 		)
 	);
 } else {
@@ -114,7 +115,7 @@ if ( $gatedmedia_sent ) {
 		'gated-media-access/field',
 		array(
 			'name'         => 'email',
-			'label'        => __( 'Email', 'gated-media-access' ),
+			'label'        => Labels::text( 'auth.field.email' ),
 			'type'         => 'email',
 			'value'        => $gatedmedia_email,
 			'placeholder'  => 'jane@example.com',
@@ -132,31 +133,27 @@ if ( $gatedmedia_sent ) {
 			'gated-media-access/field',
 			array(
 				'name'         => 'password',
-				'label'        => __( 'Password', 'gated-media-access' ),
+				'label'        => Labels::text( 'auth.field.password' ),
 				'type'         => 'password',
 				'autocomplete' => $gatedmedia_signing_up ? 'new-password' : 'current-password',
 				'required'     => true,
 				'invalid'      => in_array( 'password', $gatedmedia_invalid, true ),
 				'message'      => $gatedmedia_signing_up
-					? sprintf(
-						/* translators: %d: the minimum number of characters. */
-						__( 'At least %d characters.', 'gated-media-access' ),
-						(int) ( $gatedmedia_data['minimum'] ?? 12 )
-					)
+					? sprintf( Labels::text( 'auth.field.password_hint' ), (int) ( $gatedmedia_data['minimum'] ?? 12 ) )
 					: '',
 			)
 		);
 	}
 
-	$gatedmedia_labels = array(
-		Auth_Url::STATE_SIGNUP => __( 'Create account', 'gated-media-access' ),
-		Auth_Url::STATE_RESET  => __( 'Send reset link', 'gated-media-access' ),
+	$gatedmedia_buttons = array(
+		Auth_Url::STATE_SIGNUP => Labels::text( 'auth.button.signup' ),
+		Auth_Url::STATE_RESET  => Labels::text( 'auth.button.reset' ),
 	);
 
 	$gatedmedia_fields .= Block::render(
 		'gated-media-access/button',
 		array(
-			'label' => $gatedmedia_labels[ $gatedmedia_state ] ?? __( 'Sign in', 'gated-media-access' ),
+			'label' => $gatedmedia_buttons[ $gatedmedia_state ] ?? Labels::text( 'auth.button.signin' ),
 			'type'  => 'submit',
 			'full'  => true,
 		)
@@ -183,17 +180,17 @@ if ( $gatedmedia_sent ) {
 $gatedmedia_links = array();
 
 if ( Auth_Url::STATE_SIGNIN === $gatedmedia_state ) {
-	$gatedmedia_links[] = array( Auth_Url::reset( $gatedmedia_redirect ), __( 'Forgotten your password?', 'gated-media-access' ) );
+	$gatedmedia_links[] = array( Auth_Url::reset( $gatedmedia_redirect ), Labels::text( 'auth.link.forgotten' ) );
 
 	if ( $gatedmedia_signup ) {
-		$gatedmedia_links[] = array( Auth_Url::signup( $gatedmedia_redirect ), __( 'Create an account', 'gated-media-access' ) );
+		$gatedmedia_links[] = array( Auth_Url::signup( $gatedmedia_redirect ), Labels::text( 'auth.link.signup' ) );
 	}
 } else {
 	$gatedmedia_links[] = array(
 		Auth_Url::signin( $gatedmedia_redirect ),
 		Auth_Url::STATE_SIGNUP === $gatedmedia_state
-			? __( 'Already have an account? Sign in', 'gated-media-access' )
-			: __( 'Back to sign in', 'gated-media-access' ),
+			? Labels::text( 'auth.link.signin' )
+			: Labels::text( 'auth.link.back' ),
 	);
 }
 

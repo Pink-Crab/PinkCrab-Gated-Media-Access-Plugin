@@ -213,6 +213,14 @@ class Settings_Page implements Hookable {
 						),
 						'help'    => __( 'What the Revoke action on the Access list does.', 'gated-media-access' ),
 					),
+					array(
+						'type'    => 'checkbox',
+						'name'    => $option . '[admin_preview]',
+						'id'      => 'gatedmedia_admin_preview',
+						'label'   => __( 'Let editors open restricted posts on the front end', 'gated-media-access' ),
+						'checked' => $this->settings->admin_preview(),
+						'help'    => __( 'Off, a restricted post is a 404 for everyone without access, you included. On, anyone who may edit the post can open it by its URL and is told they are seeing it as an editor. Listings and search still hide it.', 'gated-media-access' ),
+					),
 				),
 			),
 			array(
@@ -325,14 +333,28 @@ class Settings_Page implements Hookable {
 			$clean['revoke_behaviour'] = in_array( $behaviour, $known, true ) ? $behaviour : Settings::REVOKE_BEHAVIOUR_REVOKE;
 		}
 
-		if ( isset( $input['purge_on_uninstall'] ) ) {
-			$clean['purge_on_uninstall'] = '1' === (string) $input['purge_on_uninstall'] ? '1' : '0';
-		}
-
+		$clean = $this->sanitize_switches( $input, $clean );
 		$clean = $this->sanitize_keys( $input, $clean );
 		$clean = $this->accounts->sanitize( $input, $clean );
 
 		return $this->sanitize_notifications( $input, $clean );
+	}
+
+	/**
+	 * The General tab's checkboxes. Each carries a hidden zero, so an absent key is a tab that did not draw the field rather than an unticked box.
+	 *
+	 * @param array<string, mixed>  $input The submitted values.
+	 * @param array<string, string> $clean What is stored so far.
+	 * @return array<string, string>
+	 */
+	private function sanitize_switches( array $input, array $clean ): array {
+		foreach ( array( 'admin_preview', 'purge_on_uninstall' ) as $key ) {
+			if ( isset( $input[ $key ] ) ) {
+				$clean[ $key ] = '1' === (string) $input[ $key ] ? '1' : '0';
+			}
+		}
+
+		return $clean;
 	}
 
 	/**

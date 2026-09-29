@@ -18,6 +18,7 @@
 declare( strict_types = 1 );
 
 use PinkCrab\Gated_Access\Support\Block;
+use PinkCrab\Gated_Access\Support\Labels;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -114,14 +115,14 @@ $gatedmedia_file = static function ( array $item ): string {
 			'title'       => (string) ( $item['title'] ?? '' ),
 			'meta'        => (string) ( $item['meta'] ?? '' ),
 			'state'       => (string) ( $item['state'] ?? 'normal' ),
-			'actionLabel' => __( 'Download', 'gated-media-access' ),
+			'actionLabel' => Labels::text( 'files.button.download' ),
 			'actionHref'  => (string) ( $item['href'] ?? '' ),
 			'actionIcon'  => 'i-download',
 		),
 		Block::render(
 			'gated-media-access/button',
 			array(
-				'label'   => __( 'Download', 'gated-media-access' ),
+				'label'   => Labels::text( 'files.button.download' ),
 				'href'    => (string) ( $item['href'] ?? '' ),
 				'variant' => 'link',
 				'icon'    => 'i-download',
@@ -139,8 +140,8 @@ if ( '' !== $gatedmedia_group ) {
 			'gated-media-access/empty-state',
 			array(
 				'icon'    => 'i-empty',
-				'title'   => __( 'Group not found', 'gated-media-access' ),
-				'message' => __( 'We could not find that group on your account.', 'gated-media-access' ),
+				'title'   => Labels::text( 'access.group.missing' ),
+				'message' => Labels::text( 'access.group.missing_note' ),
 			)
 		);
 	} else {
@@ -162,8 +163,8 @@ if ( '' !== $gatedmedia_group ) {
 				'gated-media-access/empty-state',
 				array(
 					'icon'    => 'i-empty',
-					'title'   => __( 'This group is empty', 'gated-media-access' ),
-					'message' => __( 'Nothing has been put in it yet. Anything added will appear here.', 'gated-media-access' ),
+					'title'   => Labels::text( 'access.group.empty' ),
+					'message' => Labels::text( 'access.group.empty_note' ),
 				)
 			);
 		}
@@ -171,7 +172,7 @@ if ( '' !== $gatedmedia_group ) {
 		$gatedmedia_body = Block::render(
 			'gated-media-access/button',
 			array(
-				'label'   => __( 'Back to my access', 'gated-media-access' ),
+				'label'   => Labels::text( 'access.group.back' ),
 				'href'    => (string) ( $gatedmedia_data['section_url'] ?? '' ),
 				'variant' => 'link',
 				'icon'    => 'i-back',
@@ -182,17 +183,17 @@ if ( '' !== $gatedmedia_group ) {
 			. $gatedmedia_rows;
 	}
 } else {
-	$gatedmedia_body = $gatedmedia_section( __( 'Groups', 'gated-media-access' ), $gatedmedia_groups, $gatedmedia_held )
-		. $gatedmedia_section( __( 'Posts', 'gated-media-access' ), $gatedmedia_posts, $gatedmedia_held )
-		. $gatedmedia_section( __( 'Files', 'gated-media-access' ), $gatedmedia_files, $gatedmedia_file );
+	$gatedmedia_body = $gatedmedia_section( Labels::text( 'access.group.groups' ), $gatedmedia_groups, $gatedmedia_held )
+		. $gatedmedia_section( Labels::text( 'access.group.posts' ), $gatedmedia_posts, $gatedmedia_held )
+		. $gatedmedia_section( Labels::text( 'access.group.files' ), $gatedmedia_files, $gatedmedia_file );
 
 	if ( '' === $gatedmedia_body ) {
 		$gatedmedia_body = Block::render(
 			'gated-media-access/empty-state',
 			array(
 				'icon'    => 'i-empty',
-				'title'   => __( 'Nothing here yet', 'gated-media-access' ),
-				'message' => __( 'Anything you are given access to will appear here, with the date it runs out.', 'gated-media-access' ),
+				'title'   => Labels::text( 'access.empty' ),
+				'message' => Labels::text( 'access.empty_note' ),
 			)
 		);
 	}

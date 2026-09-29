@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace PinkCrab\Gated_Access\Account\Sections;
 
 use PinkCrab\Gated_Access\Account\Account_Section;
+use PinkCrab\Gated_Access\Support\Labels;
 
 /**
  * The landing view for the account area.
@@ -31,7 +32,7 @@ class My_Access_Section implements Account_Section {
 	 * The page title. Rendered by the theme as the page's one h1.
 	 */
 	public function title(): string {
-		return __( 'My Access', 'gated-media-access' );
+		return Labels::text( 'account.section.my_access' );
 	}
 
 	/**
@@ -45,7 +46,7 @@ class My_Access_Section implements Account_Section {
 	 * The nav label.
 	 */
 	public function menu_label(): string {
-		return __( 'My Access', 'gated-media-access' );
+		return Labels::text( 'account.section.my_access' );
 	}
 
 	/**

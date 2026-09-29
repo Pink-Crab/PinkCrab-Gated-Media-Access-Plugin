@@ -13,6 +13,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Auth_Url;
+use PinkCrab\Gated_Access\Support\Labels;
 
 /**
  * The `auth` block cannot reach the container, so it raises `gatedmedia_auth_data` and this answers it, the same arrangement `Product_Offer` uses.
@@ -138,17 +139,13 @@ class Auth_State implements Hookable {
 	 */
 	public static function message_for( string $code ): string {
 		$messages = array(
-			'credentials'    => __( "That email and password don't match.", 'gated-media-access' ),
-			'email_invalid'  => __( 'That does not look like an email address.', 'gated-media-access' ),
-			'email_taken'    => __( 'That email already has an account. Sign in instead.', 'gated-media-access' ),
-			'password_short' => sprintf(
-				/* translators: %d: the minimum number of characters. */
-				__( 'Passwords need at least %d characters.', 'gated-media-access' ),
-				self::PASSWORD_MINIMUM
-			),
-			'signup_closed'  => __( 'Accounts are not created here. Ask the site owner for one.', 'gated-media-access' ),
-			'signup_refused' => __( 'That account could not be created. Please try again.', 'gated-media-access' ),
-			'expired'        => __( 'That link has expired. Ask for another.', 'gated-media-access' ),
+			'credentials'    => Labels::text( 'auth.error.credentials' ),
+			'email_invalid'  => Labels::text( 'auth.error.bad_email' ),
+			'email_taken'    => Labels::text( 'auth.error.email_taken' ),
+			'password_short' => sprintf( Labels::text( 'auth.error.password_short' ), self::PASSWORD_MINIMUM ),
+			'signup_closed'  => Labels::text( 'auth.error.closed' ),
+			'signup_refused' => Labels::text( 'auth.error.not_created' ),
+			'expired'        => Labels::text( 'auth.error.expired_link' ),
 		);
 
 		return $messages[ $code ] ?? '';

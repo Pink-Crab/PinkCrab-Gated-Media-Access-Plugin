@@ -35,6 +35,7 @@ class Test_Settings extends WP_UnitTestCase {
 	public function tear_down(): void {
 		remove_all_filters( 'gatedmedia_stripe_mode' );
 		remove_all_filters( 'gatedmedia_stripe_secret' );
+		remove_all_filters( 'gatedmedia_admin_preview' );
 		delete_option( Settings::OPTION );
 
 		$GLOBALS['menu']             = array();
@@ -201,6 +202,17 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertSame( 'vault', $clean['product_path'] );
 		$this->assertSame( 'delete', $clean['revoke_behaviour'] );
 		$this->assertSame( 'pk_live_new', $clean['stripe_live_key'] );
+	}
+
+	/** @testdox Admin preview is off unless stored on, and its filter has the last word. */
+	public function test_admin_preview(): void {
+		$this->assertFalse( $this->settings->admin_preview(), 'letting editors past the boundary must be opt in' );
+
+		update_option( Settings::OPTION, array( 'admin_preview' => '1' ) );
+		$this->assertTrue( $this->settings->admin_preview() );
+
+		add_filter( 'gatedmedia_admin_preview', '__return_false' );
+		$this->assertFalse( $this->settings->admin_preview() );
 	}
 
 	/** @testdox The Settings entry registers under the plugin menu behind manage_settings. */

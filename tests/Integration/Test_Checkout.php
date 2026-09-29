@@ -72,6 +72,7 @@ class Test_Checkout extends WP_UnitTestCase {
 		remove_all_filters( 'gatedmedia_coupon_hold_seconds' );
 		remove_all_actions( 'gatedmedia_checkout_failed' );
 		remove_all_filters( 'gatedmedia_account_route' );
+		delete_option( Settings::OPTION );
 
 		parent::tear_down();
 	}
@@ -548,7 +549,7 @@ class Test_Checkout extends WP_UnitTestCase {
 			}
 		);
 
-		$flow = new Checkout( $this->refusing_store(), $this->writer, $this->fake_gateway(), new Resolver( new Access_Taxonomy() ) );
+		$flow = new Checkout( $this->refusing_store(), $this->writer, $this->fake_gateway(), new Resolver( new Access_Taxonomy() ), new Settings() );
 
 		$flow->purchase( $product, $this->buyer_id, 'freebie' );
 
@@ -571,6 +572,76 @@ class Test_Checkout extends WP_UnitTestCase {
 				return false;
 			}
 		};
+	}
+
+	/**
+	 * @testdox Set to make accounts at purchase, a signed-out buyer reaches Stripe with the row waiting on a user.
+	 *
+	 * `ACCOUNT_CREATION_PURCHASE` had no behaviour behind it: it was a label
+	 * and a validation entry and nothing else, so choosing it left a new buyer
+	 * sent to a sign-in form they had no account for, and no way to buy.
+	 *
+	 * The row is written with no user because there is nobody to name yet.
+	 * Stripe collects the email on its own page and the webhook makes the
+	 * account when the money lands.
+	 */
+	public function test_a_guest_can_buy_when_accounts_are_made_at_purchase(): void {
+		update_option( Settings::OPTION, array( 'account_creation' => Settings::ACCOUNT_CREATION_PURCHASE ) );
+
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$gateway = $this->fake_gateway();
+
+		$outcome = $this->checkout( $gateway )->purchase( $product, 0 );
+
+		$this->assertSame( array( 'redirect' => 'https://stripe.example/session' ), $outcome );
+
+		$payment = $this->store->paged( 1, 1 )[0];
+
+		$this->assertSame( 0, $payment->user_id, 'there is nobody to name until they have paid' );
+		$this->assertSame( Payment::STATUS_PENDING, $payment->status );
+		$this->assertSame( '', $gateway->email, 'with nobody signed in there is no address to prefill, so Stripe asks' );
+	}
+
+	/** @testdox Set to any other account route, a signed-out buyer is refused rather than sent to Stripe. */
+	public function test_a_guest_cannot_buy_on_the_other_account_routes(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+
+		foreach ( array( Settings::ACCOUNT_CREATION_REGISTRATION, Settings::ACCOUNT_CREATION_ADMIN ) as $route ) {
+			update_option( Settings::OPTION, array( 'account_creation' => $route ) );
+
+			$gateway = $this->fake_gateway();
+			$outcome = $this->checkout( $gateway )->purchase( $product, 0 );
+
+			$this->assertInstanceOf( WP_Error::class, $outcome, "{$route} must still require an account first" );
+			$this->assertNull( $gateway->asked, 'Stripe must not be involved' );
+		}
+	}
+
+	/**
+	 * @testdox A free product still needs an account, whatever the account route.
+	 *
+	 * There is no payment to complete, so nothing would ever create the
+	 * account. Granting to nobody would write a record held by user 0.
+	 */
+	public function test_a_guest_cannot_claim_a_free_product(): void {
+		update_option( Settings::OPTION, array( 'account_creation' => Settings::ACCOUNT_CREATION_PURCHASE ) );
+
+		$product = $this->product( 0, array( "post:{$this->post_item}" ) );
+
+		$outcome = $this->checkout( $this->fake_gateway() )->purchase( $product, 0 );
+
+		$this->assertInstanceOf( WP_Error::class, $outcome );
+		$this->assertSame( array(), $this->access_ids(), 'nothing may be granted to nobody' );
+	}
+
+	/** @testdox A signed-in buyer still has their address prefilled. */
+	public function test_a_signed_in_buyer_keeps_their_prefilled_email(): void {
+		$product = $this->product( 1000, array( "post:{$this->post_item}" ) );
+		$gateway = $this->fake_gateway();
+
+		$this->checkout( $gateway )->purchase( $product, $this->buyer_id );
+
+		$this->assertSame( 'buyer@example.com', $gateway->email );
 	}
 
 	/**
@@ -639,7 +710,7 @@ class Test_Checkout extends WP_UnitTestCase {
 	 * @param Stripe_Gateway $gateway The fake.
 	 */
 	private function checkout( Stripe_Gateway $gateway ): Checkout {
-		return new Checkout( $this->store, $this->writer, $gateway, new Resolver( new Access_Taxonomy() ) );
+		return new Checkout( $this->store, $this->writer, $gateway, new Resolver( new Access_Taxonomy() ), new Settings() );
 	}
 
 	/**
@@ -671,9 +742,17 @@ class Test_Checkout extends WP_UnitTestCase {
 			 * @param string  $email        Ignored.
 			 * @return array{id: string, url: string}
 			 */
+			/**
+			 * What Stripe was told to prefill the email with.
+			 *
+			 * @var string|null
+			 */
+			public ?string $email = null;
+
 			public function create_checkout_session( Payment $payment, string $product_name, string $success_url, string $cancel_url, string $email ): array|WP_Error {
 				$this->asked      = $payment;
 				$this->return_url = $success_url;
+				$this->email      = $email;
 
 				return array(
 					'id'  => 'cs_fake_1',

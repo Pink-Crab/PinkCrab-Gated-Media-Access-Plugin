@@ -17,6 +17,8 @@
 
 declare( strict_types = 1 );
 
+use PinkCrab\Gated_Access\Support\Labels;
+
 defined( 'ABSPATH' ) || exit;
 
 $gatedmedia_state = isset( $attributes['state'] ) ? (string) $attributes['state'] : 'normal';
@@ -64,7 +66,7 @@ $gatedmedia_aside = 'unavailable' === $gatedmedia_state
 
 $gatedmedia_unavailable_label = isset( $attributes['unavailableLabel'] ) && '' !== $attributes['unavailableLabel']
 	? (string) $attributes['unavailableLabel']
-	: __( 'No longer available', 'gated-media-access' );
+	: Labels::text( 'row.gone' );
 
 // The narrow full-width action, composed from the button block.
 $gatedmedia_action = '';
