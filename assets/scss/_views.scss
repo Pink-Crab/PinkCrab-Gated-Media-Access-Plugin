@@ -227,6 +227,11 @@
 	margin-top: var(--gatedmedia-lg);
 }
 
+// Groups are unstyled; this only keeps the gap fields have between each other.
+.gatedmedia-profile-group + .gatedmedia-profile-group {
+	margin-top: var(--gatedmedia-md);
+}
+
 // -----------------------------------------------------------------------------
 // Order detail
 //

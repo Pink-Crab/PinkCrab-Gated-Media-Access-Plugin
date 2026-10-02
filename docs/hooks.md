@@ -117,6 +117,76 @@ How accounts are made: `registration`, `admin` or `purchase`. Decides whether th
 
 Whether a new account is sent to complete its profile on first sign-in. The prompt shows only the missing required fields and is not dismissible.
 
+### `gatedmedia_profile_fields`
+
+`apply_filters( 'gatedmedia_profile_fields', array $groups )`
+
+The profile form's groups and their fields, in the order they are drawn. Reorder, add or remove either. The defaults are `main` (the read-only email, first name, last name), `password` (current, new, confirm) and `contact` (company, phone, address, town or city, postcode, country).
+
+Each group is `array( 'label' => string, 'fields' => array )`. A group is drawn as a plain `div.gatedmedia-profile-group.gatedmedia-profile-group--{key}` with no styles of its own, headed only when its label is not empty.
+
+Each field is keyed by its input name, and only needs the keys that differ from these defaults:
+
+| Key | Default | |
+| --- | --- | --- |
+| `label` | `''` | |
+| `type` | `text` | The input type. A `password` field is never filled in and is posted unsanitised. |
+| `store` | `none` | `core` is core user meta under the field's key, `meta` is user meta under `gatedmedia_{key}`. `none` is not read or written by the plugin: save it on `gatedmedia_profile_updated` and show it with `gatedmedia_profile_values`. |
+| `required` | `false` | Counts towards an incomplete profile, for `core` and `meta` fields only. |
+| `autocomplete` | `''` | |
+| `disabled` | `false` | Shown, never posted or saved. |
+| `message` | `''` | The helper line beneath. |
+
+Only the fields in the filtered list are saved, so removing one stops it being written.
+
+```php
+add_filter(
+	'gatedmedia_profile_fields',
+	function ( array $groups ): array {
+		$groups['contact']['label']         = 'Contact details';
+		$groups['contact']['fields']['vat'] = array(
+			'label' => 'VAT number',
+			'store' => 'meta',
+		);
+
+		unset( $groups['contact']['fields']['country'] );
+
+		return $groups;
+	}
+);
+```
+
+### `gatedmedia_profile_values`
+
+`apply_filters( 'gatedmedia_profile_values', array $values, int $user_id )`
+
+What the profile form shows, keyed by field. `core` and `meta` fields and the email are already filled; fill the `none` fields a site stores itself.
+
+### `gatedmedia_profile_errors`
+
+`apply_filters( 'gatedmedia_profile_errors', WP_Error $errors, int $user_id, array $submitted )`
+
+Whether a profile save may go ahead. Add to the `WP_Error` to refuse it, and nothing is saved. `$submitted` is every posted field in the filtered list: passwords raw, the rest through `sanitize_text_field()`.
+
+The form comes back with the first error's code. Its text is the `account.profile.error.{code}` label (add it through `gatedmedia_labels`), or "Your details were not saved." when there is none. Put a `field` in the error's data to show the text under that field:
+
+```php
+add_filter(
+	'gatedmedia_profile_errors',
+	function ( WP_Error $errors, int $user_id, array $submitted ): WP_Error {
+		if ( '' !== ( $submitted['vat'] ?? '' ) && ! preg_match( '/^GB\d{9}$/', $submitted['vat'] ) ) {
+			$errors->add( 'vat_invalid', 'That is not a VAT number.', array( 'field' => 'vat' ) );
+		}
+
+		return $errors;
+	},
+	10,
+	3
+);
+```
+
+The plugin's own password change runs here: it needs the current password, a new one of at least 12 characters, and the two new ones to match. A current password with no new one, as a browser fills it in, changes nothing.
+
 ### `gatedmedia_auth_slug`
 
 `apply_filters( 'gatedmedia_auth_slug', string $slug )`
@@ -664,9 +734,9 @@ Fires after somebody creates their own account from the front end. Accounts made
 
 ### `gatedmedia_profile_updated`
 
-`do_action( 'gatedmedia_profile_updated', int $user_id )`
+`do_action( 'gatedmedia_profile_updated', int $user_id, array $submitted )`
 
-Fires after a person saves their own profile from the account area.
+Fires after a person saves their own profile from the account area, once the `core` and `meta` fields are written. Save `none` fields here. `$submitted` is every posted field in the filtered list: passwords raw, the rest through `sanitize_text_field()`. The plugin sets a new password here.
 
 ### `gatedmedia_file_downloaded`
 

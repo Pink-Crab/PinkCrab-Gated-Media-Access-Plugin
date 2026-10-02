@@ -17,6 +17,7 @@ use PinkCrab\Gated_Access\Blocks\Block_Registrar;
 use PinkCrab\Gated_Access\Blocks\Sprite;
 use PinkCrab\Gated_Access\Account\Account_Route;
 use PinkCrab\Gated_Access\Account\Profile_Writer;
+use PinkCrab\Gated_Access\Account\Password_Change;
 use PinkCrab\Gated_Access\Auth\Auth_Action;
 use PinkCrab\Gated_Access\Auth\Auth_Route;
 use PinkCrab\Gated_Access\Auth\Auth_State;
@@ -109,6 +110,7 @@ class Plugin {
 		Auth_Action::class,
 		Auth_Route::class,
 		Profile_Writer::class,
+		Password_Change::class,
 		Held_Access::class,
 		Downloadable_Files::class,
 		Group_Contents::class,

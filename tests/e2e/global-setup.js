@@ -13,8 +13,8 @@ const path = require( 'node:path' );
 const SLUG = path.basename( process.cwd() );
 const FIXTURE_DIR = `wp-content/plugins/${ SLUG }/tests/e2e/fixtures`;
 
-// kitchen-sink builds the components page, and shop builds the product, the group and the order the shop specs walk.
-const FIXTURES = [ 'kitchen-sink.php', 'shop.php' ];
+// kitchen-sink builds the components page, shop builds the product, the group and the order the shop specs walk, and profile resets the account the profile specs edit.
+const FIXTURES = [ 'kitchen-sink.php', 'shop.php', 'profile.php' ];
 
 /**
  * Runs one fixture and returns everything it printed.
