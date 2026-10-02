@@ -1,14 +1,17 @@
 <?php
 /**
- * Profile: one view, three states.
+ * Profile: one view, four states.
  *
- * Standard, forced completion, and saved. One page, not three.
+ * Standard, forced completion, saved and refused. One page, not four.
  *
- * Three things here are easy to get wrong:
+ * Things here that are easy to get wrong:
  *
  * - **The email field is read-only**, rendered disabled with a helper line beneath saying so, while every other field is editable.
  * - **Forced completion shows only the missing fields**, inside a bordered card on wide and the plain column on narrow, rather than the full form with a notice on top.
  * - **The forced-completion notice is not dismissible**, expressed by it having no dismiss button at all rather than by a flag.
+ * - **A password is never written back into the page**, whatever the values say.
+ *
+ * Each group of `Profile_Writer::groups()` is a plain div with no styles of its own, headed only when it has a label.
  *
  * Actions are Save beside a Cancel text link, left-aligned and not full width on wide, and on narrow Save goes full width and Cancel becomes a centred link.
  *
@@ -33,25 +36,25 @@ if ( 0 === $gatedmedia_user->ID ) {
 	return;
 }
 
-$gatedmedia_values  = Profile_Writer::values_for( $gatedmedia_user->ID );
-$gatedmedia_fields  = Profile_Writer::fields();
+$gatedmedia_groups  = Profile_Writer::groups();
+$gatedmedia_values  = Profile_Writer::form_values( $gatedmedia_user->ID );
 $gatedmedia_missing = Profile_Writer::missing_for( $gatedmedia_user->ID );
 
-// ?profile=saved comes back from the writer's redirect, and ?profile=complete is how the forced-completion state is reached.
+// ?profile=saved and ?profile=error come back from the writer's redirect, and ?profile=complete is how the forced-completion state is reached.
 $gatedmedia_state = isset( $_GET['profile'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display state only, changes nothing.
 	? sanitize_key( wp_unslash( $_GET['profile'] ) ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	: '';
 
 $gatedmedia_is_forced = 'complete' === $gatedmedia_state && array() !== $gatedmedia_missing;
 $gatedmedia_is_saved  = 'saved' === $gatedmedia_state;
+$gatedmedia_is_error  = 'error' === $gatedmedia_state;
 
-// Forced completion narrows the form to what is actually missing.
-$gatedmedia_shown = $gatedmedia_is_forced
-	? array_intersect_key( $gatedmedia_fields, array_flip( $gatedmedia_missing ) )
-	: $gatedmedia_fields;
+// The refusal and the field it is about.
+$gatedmedia_error_code  = $gatedmedia_is_error ? sanitize_key( (string) wp_unslash( $_GET[ Profile_Writer::ARG_ERROR ] ?? '' ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$gatedmedia_error_field = $gatedmedia_is_error ? sanitize_key( (string) wp_unslash( $_GET[ Profile_Writer::ARG_FIELD ] ?? '' ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 // -----------------------------------------------------------------------------
-// The notice slot. One of three, or none.
+// The notice slot. One of four, or none.
 // -----------------------------------------------------------------------------
 $gatedmedia_notice = '';
 
@@ -61,6 +64,14 @@ if ( $gatedmedia_is_saved ) {
 		array(
 			'kind' => 'success',
 			'text' => Labels::text( 'account.profile.saved' ),
+		)
+	);
+} elseif ( $gatedmedia_is_error ) {
+	$gatedmedia_notice = Block::render(
+		'gated-media-access/notice',
+		array(
+			'kind' => 'error',
+			'text' => Labels::text( 'account.profile.not_saved' ),
 		)
 	);
 } elseif ( $gatedmedia_is_forced ) {
@@ -84,31 +95,47 @@ if ( $gatedmedia_is_saved ) {
 }
 
 // -----------------------------------------------------------------------------
-// The fields. Email first, read-only, then whatever this state shows.
+// The groups, in order. Forced completion keeps only the missing fields and the read-only ones.
 // -----------------------------------------------------------------------------
-$gatedmedia_inputs = Block::render(
-	'gated-media-access/field',
-	array(
-		'name'     => 'email',
-		'label'    => Labels::text( 'account.profile.email' ),
-		'type'     => 'email',
-		'value'    => $gatedmedia_user->user_email,
-		'disabled' => true,
-		'message'  => Labels::text( 'account.profile.email_note' ),
-	)
-);
+$gatedmedia_body = '';
 
-foreach ( $gatedmedia_shown as $gatedmedia_key => $gatedmedia_field ) {
-	$gatedmedia_inputs .= Block::render(
-		'gated-media-access/field',
-		array(
-			'name'         => $gatedmedia_key,
-			'label'        => $gatedmedia_field['label'],
-			'type'         => $gatedmedia_field['type'],
-			'value'        => $gatedmedia_values[ $gatedmedia_key ] ?? '',
-			'autocomplete' => $gatedmedia_field['autocomplete'],
-			'required'     => $gatedmedia_field['required'],
-		)
+foreach ( $gatedmedia_groups as $gatedmedia_group_key => $gatedmedia_group ) {
+	$gatedmedia_inputs = '';
+
+	foreach ( $gatedmedia_group['fields'] as $gatedmedia_key => $gatedmedia_field ) {
+		if ( $gatedmedia_is_forced && ! $gatedmedia_field['disabled'] && ! in_array( $gatedmedia_key, $gatedmedia_missing, true ) ) {
+			continue;
+		}
+
+		$gatedmedia_inputs .= Block::render(
+			'gated-media-access/field',
+			array(
+				'name'         => $gatedmedia_key,
+				'label'        => $gatedmedia_field['label'],
+				'type'         => $gatedmedia_field['type'],
+				'value'        => 'password' === $gatedmedia_field['type'] ? '' : ( $gatedmedia_values[ $gatedmedia_key ] ?? '' ),
+				'autocomplete' => $gatedmedia_field['autocomplete'],
+				'required'     => $gatedmedia_field['required'],
+				'disabled'     => $gatedmedia_field['disabled'],
+				'message'      => $gatedmedia_field['message'],
+				'error'        => $gatedmedia_key === $gatedmedia_error_field ? Profile_Writer::message_for( $gatedmedia_error_code ) : '',
+			)
+		);
+	}
+
+	if ( '' === $gatedmedia_inputs ) {
+		continue;
+	}
+
+	$gatedmedia_heading = '' === $gatedmedia_group['label']
+		? ''
+		: Block::render( 'gated-media-access/section-heading', array( 'text' => $gatedmedia_group['label'] ) );
+
+	$gatedmedia_body .= sprintf(
+		'<div class="%s">%s%s</div>',
+		esc_attr( 'gatedmedia-profile-group gatedmedia-profile-group--' . sanitize_html_class( $gatedmedia_group_key ) ),
+		$gatedmedia_heading,
+		$gatedmedia_inputs
 	);
 }
 
@@ -122,7 +149,7 @@ $gatedmedia_actions = Block::render(
 	'gated-media-access/button',
 	array(
 		'label'   => Labels::text( 'account.profile.cancel' ),
-		'href'    => remove_query_arg( 'profile' ),
+		'href'    => remove_query_arg( array( 'profile', Profile_Writer::ARG_ERROR, Profile_Writer::ARG_FIELD ) ),
 		'variant' => 'link',
 	)
 );
@@ -138,7 +165,7 @@ $gatedmedia_actions = Block::render(
 		<input type="hidden" name="action" value="<?php echo esc_attr( Profile_Writer::ACTION ); ?>">
 		<?php wp_nonce_field( Profile_Writer::ACTION ); ?>
 
-		<?php echo $gatedmedia_inputs; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the field block. ?>
+		<?php echo $gatedmedia_body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Field and heading blocks escape their own output; the wrapper class is escaped above. ?>
 
 		<div class="gatedmedia-form-actions">
 			<?php echo $gatedmedia_actions; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Block output, escaped by the button block. ?>

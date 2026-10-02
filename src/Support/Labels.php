@@ -99,6 +99,7 @@ class Labels {
 			self::product_labels(),
 			self::auth_labels(),
 			self::account_labels(),
+			self::profile_labels(),
 			self::files_labels(),
 			self::orders_labels(),
 			self::status_labels()
@@ -213,6 +214,24 @@ class Labels {
 			'access.group.back'          => __( 'Back to my access', 'gated-media-access' ),
 			'access.empty'               => __( 'Nothing here yet', 'gated-media-access' ),
 			'access.empty_note'          => __( 'Anything you are given access to will appear here, with the date it runs out.', 'gated-media-access' ),
+		);
+	}
+
+	/**
+	 * The profile form's password change and its refusals.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function profile_labels(): array {
+		return array(
+			/* translators: %d: the minimum password length. */
+			'account.profile.password_note'           => __( 'At least %d characters. Leave blank to keep your current password.', 'gated-media-access' ),
+			'account.profile.not_saved'               => __( 'Your details were not saved.', 'gated-media-access' ),
+			'account.profile.error.password_current_missing' => __( 'Enter your current password to change it.', 'gated-media-access' ),
+			'account.profile.error.password_current'  => __( 'That is not your current password.', 'gated-media-access' ),
+			/* translators: %d: the minimum password length. */
+			'account.profile.error.password_short'    => __( 'Passwords need at least %d characters.', 'gated-media-access' ),
+			'account.profile.error.password_mismatch' => __( 'The new passwords do not match.', 'gated-media-access' ),
 		);
 	}
 
