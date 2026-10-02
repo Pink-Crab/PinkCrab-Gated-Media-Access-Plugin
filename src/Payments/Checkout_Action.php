@@ -14,7 +14,7 @@ use PinkCrab\Loader\Hook_Loader;
 use PinkCrab\Gated_Access\Hookable;
 use PinkCrab\Gated_Access\Settings\Settings;
 use PinkCrab\Gated_Access\Support\Auth_Url;
-use PinkCrab\Gated_Access\Products\Product_Meta;
+use PinkCrab\Gated_Access\Products\Product_Price;
 
 /**
  * The admin-post action a product page's buy form submits to.
@@ -138,7 +138,7 @@ class Checkout_Action implements Hookable {
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		// Where the site makes accounts at purchase there is nothing to sign into yet, so the buy goes through as it stands and the account is made when the money lands.
-		if ( $this->checkout->guest_may_buy( (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true ) ) ) {
+		if ( $this->checkout->guest_may_buy( Product_Price::charge( $product_id ) ) ) {
 			$this->handle();
 
 			return;

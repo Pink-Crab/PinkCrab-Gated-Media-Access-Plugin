@@ -15,6 +15,7 @@ use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Products\Product_Meta;
+use PinkCrab\Gated_Access\Products\Product_Price;
 use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -87,7 +88,7 @@ class Checkout {
 			return new WP_Error( 'gatedmedia_not_eligible', __( 'This product is not available to you.', 'gated-media-access' ) );
 		}
 
-		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$price = Product_Price::charge( $product_id );
 
 		if ( 0 === $user_id && ! $this->guest_may_buy( $price ) ) {
 			return new WP_Error( 'gatedmedia_needs_account', __( 'Sign in to continue.', 'gated-media-access' ) );
@@ -124,7 +125,7 @@ class Checkout {
 	 * @return array{applied: bool, discount: int, total: int, error: string}
 	 */
 	public function preview( int $product_id, int $user_id, string $code ): array {
-		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$price = Product_Price::charge( $product_id );
 		$none  = array(
 			'applied'  => false,
 			'discount' => 0,
@@ -161,7 +162,7 @@ class Checkout {
 	 *
 	 * @param WP_Post $product     The product.
 	 * @param int     $user_id     The buyer.
-	 * @param int     $price       Full price, minor units.
+	 * @param int     $price       The price before any coupon (the sale price when one is on), minor units.
 	 * @param string  $coupon_code A typed coupon code, '' for none.
 	 * @return array{redirect: string}|WP_Error
 	 */
@@ -260,7 +261,7 @@ class Checkout {
 	 *
 	 * @param WP_Post      $product  The product.
 	 * @param int          $user_id  The buyer.
-	 * @param int          $price    Full price, minor units.
+	 * @param int          $price    The price before any coupon, minor units.
 	 * @param int          $discount What the coupon takes off, minor units.
 	 * @param WP_Post|null $coupon   The coupon, null for none.
 	 * @return array{redirect: string}|WP_Error

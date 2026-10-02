@@ -38,6 +38,18 @@ class Product_Meta implements Hookable {
 	/** The per-product invite switch: '0' off, anything else on. */
 	public const META_SEND_INVITES = 'gatedmedia_send_invites';
 
+	/** The sale's kind: SALE_PERCENT, SALE_AMOUNT, or '' for no sale. */
+	public const META_SALE_TYPE = 'gatedmedia_sale_type';
+
+	/** How much off: a whole percentage, or minor units. */
+	public const META_SALE_VALUE = 'gatedmedia_sale_value';
+
+	/** A percentage off the price. */
+	public const SALE_PERCENT = 'percent';
+
+	/** An amount off the price. */
+	public const SALE_AMOUNT = 'amount';
+
 	/**
 	 * Lifetime, and the only thing that means it.
 	 *
@@ -216,6 +228,21 @@ class Product_Meta implements Hookable {
 		return array(
 			self::META_UUID         => $stamped_text,
 			self::META_PRICE        => array(
+				'type'              => 'integer',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'sanitize_callback' => 'absint',
+				'auth_callback'     => $manager,
+			),
+			// Whether the two make a real sale for the current price is Product_Price's to decide.
+			self::META_SALE_TYPE    => array(
+				'type'              => 'string',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'sanitize_callback' => static fn ( $value ): string => in_array( $value, array( self::SALE_PERCENT, self::SALE_AMOUNT ), true ) ? $value : '',
+				'auth_callback'     => $manager,
+			),
+			self::META_SALE_VALUE   => array(
 				'type'              => 'integer',
 				'single'            => true,
 				'show_in_rest'      => true,

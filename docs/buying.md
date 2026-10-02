@@ -12,6 +12,10 @@ What it contains, what it costs, and the way in. The page draws one of six state
 
 Below 782px the buy action pins to the bottom of the viewport, with the price in the button's own label. It is the only pinned element anywhere, and it never appears on an account view.
 
+## On sale
+
+The full price is struck through before the sale price, in the price block and nowhere else, and the pinned buy button names the sale price. Checkout charges the sale price, and a coupon comes off that.
+
 ## A coupon, applied
 
 Apply reloads the page with the code on it and prices it through `Checkout::preview()`, which writes nothing and spends nothing. The old price stays visible, struck through, and the code rides the buy submit where the coupon is judged again.

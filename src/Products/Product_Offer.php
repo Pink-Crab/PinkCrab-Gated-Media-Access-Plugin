@@ -91,7 +91,7 @@ class Product_Offer implements Hookable {
 
 		$user_id = get_current_user_id();
 		$items   = $this->items( $product_id );
-		$price   = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$price   = Product_Price::charge( $product_id );
 
 		$currency = (string) get_post_meta( $product_id, Product_Meta::META_CURRENCY, true );
 		$duration = (string) get_post_meta( $product_id, Product_Meta::META_DURATION, true );
@@ -100,6 +100,7 @@ class Product_Offer implements Hookable {
 		$data['state']      = $this->state( $product, $user_id, $items, $price );
 		$data['items']      = $this->contents( $items );
 		$data['price']      = $price;
+		$data['full_price'] = Product_Price::full( $product_id );
 		$data['currency']   = '' === $currency ? 'GBP' : $currency;
 		$data['term']       = $this->term( $duration );
 		$data['nonce']      = wp_create_nonce( Checkout_Action::ACTION );
@@ -126,7 +127,7 @@ class Product_Offer implements Hookable {
 	 *
 	 * @param int $product_id The product.
 	 * @param int $user_id    Who is looking, 0 signed out.
-	 * @param int $price      Full price, minor units.
+	 * @param int $price      The price before any coupon, minor units.
 	 * @return array{code: string, applied: bool, discount: int, total: int, error: string}
 	 */
 	private function coupon( int $product_id, int $user_id, int $price ): array {

@@ -249,7 +249,7 @@ Each account block raises a filter for its own data, because a `render.php` cann
 | `gatedmedia_my_access_data` | the group UUID, `''` for the list | `groups`, `posts`, `files`, `detail` |
 | `gatedmedia_files_data` | none | `available`, `downloading`, `past` |
 | `gatedmedia_orders_data` | the order UUID, `''` for the list | `orders`, `detail` |
-| `gatedmedia_product_data` | the product id | `product_id`, `state`, `items`, `price`, `currency`, `term`, `nonce`, `action_url`, `error`, `coupon`, `page_url` |
+| `gatedmedia_product_data` | the product id | `product_id`, `state`, `items`, `price` (the sale price when one is on), `full_price`, `currency`, `term`, `nonce`, `action_url`, `error`, `coupon`, `page_url` |
 | `gatedmedia_auth_data` | none | `state`, `error`, `message`, `invalid`, `email`, `redirect`, `signup_offered`, `minimum`, `action_url`, `nonce` |
 
 The plugin's own classes answer these at priority 10. Hook later to change what they said, earlier to answer instead of them.
