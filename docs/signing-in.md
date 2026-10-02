@@ -22,6 +22,8 @@ An interrupted purchase carries its destination through, so a buyer lands back o
 
 Asks for the address and nothing else, and hands off to core's own `retrieve_password()`.
 
+Somebody already signed in changes their password from [the profile](account-area.md#changing-your-password) instead, which asks for the current one.
+
 ![Reset](images/auth-reset.png)
 
 ## Reset link sent

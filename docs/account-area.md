@@ -56,6 +56,18 @@ Stripe returns the buyer before its webhook has necessarily landed, so the order
 
 The one profile shape every account-creation route fills, so somebody created by webhook is indistinguishable from somebody who signed up. Email identifies the account and is read-only here.
 
+The form is three groups, in order: the email with first and last name, then the password, then contact details (company, phone, address, town or city, postcode, country). Each group is a plain `div.gatedmedia-profile-group--{key}` with no styles of its own, so the theme decides how they look, and a group is headed only when a site gives it a label.
+
+A site reorders, adds or removes groups and fields with `gatedmedia_profile_fields`, and only the fields left in that list are saved. A field the site stores itself is shown with `gatedmedia_profile_values`, checked with `gatedmedia_profile_errors` and saved on `gatedmedia_profile_updated`. See [Hooks](hooks.md).
+
+### Changing your password
+
+The current password, then the new one twice. The current one is required (OWASP ASVS 5.0, 6.2.3), the new one needs at least 12 characters, and spaces at either end are dropped, as core's sign-in drops them. A missing or wrong current password, a short one or a mismatch saves nothing, and the reason shows under the field it is about.
+
+A current password on its own, as a browser fills it in, changes nothing, so the rest of the form still saves.
+
+The person stays signed in after a change, and core sends its password-changed email. An account made at purchase or by webhook was given a password nobody knows, so it sets one through the reset link on the [sign-in page](signing-in.md#reset) instead.
+
 ![Profile](images/account-profile.png)
 
 ![Profile on a phone](images/account-profile-narrow.png)
