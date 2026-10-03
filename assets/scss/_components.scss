@@ -282,6 +282,15 @@
 	&--full + &--full {
 		margin-top: var(--gatedmedia-sm);
 	}
+
+	// Disabled whatever the variant, hover included, so it never reads as pressable.
+	&:disabled,
+	&:disabled:hover {
+		background: var(--gatedmedia-surface-variant);
+		color: var(--gatedmedia-on-surface-variant);
+		border-color: transparent;
+		cursor: not-allowed;
+	}
 }
 
 .gatedmedia-text-link {

@@ -54,6 +54,10 @@ Many go on sale at once from the products list. Tick them, choose Edit from Bulk
 
 A sale is stored as the percentage or the amount off (`gatedmedia_sale_type` and `gatedmedia_sale_value`), not as a price, so it is worked out from the current price every time: 20% off stays 20% off when the price changes. It is on only while it gives a price above nothing and below the full price, so a free product, or an amount off as large as the price, is no sale. A coupon comes off the sale price.
 
+### Buying again
+
+The Buy again line says when someone can buy the product again: once their access runs out (the default), any time, or never. Never makes it one purchase only, and the product page shows a disabled Access granted button to anyone who has had it. It is stored as `gatedmedia_repurchase`; see [Buying access](buying.md#something-already-held) for what the buyer sees.
+
 ## Payments
 
 Every payment Stripe reported, read-only. The rows are the record of what happened and nothing here edits one.

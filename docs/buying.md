@@ -4,7 +4,7 @@ A product is a price, a duration and a list of things it grants. It is reached a
 
 ## The product page
 
-What it contains, what it costs, and the way in. The page draws one of six states, and the state decides what is offered rather than what is allowed: `Checkout` is asked again on submit, so a page offering a button it should not have still cannot buy anything.
+What it contains, what it costs, and the way in. The page draws one of seven states, and the state decides what is offered rather than what is allowed: `Checkout` is asked again on submit, so a page offering a button it should not have still cannot buy anything.
 
 ![A product for sale](images/product-for-sale.png)
 
@@ -35,3 +35,11 @@ Free is not a zero-value order: it grants directly, writes no payment row, and n
 The page stops selling what a person already has, and points them at their access instead.
 
 ![A product already held](images/product-already-held.png)
+
+Each product says when it can be bought again, on its Buy again line:
+
+- **Once their access runs out**, the default. While they hold it the page says so, as above; once it has run out they can buy it again.
+- **Any time**, even while they hold it, for something bought more than once.
+- **Never, one purchase only.** Once they have had it, held now or run out, the buy button stays where it was but is disabled and reads Access granted, with View your access beneath it.
+
+Held and had are about the product's items, so access an administrator gave counts the same as access bought. `Checkout` applies the same setting on submit, so a buy form posted after the setting changed is refused with its own message. A held free product is the one exception: under the default it is let through as before, because claiming it again adds nothing.

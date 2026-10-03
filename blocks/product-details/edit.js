@@ -23,6 +23,7 @@ const META = {
 	price: 'gatedmedia_price_amount',
 	saleType: 'gatedmedia_sale_type',
 	saleValue: 'gatedmedia_sale_value',
+	repurchase: 'gatedmedia_repurchase',
 	duration: 'gatedmedia_duration_days',
 	visibility: 'gatedmedia_visibility',
 	items: 'gatedmedia_items',
@@ -774,6 +775,48 @@ export default function Edit() {
 							</div>
 						</div>
 					) }
+				</div>
+
+				<div style={ { ...STYLES.fields, paddingTop: 0 } }>
+					<div>
+						<span
+							style={ {
+								...STYLES.caps,
+								...STYLES.fieldLabel,
+							} }
+						>
+							{ __( 'Buy again', 'gated-media-access' ) }
+						</span>
+						<div style={ { ...STYLES.inputWrap, width: '260px' } }>
+							<select
+								style={ STYLES.input }
+								value={ meta[ META.repurchase ] || 'lapsed' }
+								onChange={ ( event ) =>
+									set( META.repurchase, event.target.value )
+								}
+								aria-label={ __(
+									'When it can be bought again',
+									'gated-media-access'
+								) }
+							>
+								<option value="lapsed">
+									{ __(
+										'Once their access runs out',
+										'gated-media-access'
+									) }
+								</option>
+								<option value="always">
+									{ __( 'Any time', 'gated-media-access' ) }
+								</option>
+								<option value="never">
+									{ __(
+										'Never, one purchase only',
+										'gated-media-access'
+									) }
+								</option>
+							</select>
+						</div>
+					</div>
 				</div>
 
 				<div style={ STYLES.sectionHead }>

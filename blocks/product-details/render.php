@@ -113,7 +113,7 @@ $gatedmedia_body .= Block::render(
 		'original'      => max( $gatedmedia_full_price, $gatedmedia_applied ? $gatedmedia_price : 0 ),
 		'currency'      => $gatedmedia_currency,
 		'term'          => (string) ( $gatedmedia_data['term'] ?? '' ),
-		'notApplicable' => Product_Offer::STATE_HELD === $gatedmedia_state,
+		'notApplicable' => in_array( $gatedmedia_state, array( Product_Offer::STATE_HELD, Product_Offer::STATE_ONCE ), true ),
 	)
 );
 
@@ -142,6 +142,24 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 			'label'   => Labels::text( 'product.held.button' ),
 			'href'    => Account_Url::section( 'my-access' ),
 			'variant' => 'secondary',
+		)
+	);
+} elseif ( Product_Offer::STATE_ONCE === $gatedmedia_state ) {
+	// Once only, and already had: the buy button stays where it was, disabled, so the page says why it cannot be bought.
+	$gatedmedia_body .= Block::render(
+		'gated-media-access/button',
+		array(
+			'label'    => Labels::text( 'product.once.button' ),
+			'full'     => true,
+			'disabled' => true,
+		)
+	) . Block::render(
+		'gated-media-access/button',
+		array(
+			'label'   => Labels::text( 'product.held.button' ),
+			'href'    => Account_Url::section( 'my-access' ),
+			'variant' => 'secondary',
+			'full'    => true,
 		)
 	);
 } elseif ( Product_Offer::STATE_INELIGIBLE === $gatedmedia_state ) {
