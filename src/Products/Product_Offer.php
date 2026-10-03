@@ -22,11 +22,13 @@ use PinkCrab\Gated_Access\Support\Item_Label;
 use PinkCrab\Gated_Access\Support\Labels;
 
 /**
- * Turns a product into the shape the page draws: its contents, its price, and which of the six states the person looking at it is in.
+ * Turns a product into the shape the page draws: its contents, its price, and which of the seven states the person looking at it is in.
  *
  * The render file cannot reach container services, so it arrives by the `gatedmedia_product_data` filter, as My Access, Files and Orders do.
  *
  * **It reads and decides nothing that matters.** The state chooses what to show, `Checkout` decides whether a purchase may happen and is asked again on submit, so a page that offered a button it should not have still could not buy anything.
+ *
+ * @SuppressWarnings("PHPMD.CouplingBetweenObjects") The one place the price, the items, the buyer's access, the buy-again setting and the checkout meet to say what the page offers.
  */
 class Product_Offer implements Hookable {
 
@@ -38,6 +40,9 @@ class Product_Offer implements Hookable {
 
 	/** They held it and it ran out. */
 	public const STATE_LAPSED = 'lapsed';
+
+	/** Once only, and they have had it. */
+	public const STATE_ONCE = 'once';
 
 	/** An allow-list exists and their address is not on it. */
 	public const STATE_INELIGIBLE = 'ineligible';
@@ -59,12 +64,21 @@ class Product_Offer implements Hookable {
 	 */
 	public function __construct(
 		private Checkout $checkout,
-		private Resolver $resolver,
-		private Access_Lookup $lookup,
+		Resolver $resolver,
+		Access_Lookup $lookup,
 		private Item_Label $labels,
 		private Settings $settings,
 	) {
+		// Built here, as Checkout builds its own: the same reads over the same lookups, shared so the page and the purchase agree.
+		$this->repurchase = new Repurchase( $resolver, $lookup );
 	}
+
+	/**
+	 * Whether this person may buy the product again.
+	 *
+	 * @var Repurchase
+	 */
+	private Repurchase $repurchase;
 
 	/**
 	 * Supplies the view.
@@ -91,7 +105,7 @@ class Product_Offer implements Hookable {
 
 		$user_id = get_current_user_id();
 		$items   = $this->items( $product_id );
-		$price   = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$price   = Product_Price::charge( $product_id );
 
 		$currency = (string) get_post_meta( $product_id, Product_Meta::META_CURRENCY, true );
 		$duration = (string) get_post_meta( $product_id, Product_Meta::META_DURATION, true );
@@ -100,6 +114,7 @@ class Product_Offer implements Hookable {
 		$data['state']      = $this->state( $product, $user_id, $items, $price );
 		$data['items']      = $this->contents( $items );
 		$data['price']      = $price;
+		$data['full_price'] = Product_Price::full( $product_id );
 		$data['currency']   = '' === $currency ? 'GBP' : $currency;
 		$data['term']       = $this->term( $duration );
 		$data['nonce']      = wp_create_nonce( Checkout_Action::ACTION );
@@ -126,7 +141,7 @@ class Product_Offer implements Hookable {
 	 *
 	 * @param int $product_id The product.
 	 * @param int $user_id    Who is looking, 0 signed out.
-	 * @param int $price      Full price, minor units.
+	 * @param int $price      The price before any coupon, minor units.
 	 * @return array{code: string, applied: bool, discount: int, total: int, error: string}
 	 */
 	private function coupon( int $product_id, int $user_id, int $price ): array {
@@ -149,9 +164,9 @@ class Product_Offer implements Hookable {
 	}
 
 	/**
-	 * Which of the six states this person is in.
+	 * Which of the seven states this person is in.
 	 *
-	 * Ordered by what matters most to say: that you already have it beats every other message, and that you cannot buy it beats its price.
+	 * Ordered by what matters most to say: that you already have it (or may not have it again) beats every other message, and that you cannot buy it beats its price.
 	 *
 	 * @param WP_Post            $product The product.
 	 * @param int                $user_id Who is looking, 0 signed out.
@@ -163,11 +178,16 @@ class Product_Offer implements Hookable {
 			return self::STATE_SIGNED_OUT;
 		}
 
-		if ( array() !== $items && $this->holds_everything( $user_id, $items ) ) {
-			return self::STATE_HELD;
+		$refusal = $this->repurchase->refusal( $product->ID, $user_id );
+
+		if ( '' !== $refusal ) {
+			return $refusal;
 		}
 
-		if ( $this->held_before( $user_id, $items ) ) {
+		// Bought any time and held right now is no lapse, whatever older records say.
+		$holds = array() !== $items && $this->repurchase->holds_everything( $user_id, $items );
+
+		if ( ! $holds && $this->repurchase->held_before( $user_id, $items ) ) {
 			return self::STATE_LAPSED;
 		}
 
@@ -176,48 +196,6 @@ class Product_Offer implements Hookable {
 		}
 
 		return 0 === $price ? self::STATE_FREE : self::STATE_PAID;
-	}
-
-	/**
-	 * Whether every item this product grants is already theirs.
-	 *
-	 * Every one, not any: a product bundling four things is not "held" because one of them arrived another way.
-	 *
-	 * @param int                $user_id Who is looking.
-	 * @param array<int, string> $items   Its `type:identifier` entries.
-	 */
-	private function holds_everything( int $user_id, array $items ): bool {
-		foreach ( $items as $entry ) {
-			list( $type, $identifier ) = Item_Label::split( $entry );
-
-			if ( '' === $type || ! $this->resolver->can_see( $user_id, $type, $identifier ) ) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Whether any of it is access they used to have.
-	 *
-	 * Any, not every: one lapsed item is enough for the page to say the access ended rather than presenting it as a first purchase.
-	 *
-	 * @param int                $user_id Who is looking.
-	 * @param array<int, string> $items   Its `type:identifier` entries.
-	 */
-	private function held_before( int $user_id, array $items ): bool {
-		$pairs = array();
-
-		foreach ( $items as $entry ) {
-			list( $type, $identifier ) = Item_Label::split( $entry );
-
-			if ( '' !== $type ) {
-				$pairs[] = array( $type, $identifier );
-			}
-		}
-
-		return array() !== $this->lookup->past_records_for_items( $user_id, $pairs );
 	}
 
 	/**
@@ -308,6 +286,7 @@ class Product_Offer implements Hookable {
 			'gatedmedia_bad_coupon'    => Labels::text( 'product.error.bad_coupon' ),
 			'gatedmedia_payment_row'   => Labels::text( 'product.error.no_row' ),
 			'gatedmedia_needs_account' => Labels::text( 'product.error.needs_account' ),
+			'gatedmedia_already_had'   => Labels::text( 'product.error.already_had' ),
 		);
 
 		return $messages[ $code ] ?? Labels::text( 'product.error.no_session' );

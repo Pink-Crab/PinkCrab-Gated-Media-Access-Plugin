@@ -11,10 +11,14 @@ namespace PinkCrab\Gated_Access\Payments;
 
 use WP_Error;
 use WP_Post;
+use PinkCrab\Gated_Access\Access\Access_Lookup;
 use PinkCrab\Gated_Access\Access\Access_Writer;
 use PinkCrab\Gated_Access\Access\Resolver;
 use PinkCrab\Gated_Access\Registration\Post_Types;
 use PinkCrab\Gated_Access\Products\Product_Meta;
+use PinkCrab\Gated_Access\Products\Product_Offer;
+use PinkCrab\Gated_Access\Products\Product_Price;
+use PinkCrab\Gated_Access\Products\Repurchase;
 use PinkCrab\Gated_Access\Account\Order_History;
 use PinkCrab\Gated_Access\Support\Account_Url;
 use PinkCrab\Gated_Access\Settings\Settings;
@@ -50,9 +54,17 @@ class Checkout {
 	 */
 	public function __construct( private Payment_Store $store, private Access_Writer $writer, private Stripe_Gateway $gateway, private Resolver $resolver, private Settings $settings ) {
 		// Built here rather than injected: they are calculations over the same store, with no lifecycle of their own and nobody else resolving them.
-		$this->holds   = new Coupon_Hold();
-		$this->coupons = new Coupon_Pricing( $store, $this->holds );
+		$this->holds      = new Coupon_Hold();
+		$this->coupons    = new Coupon_Pricing( $store, $this->holds );
+		$this->repurchase = new Repurchase( $resolver, new Access_Lookup() );
 	}
+
+	/**
+	 * Whether the buyer may buy the product again, asked again here so a posted form cannot get past what the page said.
+	 *
+	 * @var Repurchase
+	 */
+	private Repurchase $repurchase;
 
 	/**
 	 * The coupon rules, asked to price a page and again to charge for it.
@@ -87,7 +99,12 @@ class Checkout {
 			return new WP_Error( 'gatedmedia_not_eligible', __( 'This product is not available to you.', 'gated-media-access' ) );
 		}
 
-		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$price   = Product_Price::charge( $product_id );
+		$refused = $this->already_had( $product_id, $user_id, $price );
+
+		if ( null !== $refused ) {
+			return $refused;
+		}
 
 		if ( 0 === $user_id && ! $this->guest_may_buy( $price ) ) {
 			return new WP_Error( 'gatedmedia_needs_account', __( 'Sign in to continue.', 'gated-media-access' ) );
@@ -98,6 +115,25 @@ class Checkout {
 		}
 
 		return $this->priced_purchase( $product, $user_id, $price, $coupon_code );
+	}
+
+	/**
+	 * The refusal when the product's buy-again setting does not allow this purchase, null when it does.
+	 *
+	 * A held free product is let through, because claim_free() adds nothing already live and a double press should not read as a failure.
+	 *
+	 * @param int $product_id The product.
+	 * @param int $user_id    The buyer.
+	 * @param int $price      What it would be charged.
+	 */
+	private function already_had( int $product_id, int $user_id, int $price ): ?WP_Error {
+		$refusal = $this->repurchase->refusal( $product_id, $user_id );
+
+		if ( Product_Offer::STATE_ONCE !== $refusal && ( '' === $refusal || 0 === $price ) ) {
+			return null;
+		}
+
+		return new WP_Error( 'gatedmedia_already_had', __( 'You already have this, and it cannot be bought again.', 'gated-media-access' ) );
 	}
 
 	/**
@@ -124,7 +160,7 @@ class Checkout {
 	 * @return array{applied: bool, discount: int, total: int, error: string}
 	 */
 	public function preview( int $product_id, int $user_id, string $code ): array {
-		$price = (int) get_post_meta( $product_id, Product_Meta::META_PRICE, true );
+		$price = Product_Price::charge( $product_id );
 		$none  = array(
 			'applied'  => false,
 			'discount' => 0,
@@ -161,7 +197,7 @@ class Checkout {
 	 *
 	 * @param WP_Post $product     The product.
 	 * @param int     $user_id     The buyer.
-	 * @param int     $price       Full price, minor units.
+	 * @param int     $price       The price before any coupon (the sale price when one is on), minor units.
 	 * @param string  $coupon_code A typed coupon code, '' for none.
 	 * @return array{redirect: string}|WP_Error
 	 */
@@ -260,7 +296,7 @@ class Checkout {
 	 *
 	 * @param WP_Post      $product  The product.
 	 * @param int          $user_id  The buyer.
-	 * @param int          $price    Full price, minor units.
+	 * @param int          $price    The price before any coupon, minor units.
 	 * @param int          $discount What the coupon takes off, minor units.
 	 * @param WP_Post|null $coupon   The coupon, null for none.
 	 * @return array{redirect: string}|WP_Error

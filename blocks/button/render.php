@@ -23,10 +23,13 @@ if ( '' === $gatedmedia_label ) {
 	return;
 }
 
-$gatedmedia_variant = isset( $attributes['variant'] ) ? (string) $attributes['variant'] : 'primary';
-$gatedmedia_href    = isset( $attributes['href'] ) ? (string) $attributes['href'] : '';
-$gatedmedia_icon    = isset( $attributes['icon'] ) ? (string) $attributes['icon'] : '';
-$gatedmedia_full    = true === ( $attributes['full'] ?? false );
+$gatedmedia_variant  = isset( $attributes['variant'] ) ? (string) $attributes['variant'] : 'primary';
+$gatedmedia_icon     = isset( $attributes['icon'] ) ? (string) $attributes['icon'] : '';
+$gatedmedia_full     = true === ( $attributes['full'] ?? false );
+$gatedmedia_disabled = true === ( $attributes['disabled'] ?? false );
+
+// A link cannot be disabled, so a disabled control is always a button.
+$gatedmedia_href = $gatedmedia_disabled || ! isset( $attributes['href'] ) ? '' : (string) $attributes['href'];
 
 // The text link is its own component, with no box, minimum width or height.
 $gatedmedia_classes = 'link' === $gatedmedia_variant
@@ -61,6 +64,7 @@ $gatedmedia_class = implode( ' ', $gatedmedia_classes );
 		<?php if ( '' !== (string) ( $attributes['form'] ?? '' ) ) : ?>
 		form="<?php echo esc_attr( (string) $attributes['form'] ); ?>"
 		<?php endif; ?>
+		<?php echo $gatedmedia_disabled ? 'disabled' : ''; ?>
 	>
 		<?php if ( '' !== $gatedmedia_icon ) : ?>
 		<svg class="gatedmedia-icon gatedmedia-icon--small" aria-hidden="true" focusable="false"><use href="#<?php echo esc_attr( $gatedmedia_icon ); ?>"></use></svg>

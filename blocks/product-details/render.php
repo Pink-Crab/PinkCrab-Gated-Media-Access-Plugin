@@ -49,6 +49,7 @@ $gatedmedia_data = apply_filters(
 		'state'      => '',
 		'items'      => array(),
 		'price'      => 0,
+		'full_price' => 0,
 		'currency'   => 'GBP',
 		'term'       => '',
 		'nonce'      => '',
@@ -101,17 +102,18 @@ if ( array() !== $gatedmedia_items ) {
 $gatedmedia_coupon_data = is_array( $gatedmedia_data['coupon'] ?? null ) ? $gatedmedia_data['coupon'] : array();
 $gatedmedia_applied     = true === ( $gatedmedia_coupon_data['applied'] ?? false );
 $gatedmedia_price       = (int) ( $gatedmedia_data['price'] ?? 0 );
+$gatedmedia_full_price  = (int) ( $gatedmedia_data['full_price'] ?? 0 );
 $gatedmedia_currency    = (string) ( $gatedmedia_data['currency'] ?? 'GBP' );
 
-// The price. Held and lapsed still show it; a coupon strikes the full price through as `original`.
+// The price. Held and lapsed still show it; a sale or a coupon strikes the full price through as `original`, which the price block shows only when it is above the amount.
 $gatedmedia_body .= Block::render(
 	'gated-media-access/price-block',
 	array(
 		'amount'        => $gatedmedia_applied ? (int) $gatedmedia_coupon_data['total'] : $gatedmedia_price,
-		'original'      => $gatedmedia_applied ? $gatedmedia_price : 0,
+		'original'      => max( $gatedmedia_full_price, $gatedmedia_applied ? $gatedmedia_price : 0 ),
 		'currency'      => $gatedmedia_currency,
 		'term'          => (string) ( $gatedmedia_data['term'] ?? '' ),
-		'notApplicable' => Product_Offer::STATE_HELD === $gatedmedia_state,
+		'notApplicable' => in_array( $gatedmedia_state, array( Product_Offer::STATE_HELD, Product_Offer::STATE_ONCE ), true ),
 	)
 );
 
@@ -140,6 +142,24 @@ if ( Product_Offer::STATE_HELD === $gatedmedia_state ) {
 			'label'   => Labels::text( 'product.held.button' ),
 			'href'    => Account_Url::section( 'my-access' ),
 			'variant' => 'secondary',
+		)
+	);
+} elseif ( Product_Offer::STATE_ONCE === $gatedmedia_state ) {
+	// Once only, and already had: the buy button stays where it was, disabled, so the page says why it cannot be bought.
+	$gatedmedia_body .= Block::render(
+		'gated-media-access/button',
+		array(
+			'label'    => Labels::text( 'product.once.button' ),
+			'full'     => true,
+			'disabled' => true,
+		)
+	) . Block::render(
+		'gated-media-access/button',
+		array(
+			'label'   => Labels::text( 'product.held.button' ),
+			'href'    => Account_Url::section( 'my-access' ),
+			'variant' => 'secondary',
+			'full'    => true,
 		)
 	);
 } elseif ( Product_Offer::STATE_INELIGIBLE === $gatedmedia_state ) {

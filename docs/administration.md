@@ -46,6 +46,18 @@ A product is a price, a duration, the items it grants and an optional email allo
 
 ![The product editor](images/admin-product-editor.png)
 
+### Sales
+
+A product goes on sale from its own form, on the Sale line under the price: No sale, Money off or Percentage off, and how much. The header shows the sale price beside the full price struck through.
+
+Many go on sale at once from the products list. Tick them, choose Edit from Bulk actions, and under Sale pick Percentage off or Amount off with how much, or End sale. The Price column shows each one's full price struck through beside its sale price.
+
+A sale is stored as the percentage or the amount off (`gatedmedia_sale_type` and `gatedmedia_sale_value`), not as a price, so it is worked out from the current price every time: 20% off stays 20% off when the price changes. It is on only while it gives a price above nothing and below the full price, so a free product, or an amount off as large as the price, is no sale. A coupon comes off the sale price.
+
+### Buying again
+
+The Buy again line says when someone can buy the product again: once their access runs out (the default), any time, or never. Never makes it one purchase only, and the product page shows a disabled Access granted button to anyone who has had it. It is stored as `gatedmedia_repurchase`; see [Buying access](buying.md#something-already-held) for what the buyer sees.
+
 ## Payments
 
 Every payment Stripe reported, read-only. The rows are the record of what happened and nothing here edits one.

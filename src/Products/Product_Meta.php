@@ -38,6 +38,30 @@ class Product_Meta implements Hookable {
 	/** The per-product invite switch: '0' off, anything else on. */
 	public const META_SEND_INVITES = 'gatedmedia_send_invites';
 
+	/** The sale's kind: SALE_PERCENT, SALE_AMOUNT, or '' for no sale. */
+	public const META_SALE_TYPE = 'gatedmedia_sale_type';
+
+	/** How much off: a whole percentage, or minor units. */
+	public const META_SALE_VALUE = 'gatedmedia_sale_value';
+
+	/** A percentage off the price. */
+	public const SALE_PERCENT = 'percent';
+
+	/** An amount off the price. */
+	public const SALE_AMOUNT = 'amount';
+
+	/** When the product can be bought again: one of the REPURCHASE_* values. */
+	public const META_REPURCHASE = 'gatedmedia_repurchase';
+
+	/** Again once their access has run out, and not while they hold it. The default. */
+	public const REPURCHASE_LAPSED = 'lapsed';
+
+	/** Again at any time, even while they hold it. */
+	public const REPURCHASE_ALWAYS = 'always';
+
+	/** Once only, ever. */
+	public const REPURCHASE_NEVER = 'never';
+
 	/**
 	 * Lifetime, and the only thing that means it.
 	 *
@@ -220,6 +244,29 @@ class Product_Meta implements Hookable {
 				'single'            => true,
 				'show_in_rest'      => true,
 				'sanitize_callback' => 'absint',
+				'auth_callback'     => $manager,
+			),
+			// Whether the two make a real sale for the current price is Product_Price's to decide.
+			self::META_SALE_TYPE    => array(
+				'type'              => 'string',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'sanitize_callback' => static fn ( $value ): string => in_array( $value, array( self::SALE_PERCENT, self::SALE_AMOUNT ), true ) ? $value : '',
+				'auth_callback'     => $manager,
+			),
+			self::META_SALE_VALUE   => array(
+				'type'              => 'integer',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'sanitize_callback' => 'absint',
+				'auth_callback'     => $manager,
+			),
+			self::META_REPURCHASE   => array(
+				'type'              => 'string',
+				'single'            => true,
+				'show_in_rest'      => true,
+				'default'           => self::REPURCHASE_LAPSED,
+				'sanitize_callback' => static fn ( $value ): string => in_array( $value, array( self::REPURCHASE_ALWAYS, self::REPURCHASE_NEVER ), true ) ? $value : self::REPURCHASE_LAPSED,
 				'auth_callback'     => $manager,
 			),
 			self::META_CURRENCY     => $single_text,

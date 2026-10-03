@@ -21,6 +21,9 @@ import { currencyDigits } from '../../assets/js/editor/controls';
 const META = {
 	uuid: 'gatedmedia_uuid',
 	price: 'gatedmedia_price_amount',
+	saleType: 'gatedmedia_sale_type',
+	saleValue: 'gatedmedia_sale_value',
+	repurchase: 'gatedmedia_repurchase',
 	duration: 'gatedmedia_duration_days',
 	visibility: 'gatedmedia_visibility',
 	items: 'gatedmedia_items',
@@ -41,6 +44,44 @@ function storedDays( typed ) {
 	const days = typed.replace( /\D/g, '' );
 
 	return '' === days || '0' === days ? LIFETIME : days;
+}
+
+/**
+ * The sale price a sale gives, matching Product_Price::sale(): worked out from the price, and 0 unless it lands above zero and below it.
+ *
+ * @param {number} price The full price, minor units.
+ * @param {string} type  'percent', 'amount' or '' for no sale.
+ * @param {number} value A whole percentage, or minor units off.
+ * @return {number} The sale price, minor units, 0 for none.
+ */
+function salePriceOf( price, type, value ) {
+	let worked = 0;
+
+	if ( 'percent' === type && value >= 1 && value <= 99 ) {
+		worked = Math.round( ( price * ( 100 - value ) ) / 100 );
+	} else if ( 'amount' === type && value > 0 ) {
+		worked = price - value;
+	}
+
+	return worked > 0 && worked < price ? worked : 0;
+}
+
+/**
+ * The stored sale value as the box shows it: a whole percentage, or the amount in the currency's decimals. Empty for nothing off.
+ *
+ * @param {string} type   'percent' or 'amount'.
+ * @param {number} value  A whole percentage, or minor units.
+ * @param {number} digits The currency's decimal digits.
+ * @return {string} What the box holds.
+ */
+function saleValueShown( type, value, digits ) {
+	if ( ! value ) {
+		return '';
+	}
+
+	return 'percent' === type
+		? String( value )
+		: ( value / 10 ** digits ).toFixed( digits );
 }
 
 const ENDPOINTS = {
@@ -146,6 +187,12 @@ const STYLES = {
 		fontFamily: SERIF,
 		fontSize: '30px',
 		color: INK,
+	},
+	fareOriginal: {
+		fontFamily: SERIF,
+		fontSize: '18px',
+		color: INK_SOFT,
+		textDecoration: 'line-through',
 	},
 	fields: {
 		display: 'flex',
@@ -348,6 +395,8 @@ export default function Edit() {
 	const latest = useRef( 0 );
 	const [ labels, setLabels ] = useState( {} );
 	const [ emailDraft, setEmailDraft ] = useState( '' );
+	// What is in the sale box while it is being typed in, so a half-typed "2." is not re-formatted underneath the cursor.
+	const [ saleDraft, setSaleDraft ] = useState( null );
 
 	const blockProps = useBlockProps( {
 		className: 'gatedmedia-product-details',
@@ -360,6 +409,15 @@ export default function Edit() {
 	const duration = LIFETIME === storedDuration ? '' : storedDuration;
 	const digits = currencyDigits( shop.currency );
 	const minor = meta[ META.price ] || 0;
+	const saleType = meta[ META.saleType ] || '';
+	const saleValue = meta[ META.saleValue ] || 0;
+	const salePrice = salePriceOf( minor, saleType, saleValue );
+	const onSale = salePrice > 0;
+	const money = ( amount ) =>
+		`${ currencySymbol( shop.currency ) }${ (
+			amount /
+			10 ** digits
+		).toFixed( digits ) }`;
 	const set = ( key, value ) => setMeta( { ...meta, [ key ]: value } );
 
 	const emailValid = /^\S+@\S+\.\S+$/.test( emailDraft.trim() );
@@ -462,13 +520,15 @@ export default function Edit() {
 						</p>
 					</div>
 					<div style={ STYLES.fare }>
+						{ onSale && (
+							<span style={ STYLES.fareOriginal }>
+								{ money( minor ) }
+							</span>
+						) }
 						<span style={ STYLES.fareAmount }>
 							{ 0 === minor
 								? __( 'Free', 'gated-media-access' )
-								: `${ currencySymbol( shop.currency ) }${ (
-										minor /
-										10 ** digits
-								  ).toFixed( digits ) }` }
+								: money( onSale ? salePrice : minor ) }
 						</span>
 						<span style={ STYLES.caps }>
 							{ '' === duration
@@ -592,6 +652,170 @@ export default function Edit() {
 							}
 							__nextHasNoMarginBottom
 						/>
+					</div>
+				</div>
+
+				<div style={ { ...STYLES.fields, paddingTop: 0 } }>
+					<div>
+						<span
+							style={ {
+								...STYLES.caps,
+								...STYLES.fieldLabel,
+							} }
+						>
+							{ __( 'Sale', 'gated-media-access' ) }
+						</span>
+						<div style={ { ...STYLES.inputWrap, width: '170px' } }>
+							<select
+								style={ STYLES.input }
+								value={ saleType }
+								onChange={ ( event ) => {
+									// A new kind starts from nothing off, so a percentage is never read as pence.
+									setSaleDraft( null );
+									setMeta( {
+										...meta,
+										[ META.saleType ]: event.target.value,
+										[ META.saleValue ]: 0,
+									} );
+								} }
+								aria-label={ __(
+									'Sale type',
+									'gated-media-access'
+								) }
+							>
+								<option value="">
+									{ __( 'No sale', 'gated-media-access' ) }
+								</option>
+								<option value="amount">
+									{ __( 'Money off', 'gated-media-access' ) }
+								</option>
+								<option value="percent">
+									{ __(
+										'Percentage off',
+										'gated-media-access'
+									) }
+								</option>
+							</select>
+						</div>
+					</div>
+					{ '' !== saleType && (
+						<div>
+							<span
+								style={ {
+									...STYLES.caps,
+									...STYLES.fieldLabel,
+								} }
+							>
+								{ __( 'Off', 'gated-media-access' ) }
+							</span>
+							<div
+								style={ {
+									...STYLES.inputWrap,
+									width: '150px',
+								} }
+							>
+								{ 'amount' === saleType && (
+									<span style={ STYLES.inputPrefix }>
+										{ currencySymbol( shop.currency ) }
+									</span>
+								) }
+								<input
+									type="number"
+									step={
+										'percent' === saleType ? '1' : 'any'
+									}
+									min="0"
+									max={
+										'percent' === saleType
+											? '99'
+											: undefined
+									}
+									style={ STYLES.input }
+									value={
+										null !== saleDraft
+											? saleDraft
+											: saleValueShown(
+													saleType,
+													saleValue,
+													digits
+											  )
+									}
+									onBlur={ () => setSaleDraft( null ) }
+									onChange={ ( event ) => {
+										setSaleDraft( event.target.value );
+
+										const typed = parseFloat(
+											event.target.value || 0
+										);
+
+										set(
+											META.saleValue,
+											'percent' === saleType
+												? Math.round( typed )
+												: Math.round(
+														typed * 10 ** digits
+												  )
+										);
+									} }
+									aria-label={ __(
+										'Sale amount off',
+										'gated-media-access'
+									) }
+								/>
+								{ 'percent' === saleType && (
+									<span
+										style={ {
+											...STYLES.inputPrefix,
+											padding: '0 12px 0 0',
+										} }
+									>
+										%
+									</span>
+								) }
+							</div>
+						</div>
+					) }
+				</div>
+
+				<div style={ { ...STYLES.fields, paddingTop: 0 } }>
+					<div>
+						<span
+							style={ {
+								...STYLES.caps,
+								...STYLES.fieldLabel,
+							} }
+						>
+							{ __( 'Buy again', 'gated-media-access' ) }
+						</span>
+						<div style={ { ...STYLES.inputWrap, width: '260px' } }>
+							<select
+								style={ STYLES.input }
+								value={ meta[ META.repurchase ] || 'lapsed' }
+								onChange={ ( event ) =>
+									set( META.repurchase, event.target.value )
+								}
+								aria-label={ __(
+									'When it can be bought again',
+									'gated-media-access'
+								) }
+							>
+								<option value="lapsed">
+									{ __(
+										'Once their access runs out',
+										'gated-media-access'
+									) }
+								</option>
+								<option value="always">
+									{ __( 'Any time', 'gated-media-access' ) }
+								</option>
+								<option value="never">
+									{ __(
+										'Never, one purchase only',
+										'gated-media-access'
+									) }
+								</option>
+							</select>
+						</div>
 					</div>
 				</div>
 
