@@ -8,7 +8,7 @@
  * Plugin Name:             Gated Media Access
  * Plugin URI:              https://github.com/Pink-Crab/PinkCrab-Gated-Media-Access-Plugin
  * Description:             Gated access to documents, media and posts. Access is granted by on-site payment, by an administrator, or by webhook.
- * Version:                 0.1.2
+ * Version:                 0.1.3
  * Requires at least:       6.4
  * Requires PHP:            8.3
  * Author:                  Glynn Quelch
@@ -28,7 +28,7 @@ use PinkCrab\Gated_Access\Updates\Github_Updater;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'GATEDMEDIA_VERSION', '0.1.2' );
+define( 'GATEDMEDIA_VERSION', '0.1.3' );
 define( 'GATEDMEDIA_BASENAME', plugin_basename( __FILE__ ) );
 define( 'GATEDMEDIA_DIR_PATH', plugin_dir_path( __FILE__ ) );
 define( 'GATEDMEDIA_DIR_URL', plugin_dir_url( __FILE__ ) );
